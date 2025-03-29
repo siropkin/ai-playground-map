@@ -1,2 +1,2 @@
-# good-playground-map
-Playground map of Annapolis
+# playground-map
+Playground map
