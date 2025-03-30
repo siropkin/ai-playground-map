@@ -25,83 +25,81 @@ const filters = [
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
-      <div className="sticky top-0 z-10 flex w-full flex-col gap-4 bg-white px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between">
-          <h1 className="mr-4 pb-2 text-xl font-bold whitespace-nowrap">
-            Playground Map
-          </h1>
+      <div className="sticky top-0 z-10 flex w-full items-center justify-between gap-4 bg-white px-4 pt-4 pb-2">
+        <h1 className="mr-4 pb-2 text-xl font-bold whitespace-nowrap">
+          Playground Map
+        </h1>
 
-          <div className="scrollbar-hide hidden flex-grow gap-2 overflow-x-auto pb-2 md:flex">
-            {filters.map((filter, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                aria-label={filter.ariaLabel}
-              >
-                {filter.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuButton
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                aria-label="Filters"
-              >
-                <Sliders className="h-4 w-4" />
-              </DropdownMenuButton>
-              <DropdownMenuItems
-                anchor="bottom"
-                className="scrollbar-hide z-20 flex flex-col gap-2 overflow-y-hidden rounded-md border border-gray-300 bg-white p-4"
-              >
-                {filters.map((filter, index) => (
-                  <DropdownMenuItem key={index}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full"
-                      aria-label={filter.ariaLabel}
-                    >
-                      {filter.label}
-                    </Button>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuItems>
-            </DropdownMenu>
-          </div>
-
-          {/*<Button*/}
-          {/*  variant="outline"*/}
-          {/*  size="sm"*/}
-          {/*  className="rounded-full"*/}
-          {/*  aria-label="Saved playgrounds"*/}
-          {/*>*/}
-          {/*  <Heart className="h-4 w-4" />*/}
-          {/*  <span>Saved</span>*/}
-          {/*</Button>*/}
-
-          {/*<Link href="/profile">*/}
-          {/*  <Button*/}
-          {/*    variant="ghost"*/}
-          {/*    size="icon"*/}
-          {/*    aria-label="Go to profile"*/}
-          {/*    className="rounded-full"*/}
-          {/*  >*/}
-          {/*    <Image*/}
-          {/*      src="/avatar-placeholder.svg"*/}
-          {/*      alt="Profile"*/}
-          {/*      className="rounded-full"*/}
-          {/*      width={32}*/}
-          {/*      height={32}*/}
-          {/*    />*/}
-          {/*  </Button>*/}
-          {/*</Link>*/}
+        <div className="scrollbar-hide hidden flex-grow gap-2 overflow-x-auto pb-2 md:flex">
+          {filters.map((filter, index) => (
+            <Button
+              key={index}
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              aria-label={filter.ariaLabel}
+            >
+              {filter.label}
+            </Button>
+          ))}
         </div>
+
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuButton
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              aria-label="Filters"
+            >
+              <Sliders className="h-4 w-4" />
+            </DropdownMenuButton>
+            <DropdownMenuItems
+              anchor="bottom"
+              className="scrollbar-hide z-20 flex flex-col gap-2 overflow-y-hidden rounded-md border border-gray-300 bg-white p-4"
+            >
+              {filters.map((filter, index) => (
+                <DropdownMenuItem key={index}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    aria-label={filter.ariaLabel}
+                  >
+                    {filter.label}
+                  </Button>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuItems>
+          </DropdownMenu>
+        </div>
+
+        {/*<Button*/}
+        {/*  variant="outline"*/}
+        {/*  size="sm"*/}
+        {/*  className="rounded-full"*/}
+        {/*  aria-label="Saved playgrounds"*/}
+        {/*>*/}
+        {/*  <Heart className="h-4 w-4" />*/}
+        {/*  <span>Saved</span>*/}
+        {/*</Button>*/}
+
+        {/*<Link href="/profile">*/}
+        {/*  <Button*/}
+        {/*    variant="ghost"*/}
+        {/*    size="icon"*/}
+        {/*    aria-label="Go to profile"*/}
+        {/*    className="rounded-full"*/}
+        {/*  >*/}
+        {/*    <Image*/}
+        {/*      src="/avatar-placeholder.svg"*/}
+        {/*      alt="Profile"*/}
+        {/*      className="rounded-full"*/}
+        {/*      width={32}*/}
+        {/*      height={32}*/}
+        {/*    />*/}
+        {/*  </Button>*/}
+        {/*</Link>*/}
       </div>
 
       <div className="relative w-full flex-1">
