@@ -49,6 +49,7 @@ const DropdownMenuButton = React.forwardRef<
     />
   );
 });
+DropdownMenuButton.displayName = "DropdownMenuButton";
 
 export {
   Menu as DropdownMenu,
