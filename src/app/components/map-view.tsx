@@ -40,6 +40,7 @@ export default function MapView() {
         center: [lng, lat],
         zoom: zoom,
         type: "canvas",
+        attributionControl: false,
       });
 
       // Add markers for playgrounds
