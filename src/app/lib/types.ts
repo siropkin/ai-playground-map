@@ -9,15 +9,28 @@ export interface Playground {
   address: string;
   description: string;
   hours: string;
-  ageRange: string;
+  ages: string[];
   features: string[];
   access: "Free" | "Community" | "Paid";
   images: string[];
   rating: number;
   reviews: number;
   distance?: string;
-  location?: {
+  location: {
     lat: number;
     lng: number;
   };
+}
+
+export interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+export interface FilterState {
+  ages: string[];
+  access: string[];
+  features: string[];
 }

@@ -5,8 +5,6 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useTheme } from "next-themes";
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
 // Mock data for playground locations
 const playgroundLocations = [
   { id: 1, name: "Central Park Playground", lat: 40.7812, lng: -73.9665 },
@@ -27,6 +25,8 @@ export default function MapView() {
   useEffect(() => {
     // Initialize map only once
     if (map.current) return;
+
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
     // Ensure mapContainer exists
     if (!mapContainer.current) return;
