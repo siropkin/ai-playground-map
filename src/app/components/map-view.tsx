@@ -39,7 +39,6 @@ export default function MapView() {
             : "mapbox://styles/mapbox/dark-v11",
         center: [lng, lat],
         zoom: zoom,
-        type: "canvas",
         attributionControl: false,
       });
 
