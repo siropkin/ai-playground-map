@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
+import { FilterProvider } from "@/contexts/filters-context";
+import { PlaygroundsProvider } from "@/contexts/playgrounds-context";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +28,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <FilterProvider>
+            <PlaygroundsProvider>{children}</PlaygroundsProvider>
+          </FilterProvider>
         </ThemeProvider>
         <Analytics />
       </body>

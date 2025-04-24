@@ -1,12 +1,47 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { playgrounds } from "@/data/playgrounds";
+import { usePlaygrounds } from "@/contexts/playgrounds-context";
 
 export default function PlaygroundList() {
+  const { playgrounds, loading, error } = usePlaygrounds();
+
+  if (loading) {
+    return (
+      <div className="bg-background/95 rounded-lg p-4 text-center shadow-lg backdrop-blur-sm">
+        <p className="text-muted-foreground">Loading playgrounds...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-destructive/10 rounded-lg p-4 text-center shadow-lg backdrop-blur-sm">
+        <p className="text-destructive">{error}</p>
+        {/*<button*/}
+        {/*  onClick={playgrounds}*/}
+        {/*  className="text-primary mt-2 text-sm hover:underline"*/}
+        {/*>*/}
+        {/*  Try again*/}
+        {/*</button>*/}
+      </div>
+    );
+  }
+
+  if (playgrounds.length === 0) {
+    return (
+      <div className="bg-background/95 rounded-lg p-4 text-center shadow-lg backdrop-blur-sm">
+        <p className="text-muted-foreground">
+          No playgrounds match your filters
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-md space-y-4">
       {playgrounds.map((playground) => (
@@ -14,7 +49,7 @@ export default function PlaygroundList() {
           <Card className="bg-background/95 overflow-hidden shadow-lg backdrop-blur-sm">
             <div className="relative">
               <Image
-                src={playground.images[0] || "/playground-placeholder.svg"}
+                src={playground.images[0] || "/placeholders/playground.svg"}
                 alt={playground.name}
                 width={300}
                 height={200}
@@ -42,12 +77,17 @@ export default function PlaygroundList() {
               </div>
               <div className="mt-3 flex flex-wrap gap-1">
                 <Badge variant="outline">{playground.access}</Badge>
-                <Badge variant="outline">Ages {playground.ages}</Badge>
-                {playground.features.map((feature) => (
+                <Badge variant="outline">Ages {playground.ageRange}</Badge>
+                {playground.features.slice(0, 3).map((feature) => (
                   <Badge variant="outline" key={feature}>
                     {feature}
                   </Badge>
                 ))}
+                {playground.features.length > 3 && (
+                  <Badge variant="outline">
+                    +{playground.features.length - 3} more
+                  </Badge>
+                )}
               </div>
             </CardContent>
           </Card>
