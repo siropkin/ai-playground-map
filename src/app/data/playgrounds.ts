@@ -10,22 +10,6 @@ const PLAYGROUND_FEATURES_TABLE_NAME = "playground_features";
 const PLAYGROUND_AGE_RANGES_TABLE_NAME = "playground_age_ranges";
 const PLAYGROUND_IMAGES_TABLE_NAME = "playground_images";
 
-// export async function checkPlaygroundsDbSetup(): Promise<boolean> {
-//   try {
-//     const { error } = await supabase
-//       .from(PLAYGROUNDS_TABLE_NAME)
-//       .select("id")
-//       .limit(1);
-//     if (error) {
-//       throw error;
-//     }
-//     return true;
-//   } catch (error) {
-//     console.error("Error checking database setup:", error);
-//     return false;
-//   }
-// }
-
 export async function getPlaygroundsForBounds(
   bounds: MapBounds,
 ): Promise<Playground[]> {
@@ -166,6 +150,22 @@ export async function getPlaygroundsForBounds(
     return [];
   }
 }
+
+// export async function checkPlaygroundsDbSetup(): Promise<boolean> {
+//   try {
+//     const { error } = await supabase
+//       .from(PLAYGROUNDS_TABLE_NAME)
+//       .select("id")
+//       .limit(1);
+//     if (error) {
+//       throw error;
+//     }
+//     return true;
+//   } catch (error) {
+//     console.error("Error checking database setup:", error);
+//     return false;
+//   }
+// }
 
 // export async function getPlaygrounds(): Promise<Playground[]> {
 //   try {
