@@ -5,11 +5,7 @@ import PlaygroundList from "@/components/playground-list";
 import MapView from "@/components/map-view";
 import { FilterBottomSheet } from "@/components/filter-bottom-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
-// import FilterButton from "@/components/filter-button";
-import { getPlaygrounds, checkDatabaseSetup } from "@/actions";
 import { Suspense } from "react";
-import Link from "next/link";
-import { playgrounds as mockPlaygrounds } from "@/data/playgrounds";
 
 const filters = [
   { label: "Ages 0-3", ariaLabel: "Filter by ages 0-3" },
@@ -24,8 +20,6 @@ const filters = [
 ];
 
 export default async function Home() {
-  const isDbSetup = await checkDatabaseSetup();
-  const playgrounds = isDbSetup ? await getPlaygrounds() : mockPlaygrounds;
   return (
     <>
       <header className="bg-background">
@@ -59,13 +53,13 @@ export default async function Home() {
       </header>
 
       <main className="bg-background flex flex-1">
-        <div className="z-10 hidden max-h-[calc(100vh-80px)] overflow-y-auto md:block">
-          <div className="py-4">
-            <Suspense fallback={<div>Loading playgrounds...</div>}>
-              <PlaygroundList initialPlaygrounds={playgrounds} />
-            </Suspense>
-          </div>
-        </div>
+        {/*<div className="z-10 hidden max-h-[calc(100vh-80px)] overflow-y-auto md:block">*/}
+        {/*  <div className="py-4">*/}
+        {/*    <Suspense fallback={<div>Loading playgrounds...</div>}>*/}
+        {/*      <PlaygroundList />*/}
+        {/*    </Suspense>*/}
+        {/*  </div>*/}
+        {/*</div>*/}
 
         <div className="relative flex flex-1">
           <div className="absolute inset-0">
@@ -76,7 +70,7 @@ export default async function Home() {
                 </div>
               }
             >
-              <MapView initialPlaygrounds={playgrounds} />
+              <MapView />
             </Suspense>
           </div>
 

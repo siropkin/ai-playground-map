@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MapViewSingle from "@/components/map-view-single";
-import { playgrounds } from "@/data/playgrounds";
-import type { Playground } from "@/lib/types";
+import { mockPlaygrounds } from "@/data/mockPlaygrounds";
+import type { Playground } from "@/types/types";
 
 export default function PlaygroundDetail({
   params,
@@ -20,7 +20,7 @@ export default function PlaygroundDetail({
 
   useEffect(() => {
     // Find the playground by ID
-    const foundPlayground = playgrounds.find(
+    const foundPlayground = mockPlaygrounds.find(
       (p) => p.id === Number.parseInt(params.id),
     );
     setPlayground(foundPlayground || null);

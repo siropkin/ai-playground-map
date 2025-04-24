@@ -1,6 +1,6 @@
 "use client";
 
-import type { Playground } from "@/lib/types";
+import type { Playground } from "@/types/types";
 import {
   createContext,
   type ReactNode,
@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import { useFilters } from "@/contexts/filters-context";
-import { filterPlaygroundsByBounds } from "@/actions";
+import { getPlaygroundsForBounds } from "@/data/playgrounds";
 
 interface PlaygroundsContextType {
   playgrounds: Playground[];
@@ -25,6 +25,7 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
 
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const { filters, mapBounds } = useFilters();
+
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +42,37 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
-        console.log(mapBounds);
         if (mapBounds) {
-          const filtered = await filterPlaygroundsByBounds(mapBounds, filters);
+          const playgroundsForBounds = await getPlaygroundsForBounds(mapBounds);
+
+          const filtered = playgroundsForBounds.filter((playground) => {
+            // Filter by age range
+            if (filters.ageRanges && filters.ageRanges.length > 0) {
+              const hasAllAgeRanges = filters.ageRanges.every((ageRange) =>
+                playground.ageRanges.includes(ageRange),
+              );
+              if (!hasAllAgeRanges) return false;
+            }
+
+            // Filter by features
+            if (filters.features && filters.features.length > 0) {
+              const hasAllFeatures = filters.features.every((feature) =>
+                playground.features.includes(feature),
+              );
+              if (!hasAllFeatures) return false;
+            }
+
+            // Filter by access
+            if (filters.accesses && filters.accesses.length > 0) {
+              const hasAllAccesses = filters.accesses.every(
+                (access) => playground.access === access,
+              );
+              if (!hasAllAccesses) return false;
+            }
+
+            return true;
+          });
+          console.log(filtered);
           setPlaygrounds(filtered);
         }
       } catch (err) {

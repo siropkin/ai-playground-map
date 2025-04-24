@@ -7,11 +7,11 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { FilterState, MapBounds } from "@/lib/types";
+import type { FilterState, MapBounds } from "@/types/types";
 import {
   getFilterStateFromUrl,
   updateUrlWithFilters,
-} from "@/lib/filter-utils";
+} from "@/lib/filters-utils";
 
 interface FiltersContextType {
   filters: FilterState;

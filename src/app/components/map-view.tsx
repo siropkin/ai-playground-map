@@ -4,76 +4,86 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useTheme } from "next-themes";
+import { useFilters } from "@/contexts/filters-context";
+import { usePlaygrounds } from "@/contexts/playgrounds-context";
+import { PlaygroundMarker } from "@/components/playground-marker";
 
-// Mock data for playground locations
-const playgroundLocations = [
-  { id: 1, name: "Central Park Playground", lat: 40.7812, lng: -73.9665 },
-  { id: 2, name: "Riverside Playground", lat: 40.8013, lng: -73.971 },
-  { id: 3, name: "Community Garden Playground", lat: 40.7648, lng: -73.9808 },
-  { id: 4, name: "Adventure Playground", lat: 40.758, lng: -73.9855 },
-];
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
+
+const DEFAULT_CENTER: [number, number] = [-73.9712, 40.7831]; // New York City
+const DEFAULT_ZOOM = 12;
+
+const getMapBounds = (map: mapboxgl.Map | null) => {
+  if (!map) {
+    return {
+      south: 0,
+      north: 0,
+      west: 0,
+      east: 0,
+    };
+  }
+
+  const bounds = map.getBounds();
+  if (!bounds) {
+    return {
+      south: 0,
+      north: 0,
+      west: 0,
+      east: 0,
+    };
+  }
+
+  return {
+    south: bounds.getSouth(),
+    north: bounds.getNorth(),
+    west: bounds.getWest(),
+    east: bounds.getEast(),
+  };
+};
 
 export default function MapView() {
   const { theme } = useTheme();
+  const { setMapBounds } = useFilters();
+  const { playgrounds } = usePlaygrounds();
 
-  const mapContainer = useRef<HTMLDivElement | null>(null);
+  const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [lng, setLng] = useState(-73.9712);
-  const [lat, setLat] = useState(40.7831);
-  const [zoom, setZoom] = useState(12);
 
   useEffect(() => {
-    // Initialize map only once
-    if (map.current) return;
+    if (map.current) {
+      return;
+    }
 
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
+    if (!mapContainer) {
+      return;
+    }
 
-    // Ensure mapContainer exists
-    if (!mapContainer.current) return;
     try {
       map.current = new mapboxgl.Map({
-        container: mapContainer.current,
+        container: mapContainer,
         style:
           theme === "light"
             ? "mapbox://styles/mapbox/light-v11"
             : "mapbox://styles/mapbox/dark-v11",
-        center: [lng, lat],
-        zoom: zoom,
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
         attributionControl: false,
       });
 
-      // Add markers for playgrounds
-      playgroundLocations.forEach((playground) => {
-        if (map.current) {
-          new mapboxgl.Marker({ color: "#ef4444" })
-            .setLngLat([playground.lng, playground.lat])
-            .setPopup(
-              new mapboxgl.Popup().setHTML(`<h3>${playground.name}</h3>`),
-            )
-            .addTo(map.current);
-        }
+      map.current.on("move", () => {
+        setMapBounds(getMapBounds(map.current));
       });
 
-      // Update state when map moves
-      map.current.on("move", () => {
-        if (map.current) {
-          setLng(parseFloat(map.current.getCenter().lng.toFixed(4)));
-          setLat(parseFloat(map.current.getCenter().lat.toFixed(4)));
-          setZoom(parseFloat(map.current.getZoom().toFixed(2)));
-        }
-      });
+      setMapBounds(getMapBounds(map.current));
     } catch (error) {
       console.error("Error initializing map:", error);
     }
 
     return () => {
-      if (map.current) {
-        map.current.remove();
-      }
+      map.current?.remove();
     };
-  }, []);
+  }, [mapContainer]);
 
-  // change map style on theme change
   useEffect(() => {
     if (map.current) {
       map.current.setStyle(
@@ -84,5 +94,16 @@ export default function MapView() {
     }
   }, [theme]);
 
-  return <div ref={mapContainer} className="h-full w-full" />;
+  return (
+    <>
+      <div ref={setMapContainer} className="h-full w-full" />
+      {playgrounds.map((playground) => (
+        <PlaygroundMarker
+          key={playground.id}
+          map={map.current}
+          playground={playground}
+        />
+      ))}
+    </>
+  );
 }

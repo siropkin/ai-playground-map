@@ -11,7 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { FilterButton } from "@/lib/types";
+import { FilterButton } from "@/types/types";
 
 export function FilterBottomSheet({ filters }: { filters: FilterButton[] }) {
   const [open, setOpen] = useState(false);
