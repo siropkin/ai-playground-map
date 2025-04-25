@@ -19,6 +19,12 @@ const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
 const DEFAULT_CENTER: [number, number] = [-73.9712, 40.7831]; // New York City
 const DEFAULT_ZOOM = 12;
 
+const getMapTheme = (theme: string | undefined) => {
+  return theme === "light"
+    ? "mapbox://styles/mapbox/light-v9"
+    : "mapbox://styles/mapbox/dark-v9";
+};
+
 const getMapBounds = (map: mapboxgl.Map | null) => {
   if (!map) {
     return { south: 0, north: 0, west: 0, east: 0 };
@@ -178,11 +184,7 @@ export function MapView() {
 
   const setMapStyle = useCallback(
     (currentMap: mapboxgl.Map, currentTheme: string | undefined) => {
-      currentMap.setStyle(
-        currentTheme === "light"
-          ? "mapbox://styles/mapbox/light-v11"
-          : "mapbox://styles/mapbox/dark-v11",
-      );
+      currentMap.setStyle(getMapTheme(currentTheme));
     },
     [],
   );
@@ -195,10 +197,7 @@ export function MapView() {
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer,
-        style:
-          theme === "light"
-            ? "mapbox://styles/mapbox/light-v11"
-            : "mapbox://styles/mapbox/dark-v11",
+        style: getMapTheme(theme),
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
         attributionControl: false,
