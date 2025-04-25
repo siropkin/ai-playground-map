@@ -7,7 +7,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { FilterCriteria, GeographicBounds } from "@/types/types";
+import type { FilterCriteria, MapBounds } from "@/types/types";
 import {
   getFilterStateFromUrl,
   updateUrlWithFilters,
@@ -15,8 +15,8 @@ import {
 
 interface FiltersContextType {
   filters: FilterCriteria;
-  mapBounds: GeographicBounds | null;
-  setMapBounds: (bounds: GeographicBounds) => void;
+  mapBounds: MapBounds | null;
+  setMapBounds: (bounds: MapBounds) => void;
   toggleAgeRange: (ageRange: string) => void;
   toggleAccess: (access: string) => void;
   toggleFeature: (feature: string) => void;
@@ -32,7 +32,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     access: [],
     features: [],
   });
-  const [mapBounds, setMapBounds] = useState<GeographicBounds | null>(null);
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize filters from URL on client-side

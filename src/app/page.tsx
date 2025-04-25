@@ -1,11 +1,10 @@
 import { MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-// import PlaygroundList from "@/components/playground-list";
-import MapView from "@/components/map-view";
+import { PlaygroundList } from "@/components/playground-list";
+import { MapView } from "@/components/map-view";
 import { FilterBottomSheet } from "@/components/filter-bottom-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Suspense } from "react";
 
 const filters = [
   { label: "Ages 0-3", ariaLabel: "Filter by ages 0-3" },
@@ -19,7 +18,7 @@ const filters = [
   { label: "Restrooms", ariaLabel: "Filter by restrooms" },
 ];
 
-export default async function Home() {
+export default function Home() {
   return (
     <>
       <header className="bg-background">
@@ -54,25 +53,15 @@ export default async function Home() {
       </header>
 
       <main className="bg-background flex flex-1">
-        {/*<div className="z-10 hidden max-h-[calc(100vh-80px)] overflow-y-auto md:block">*/}
-        {/*  <div className="py-4">*/}
-        {/*    <Suspense fallback={<div>Loading playgrounds...</div>}>*/}
-        {/*      <PlaygroundList />*/}
-        {/*    </Suspense>*/}
-        {/*  </div>*/}
-        {/*</div>*/}
-
         <div className="relative flex flex-1">
+          <div className="absolute top-0 left-0 z-10 hidden max-h-[calc(100vh-80px)] max-w-md overflow-y-auto md:block">
+            <div className="py-2 pr-2 pl-6">
+              <PlaygroundList />
+            </div>
+          </div>
+
           <div className="absolute inset-0">
-            <Suspense
-              fallback={
-                <div className="flex h-full w-full items-center justify-center">
-                  Loading map...
-                </div>
-              }
-            >
-              <MapView />
-            </Suspense>
+            <MapView />
           </div>
 
           <div className="absolute right-4 bottom-4 z-10">

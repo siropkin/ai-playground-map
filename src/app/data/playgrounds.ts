@@ -1,7 +1,7 @@
 "use server";
 
 import { supabaseClient as supabase } from "@/lib/supabaseClient";
-import type { GeographicBounds, PlaygroundDetails } from "@/types/types";
+import type { MapBounds, PlaygroundDetails } from "@/types/types";
 import { getFeatures } from "@/data/features";
 import { getAges } from "@/data/ages";
 
@@ -11,7 +11,7 @@ const PLAYGROUND_FEATURES_TABLE_NAME = "playground_features";
 const PLAYGROUND_IMAGES_TABLE_NAME = "playground_images";
 
 export async function getPlaygroundsForBounds(
-  bounds: GeographicBounds,
+  bounds: MapBounds,
 ): Promise<PlaygroundDetails[]> {
   try {
     const { data: playgroundsData, error: playgroundsError } = await supabase

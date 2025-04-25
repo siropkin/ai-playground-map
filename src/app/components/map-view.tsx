@@ -51,7 +51,7 @@ const createGeoJson = (
   };
 };
 
-export default function MapView() {
+export function MapView() {
   const { theme } = useTheme();
   const { setMapBounds } = useFilters();
   const { playgrounds } = usePlaygrounds();
@@ -65,8 +65,7 @@ export default function MapView() {
   }, [playgrounds]);
 
   const addMapDataLayers = useCallback(
-    (currentMap: mapboxgl.Map, currentTheme: string | undefined) => {
-      // TODO: Theme change do not trigger re-render
+    (currentMap: mapboxgl.Map | null, currentTheme: string | undefined) => {
       if (!currentMap) {
         return;
       }
@@ -190,7 +189,7 @@ export default function MapView() {
 
   useEffect(() => {
     if (map.current || !mapContainer) {
-      return;
+      return undefined;
     }
 
     try {
@@ -225,9 +224,20 @@ export default function MapView() {
   }, [mapContainer, theme, setMapBounds]);
 
   useEffect(() => {
+    let timeout: NodeJS.Timeout;
     if (map.current && isMapLoaded) {
-      addMapDataLayers(map.current, theme);
+      const waiting = () => {
+        if (!map.current!.isStyleLoaded()) {
+          timeout = setTimeout(waiting, 200);
+        } else {
+          addMapDataLayers(map.current, theme);
+        }
+      };
+      waiting();
     }
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [isMapLoaded, theme, addMapDataLayers]);
 
   useEffect(() => {
