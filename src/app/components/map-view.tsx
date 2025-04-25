@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import type { FeatureCollection, Point } from "geojson";
 import { useTheme } from "next-themes";
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
@@ -10,14 +11,13 @@ import type { PlaygroundDetails } from "@/types/types";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
-const DEFAULT_CENTER: [number, number] = [-73.9712, 40.7831]; // New York City
-const DEFAULT_ZOOM = 12;
-
 const SOURCE_ID = "playgrounds";
 const CLUSTER_LAYER_ID = "clusters";
 const CLUSTER_COUNT_LAYER_ID = "cluster-count";
 const UNCLUSTERED_POINT_LAYER_ID = "unclustered-point";
 const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
+const DEFAULT_CENTER: [number, number] = [-73.9712, 40.7831]; // New York City
+const DEFAULT_ZOOM = 12;
 
 const getMapBounds = (map: mapboxgl.Map | null) => {
   if (!map) {
@@ -32,7 +32,9 @@ const getMapBounds = (map: mapboxgl.Map | null) => {
   };
 };
 
-const createGeoJson = (playgrounds: PlaygroundDetails[]) => {
+const createGeoJson = (
+  playgrounds: PlaygroundDetails[],
+): FeatureCollection<Point, { id: number; name: string }> => {
   return {
     type: "FeatureCollection",
     features: playgrounds.map((pg) => ({
@@ -84,7 +86,9 @@ export default function MapView() {
           clusterRadius: 15,
         });
       } else {
-        currentMap.getSource(SOURCE_ID)!.setData(playgroundsGeoJson());
+        (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
+          playgroundsGeoJson(),
+        );
       }
 
       // Layer for Clusters (Circles)
