@@ -1,4 +1,4 @@
-import { supabaseClient as supabase } from "@/lib/supabaseClient";
+import { supabase as supabase } from "@/lib/supabase";
 import { PlaygroundFeature } from "@/types/types";
 
 const FEATURES_TABLE_NAME = "features";

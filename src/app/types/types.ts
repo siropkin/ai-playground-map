@@ -6,16 +6,17 @@ export interface PlaygroundDetails {
   id: number;
   name: string;
   description: string;
-  hours: string;
-  access: AccessLevel;
   address: string;
   location: {
     lat: number;
     lng: number;
   };
+  images: string[];
+  // TODO: Move to tags
+  hours: string;
+  access: AccessLevel;
   ages: AgeGroup[];
   features: string[];
-  images: string[];
 }
 
 export interface PlaygroundFeature {

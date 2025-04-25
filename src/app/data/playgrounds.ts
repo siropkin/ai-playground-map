@@ -1,6 +1,6 @@
 "use server";
 
-import { supabaseClient as supabase } from "@/lib/supabaseClient";
+import { supabase as supabase } from "@/lib/supabase";
 import type { MapBounds, PlaygroundDetails } from "@/types/types";
 import { getFeatures } from "@/data/features";
 import { getAges } from "@/data/ages";

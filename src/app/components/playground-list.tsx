@@ -21,7 +21,7 @@ export function PlaygroundList() {
           <Card className="bg-background/95 overflow-hidden shadow-lg backdrop-blur-sm">
             <div className="relative">
               <Image
-                src={playground.images[0] || "/placeholders/playground.svg"}
+                src={playground.images[0] || "images/playground.jpg"}
                 alt={playground.name}
                 width={300}
                 height={200}
