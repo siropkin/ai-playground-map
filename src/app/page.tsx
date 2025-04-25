@@ -24,7 +24,7 @@ export default function Home() {
       <header className="bg-background">
         <nav className="flex items-center justify-between space-x-2 border-b p-4">
           <div>
-            <h1 className="text-xl font-bold">Playground Map</h1>
+            <h1 className="text-xl font-bold uppercase">Playground Map</h1>
             <h4 className="text-xs whitespace-nowrap">
               Find the best playgrounds for kids near you
             </h4>
