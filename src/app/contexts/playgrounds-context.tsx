@@ -1,12 +1,13 @@
 "use client";
 
-import type { Playground } from "@/types/types";
+import type { PlaygroundDetails } from "@/types/types";
 import {
   createContext,
   type ReactNode,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -14,7 +15,7 @@ import { useFilters } from "@/contexts/filters-context";
 import { getPlaygroundsForBounds } from "@/data/playgrounds";
 
 interface PlaygroundsContextType {
-  playgrounds: Playground[];
+  playgrounds: PlaygroundDetails[];
   loading: boolean;
   error: string | null;
 }
@@ -26,7 +27,7 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const { filters, mapBounds } = useFilters();
 
-  const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
+  const [playgrounds, setPlaygrounds] = useState<PlaygroundDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,36 +45,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       try {
         if (mapBounds) {
           const playgroundsForBounds = await getPlaygroundsForBounds(mapBounds);
-
-          const filtered = playgroundsForBounds.filter((playground) => {
-            // Filter by age range
-            if (filters.ageRanges && filters.ageRanges.length > 0) {
-              const hasAllAgeRanges = filters.ageRanges.every((ageRange) =>
-                playground.ageRanges.includes(ageRange),
-              );
-              if (!hasAllAgeRanges) return false;
-            }
-
-            // Filter by features
-            if (filters.features && filters.features.length > 0) {
-              const hasAllFeatures = filters.features.every((feature) =>
-                playground.features.includes(feature),
-              );
-              if (!hasAllFeatures) return false;
-            }
-
-            // Filter by access
-            if (filters.accesses && filters.accesses.length > 0) {
-              const hasAllAccesses = filters.accesses.every(
-                (access) => playground.access === access,
-              );
-              if (!hasAllAccesses) return false;
-            }
-
-            return true;
-          });
-          console.log(filtered);
-          setPlaygrounds(filtered);
+          setPlaygrounds(playgroundsForBounds);
         }
       } catch (err) {
         console.error("Error fetching playgrounds:", err);
@@ -82,7 +54,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     }, 500);
-  }, [filters, mapBounds]);
+  }, [mapBounds]);
 
   useEffect(() => {
     debouncedFetchPlaygrounds();
@@ -94,10 +66,42 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     };
   }, [debouncedFetchPlaygrounds]);
 
+  const filteredPlaygrounds = useMemo(
+    () =>
+      playgrounds.filter((playground) => {
+        // Filter by access
+        if (filters.accesses && filters.accesses.length > 0) {
+          const hasAllAccesses = filters.accesses.every(
+            (access) => playground.access === access,
+          );
+          if (!hasAllAccesses) return false;
+        }
+
+        // Filter by ages
+        if (filters.ages && filters.ages.length > 0) {
+          const hasAllAgeRanges = filters.ages.every((ageRange) =>
+            playground.ages.includes(ageRange),
+          );
+          if (!hasAllAgeRanges) return false;
+        }
+
+        // Filter by features
+        if (filters.features && filters.features.length > 0) {
+          const hasAllFeatures = filters.features.every((feature) =>
+            playground.features.includes(feature),
+          );
+          if (!hasAllFeatures) return false;
+        }
+
+        return true;
+      }),
+    [playgrounds, filters],
+  );
+
   return (
     <PlaygroundsContext.Provider
       value={{
-        playgrounds,
+        playgrounds: filteredPlaygrounds,
         loading,
         error,
       }}

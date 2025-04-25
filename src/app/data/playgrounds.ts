@@ -1,18 +1,18 @@
 "use server";
 
 import { supabaseClient as supabase } from "@/lib/supabaseClient";
-import type { MapBounds, Playground } from "@/types/types";
+import type { GeographicBounds, PlaygroundDetails } from "@/types/types";
 import { getFeatures } from "@/data/features";
-import { getAgeRanges } from "@/data/ageRanges";
+import { getAges } from "@/data/ages";
 
 const PLAYGROUNDS_TABLE_NAME = "playgrounds";
+const PLAYGROUND_AGEsS_TABLE_NAME = "playground_ages";
 const PLAYGROUND_FEATURES_TABLE_NAME = "playground_features";
-const PLAYGROUND_AGE_RANGES_TABLE_NAME = "playground_age_ranges";
 const PLAYGROUND_IMAGES_TABLE_NAME = "playground_images";
 
 export async function getPlaygroundsForBounds(
-  bounds: MapBounds,
-): Promise<Playground[]> {
+  bounds: GeographicBounds,
+): Promise<PlaygroundDetails[]> {
   try {
     const { data: playgroundsData, error: playgroundsError } = await supabase
       .from(PLAYGROUNDS_TABLE_NAME)
@@ -29,6 +29,7 @@ export async function getPlaygroundsForBounds(
     if (!playgroundsData?.length) {
       return [];
     }
+
     // Create a map to store the complete playground objects
     const playgroundsMap = new Map(
       playgroundsData.map((p) => [
@@ -36,52 +37,47 @@ export async function getPlaygroundsForBounds(
         {
           id: p.id,
           name: p.name,
-          address: p.address,
           description: p.description,
           hours: p.hours,
-          ageRanges: [],
-          features: [],
           access: p.access,
-          images: [],
-          rating: p.rating,
-          reviews: p.reviews,
+          address: p.address,
           location: {
             lat: p.lat,
             lng: p.lng,
           },
-        } as Playground,
+          ages: [],
+          features: [],
+          images: [],
+        } as PlaygroundDetails,
       ]),
     );
 
     // Get all features
-    const ageRanges = await getAgeRanges();
-    console.log("ageRanges", ageRanges);
+    const ages = await getAges();
+
     // Create a map of feature IDs to names
-    const ageRangesMap = new Map(
-      ageRanges ? ageRanges.map((ar) => [ar.id, ar.name]) : [],
-    );
+    const agesMap = new Map(ages ? ages.map((ar) => [ar.id, ar.name]) : []);
 
     // Get all playground age ranges
-    const { data: ageRangesJunctionData, error: ageRangesJunctionError } =
-      await supabase
-        .from(PLAYGROUND_AGE_RANGES_TABLE_NAME)
-        .select("playground_id, age_range_id")
-        .in(
-          "playground_id",
-          playgroundsData.map((p) => p.id),
-        );
+    const { data: agesJunctionData, error: agesJunctionError } = await supabase
+      .from(PLAYGROUND_AGEsS_TABLE_NAME)
+      .select("playground_id, age_id")
+      .in(
+        "playground_id",
+        playgroundsData.map((p) => p.id),
+      );
 
-    if (ageRangesJunctionError) {
-      throw ageRangesJunctionError;
+    if (agesJunctionError) {
+      throw agesJunctionError;
     }
 
     // Add age ranges to their respective playgrounds
-    if (ageRangesJunctionData) {
-      ageRangesJunctionData.forEach((ageRange) => {
+    if (agesJunctionData) {
+      agesJunctionData.forEach((ageRange) => {
         const playground = playgroundsMap.get(ageRange.playground_id);
-        const ageRangeName = ageRangesMap.get(ageRange.age_range_id);
+        const ageRangeName = agesMap.get(ageRange.age_id);
         if (playground && ageRangeName) {
-          playground.ageRanges.push(ageRangeName);
+          playground.ages.push(ageRangeName);
         }
       });
     }
@@ -193,8 +189,6 @@ export async function getPlaygroundsForBounds(
 //           hours: p.hours,
 //           ageRange: p.age_range,
 //           access: p.access,
-//           rating: p.rating,
-//           reviews: p.reviews,
 //           features: [],
 //           images: [],
 //           location: {
@@ -320,8 +314,6 @@ export async function getPlaygroundsForBounds(
 //       hours: playground.hours,
 //       ageRange: playground.age_range,
 //       access: playground.access,
-//       rating: playground.rating,
-//       reviews: playground.reviews,
 //       features: featuresData.map((f) => f.name),
 //       images: imagesData.map((img) => img.image_url),
 //       location: {
@@ -351,8 +343,6 @@ export async function getPlaygroundsForBounds(
 //         hours: formData.hours,
 //         age_range: formData.ageRange,
 //         access: formData.access,
-//         rating: formData.rating || 0,
-//         reviews: 0,
 //         lat: formData.lat,
 //         lng: formData.lng,
 //       })
@@ -433,7 +423,6 @@ export async function getPlaygroundsForBounds(
 //         hours: formData.hours,
 //         age_range: formData.ageRange,
 //         access: formData.access,
-//         rating: formData.rating,
 //         lat: formData.lat,
 //         lng: formData.lng,
 //       })

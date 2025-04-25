@@ -11,16 +11,17 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { FilterButton } from "@/types/types";
+import { FilterOption } from "@/types/types";
 
-export function FilterBottomSheet({ filters }: { filters: FilterButton[] }) {
+export function FilterBottomSheet({ filters }: { filters: FilterOption[] }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Filters">
+        <Button variant="outline" aria-label="Filters">
           <Sliders className="h-4 w-4" />
+          Filters
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-[80vh] rounded-t-xl">

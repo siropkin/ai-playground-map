@@ -1,6 +1,6 @@
-import type { FilterState } from "@/types/types";
+import type { FilterCriteria } from "@/types/types";
 
-export function getFilterStateFromUrl(): FilterState {
+export function getFilterStateFromUrl(): FilterCriteria {
   if (typeof window === "undefined") {
     return { ageRanges: [], access: [], features: [] };
   }
@@ -14,7 +14,7 @@ export function getFilterStateFromUrl(): FilterState {
   };
 }
 
-export function updateUrlWithFilters(filters: FilterState) {
+export function updateUrlWithFilters(filters: FilterCriteria) {
   if (typeof window === "undefined") {
     return;
   }

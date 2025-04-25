@@ -1,67 +1,60 @@
-export interface FilterButton {
+export interface FilterOption {
   label: string;
   ariaLabel: string;
 }
 
-export type AgeRangeType =
-  | "6-23 months"
-  | "2-5 years"
-  | "5-12 years"
-  | "13+ years";
+export type AgeGroup = "6-23 months" | "2-5 years" | "5-12 years" | "13+ years";
 
-export type AccessType = "Free" | "Community" | "Paid";
+export type AccessLevel = "Free" | "Community" | "Paid";
 
-export interface Playground {
+export interface PlaygroundDetails {
   id: number;
   name: string;
-  address: string;
   description: string;
   hours: string;
-  ageRanges: AgeRangeType[];
-  features: string[];
-  access: AccessType;
-  images: string[];
-  rating: number;
-  reviews: number;
+  access: AccessLevel;
+  address: string;
   location: {
     lat: number;
     lng: number;
   };
+  ages: AgeGroup[];
+  features: string[];
+  images: string[];
 }
 
-export interface MapBounds {
+export interface GeographicBounds {
   north: number;
   south: number;
   east: number;
   west: number;
 }
 
-export interface FilterState {
-  ageRanges: AgeRangeType[];
-  accesses: AccessType[];
+export interface FilterCriteria {
+  accesses: AccessLevel[];
+  ages: AgeGroup[];
   features: string[];
 }
 
-export interface PlaygroundFormData {
-  name: string;
-  address: string;
-  description: string;
-  hours: string;
-  ageRanges: AgeRangeType[];
-  access: AccessType;
-  features: string[];
-  images: string[];
-  rating: number;
-  lat: number;
-  lng: number;
-}
+// export interface PlaygroundFormData {
+//   name: string;
+//   description: string;
+//   hours: string;
+//   access: AccessType;
+//   address: string;
+//   lat: number;
+//   lng: number;
+//   ages: AgeType[];
+//   features: string[];
+//   images: string[];
+// }
 
-export interface Feature {
+export interface PlaygroundFeature {
   id: number;
   name: string;
 }
 
-export interface AgeRange {
+export interface PlaygroundAge {
   id: number;
-  name: AgeRangeType;
+  name: AgeGroup;
 }

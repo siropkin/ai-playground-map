@@ -1,7 +1,7 @@
 import { MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import PlaygroundList from "@/components/playground-list";
+// import PlaygroundList from "@/components/playground-list";
 import MapView from "@/components/map-view";
 import { FilterBottomSheet } from "@/components/filter-bottom-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -23,20 +23,19 @@ export default async function Home() {
   return (
     <>
       <header className="bg-background">
-        <nav className="flex items-center justify-between border-b p-4">
+        <nav className="flex items-center justify-between space-x-2 border-b p-4">
           <div>
             <h1 className="text-xl font-bold">Playground Map</h1>
-            <h4 className="text-xs">
+            <h4 className="text-xs whitespace-nowrap">
               Find the best playgrounds for kids near you
             </h4>
           </div>
 
-          <div className="scrollbar-hide hidden space-x-2 overflow-x-auto md:flex">
+          <div className="hidden space-x-2 overflow-x-auto md:flex">
             {filters.map((filter, index) => (
               <Button
                 key={index}
                 variant="outline"
-                size="sm"
                 aria-label={filter.ariaLabel}
               >
                 {filter.label}
@@ -48,7 +47,9 @@ export default async function Home() {
             <FilterBottomSheet filters={filters} />
           </div>
 
-          <ThemeToggle />
+          <div>
+            <ThemeToggle />
+          </div>
         </nav>
       </header>
 
@@ -75,23 +76,9 @@ export default async function Home() {
           </div>
 
           <div className="absolute right-4 bottom-4 z-10">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden md:flex"
-              aria-label="Filter by near me"
-            >
+            <Button variant="outline" aria-label="Filter by near me">
               <MapPin className="h-4 w-4" />
               <span>Near me</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              className="md:hidden"
-              aria-label="Filter by near me"
-            >
-              <MapPin className="h-4 w-4" />
             </Button>
           </div>
         </div>

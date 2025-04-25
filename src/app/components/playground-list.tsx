@@ -59,14 +59,6 @@ export default function PlaygroundList() {
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <h3 className="text-lg font-semibold">{playground.name}</h3>
-                <div className="flex items-center">
-                  <span className="text-sm font-medium">
-                    {playground.rating}
-                  </span>
-                  <span className="text-muted-foreground ml-1 text-xs">
-                    ({playground.reviews})
-                  </span>
-                </div>
               </div>
               <div className="text-muted-foreground mt-1 flex items-center text-sm">
                 <MapPin className="mr-1 h-3.5 w-3.5 flex-shrink-0" />

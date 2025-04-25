@@ -1,13 +1,13 @@
 import { supabaseClient as supabase } from "@/lib/supabaseClient";
-import { Feature } from "@/types/types";
+import { PlaygroundFeature } from "@/types/types";
 
 const FEATURES_TABLE_NAME = "features";
 
 // Cache for features
-let cachedFeatures: Feature[] | null = null;
+let cachedFeatures: PlaygroundFeature[] | null = null;
 
 // Get all features
-export async function getFeatures(): Promise<Feature[]> {
+export async function getFeatures(): Promise<PlaygroundFeature[]> {
   if (!!cachedFeatures?.length) {
     return cachedFeatures;
   }

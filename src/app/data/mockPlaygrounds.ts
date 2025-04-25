@@ -1,7 +1,7 @@
-import type { Playground } from "@/types/types";
+import type { PlaygroundDetails } from "@/types/types";
 
 // Mock data for playgrounds
-export const mockPlaygrounds: Playground[] = [
+export const mockPlaygrounds: PlaygroundDetails[] = [
   {
     id: 1,
     name: "Central Park Playground",
@@ -9,10 +9,7 @@ export const mockPlaygrounds: Playground[] = [
     description:
       "A beautiful playground located in the heart of Central Park. Features multiple play areas for different age groups, with modern equipment and safety surfaces throughout.",
     hours: "6:00 AM - 10:00 PM",
-    distance: "0.5 miles",
-    rating: 4.8,
-    reviews: 124,
-    ageRanges: ["2-5 years", "5-12 years"],
+    ages: ["2-5 years", "5-12 years"],
     features: ["Swings", "Slides", "Sand"],
     access: "Free",
     images: [
@@ -33,10 +30,7 @@ export const mockPlaygrounds: Playground[] = [
     description:
       "A riverside playground with beautiful views and modern equipment. Great for younger children with gentle play structures.",
     hours: "7:00 AM - 8:00 PM",
-    distance: "0.8 miles",
-    rating: 4.5,
-    reviews: 89,
-    ageRanges: ["2-5 years", "5-12 years"],
+    ages: ["2-5 years", "5-12 years"],
     features: ["Swings", "Slides"],
     access: "Free",
     images: [
@@ -55,10 +49,7 @@ export const mockPlaygrounds: Playground[] = [
     description:
       "A community-maintained playground surrounded by gardens. Offers a natural play environment with sand areas and climbing structures.",
     hours: "8:00 AM - 7:00 PM",
-    distance: "1.2 miles",
-    rating: 4.2,
-    reviews: 56,
-    ageRanges: ["2-5 years", "5-12 years"],
+    ages: ["2-5 years", "5-12 years"],
     features: ["Slides", "Sand"],
     access: "Community",
     images: [
@@ -77,10 +68,7 @@ export const mockPlaygrounds: Playground[] = [
     description:
       "An adventure-themed playground with challenging climbing structures and exciting slides. Perfect for older children looking for more adventurous play.",
     hours: "9:00 AM - 9:00 PM",
-    distance: "1.5 miles",
-    rating: 4.9,
-    reviews: 210,
-    ageRanges: ["2-5 years", "5-12 years"],
+    ages: ["2-5 years", "5-12 years"],
     features: ["Swings", "Slides", "Climbing"],
     access: "Paid",
     images: [
