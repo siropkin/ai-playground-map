@@ -218,7 +218,7 @@ export default function MapView() {
       map.current = null;
       setIsMapLoaded(false);
     };
-  }, [mapContainer]);
+  }, [mapContainer, theme, setMapBounds]);
 
   useEffect(() => {
     if (map.current && isMapLoaded) {
