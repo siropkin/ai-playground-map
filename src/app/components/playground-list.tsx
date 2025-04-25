@@ -19,14 +19,16 @@ export function PlaygroundList() {
       {playgrounds.map((playground) => (
         <Link href={`/playground/${playground.id}`} key={playground.id}>
           <Card className="bg-background/95 overflow-hidden shadow-lg backdrop-blur-sm">
-            <div className="relative">
-              <Image
-                src={playground.images[0] || "images/playground.jpg"}
-                alt={playground.name}
-                width={300}
-                height={200}
-                className="h-48 w-full object-cover"
-              />
+            <div className="relative h-48 w-full bg-zinc-400">
+              {playground.images[0] && (
+                <Image
+                  src={playground.images[0]}
+                  alt={playground.name}
+                  width={300}
+                  height={200}
+                  className="h-full w-full object-cover"
+                />
+              )}
             </div>
             <CardContent className="p-4">
               <div className="flex items-start justify-between">

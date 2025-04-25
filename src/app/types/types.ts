@@ -12,11 +12,19 @@ export interface PlaygroundDetails {
     lng: number;
   };
   images: string[];
-  // TODO: Move to tags
+  // TODO: Move to tags?
   hours: string;
   access: AccessLevel;
   ages: AgeGroup[];
   features: string[];
+}
+
+export interface PlaygroundImage {
+  id: number;
+  playground_id: number;
+  is_primary: boolean;
+  url: string;
+  name: string;
 }
 
 export interface PlaygroundFeature {

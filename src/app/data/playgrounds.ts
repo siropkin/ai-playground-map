@@ -1,7 +1,7 @@
 "use server";
 
 import { supabase as supabase } from "@/lib/supabase";
-import type { MapBounds, PlaygroundDetails } from "@/types/types";
+import { MapBounds, PlaygroundDetails, PlaygroundImage } from "@/types/types";
 import { getFeatures } from "@/data/features";
 import { getAges } from "@/data/ages";
 
@@ -38,16 +38,16 @@ export async function getPlaygroundsForBounds(
           id: p.id,
           name: p.name,
           description: p.description,
-          hours: p.hours,
-          access: p.access,
           address: p.address,
           location: {
             lat: p.lat,
             lng: p.lng,
           },
+          images: [],
+          hours: p.hours,
+          access: p.access,
           ages: [],
           features: [],
-          images: [],
         } as PlaygroundDetails,
       ]),
     );
@@ -130,10 +130,10 @@ export async function getPlaygroundsForBounds(
 
     // Add images to their respective playgrounds
     if (imagesData) {
-      imagesData.forEach((image) => {
+      imagesData.forEach((image: PlaygroundImage) => {
         const playground = playgroundsMap.get(image.playground_id);
         if (playground) {
-          playground.images.push(image.image_url);
+          playground.images.push(image.url);
         }
       });
     }
@@ -144,6 +144,112 @@ export async function getPlaygroundsForBounds(
     console.error("Error filtering playgrounds:", error);
     // Return empty array on error instead of throwing
     return [];
+  }
+}
+
+export async function getPlaygroundById(
+  id: string,
+): Promise<PlaygroundDetails | null> {
+  try {
+    const { data: playgroundData, error: playgroundError } = await supabase
+      .from(PLAYGROUNDS_TABLE_NAME)
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (playgroundError) {
+      throw playgroundError;
+    }
+
+    if (!playgroundData) {
+      return null;
+    }
+
+    const playground: PlaygroundDetails = {
+      id: playgroundData.id,
+      name: playgroundData.name,
+      description: playgroundData.description,
+      address: playgroundData.address,
+      location: {
+        lat: playgroundData.lat,
+        lng: playgroundData.lng,
+      },
+      images: [],
+      hours: playgroundData.hours,
+      access: playgroundData.access,
+      ages: [],
+      features: [],
+    };
+
+    // Get all ages
+    const ages = await getAges();
+    const agesMap = new Map(ages ? ages.map((ar) => [ar.id, ar.name]) : []);
+
+    // Get playground age ranges
+    const { data: agesJunctionData, error: agesJunctionError } = await supabase
+      .from(PLAYGROUND_AGEsS_TABLE_NAME)
+      .select("age_id")
+      .eq("playground_id", id);
+
+    if (agesJunctionError) {
+      throw agesJunctionError;
+    }
+
+    if (agesJunctionData) {
+      agesJunctionData.forEach((ageRange) => {
+        const ageRangeName = agesMap.get(ageRange.age_id);
+        if (ageRangeName) {
+          playground.ages.push(ageRangeName);
+        }
+      });
+    }
+
+    // Get all features
+    const features = await getFeatures();
+    const featuresMap = new Map(
+      features ? features.map((f) => [f.id, f.name]) : [],
+    );
+
+    // Get playground features
+    const { data: featuresJunctionData, error: featuresJunctionError } =
+      await supabase
+        .from(PLAYGROUND_FEATURES_TABLE_NAME)
+        .select("feature_id")
+        .eq("playground_id", id);
+
+    if (featuresJunctionError) {
+      throw featuresJunctionError;
+    }
+
+    if (featuresJunctionData) {
+      featuresJunctionData.forEach((junction) => {
+        const featureName = featuresMap.get(junction.feature_id);
+        if (featureName) {
+          playground.features.push(featureName);
+        }
+      });
+    }
+
+    // Get playground images
+    const { data: imagesData, error: imagesError } = await supabase
+      .from(PLAYGROUND_IMAGES_TABLE_NAME)
+      .select("*")
+      .eq("playground_id", id);
+
+    if (imagesError) {
+      throw imagesError;
+    }
+
+    if (imagesData) {
+      imagesData.forEach((image: PlaygroundImage) => {
+        playground.images.push(image.url);
+      });
+    }
+
+    return playground;
+  } catch (error) {
+    console.error("Error fetching playground by ID:", error);
+    return null;
   }
 }
 
@@ -261,69 +367,6 @@ export async function getPlaygroundsForBounds(
 //   } catch (error) {
 //     console.error("Error fetching playgrounds:", error);
 //     return [];
-//   }
-// }
-//
-// export async function getPlaygroundById(
-//   id: string,
-// ): Promise<Playground | null> {
-//   try {
-//     // Get the playground
-//     const { data: playground, error: playgroundError } = await supabase
-//       .from(PLAYGROUNDS_TABLE_NAME)
-//       .select("*")
-//       .eq("id", id)
-//       .single();
-//
-//     if (playgroundError) throw playgroundError;
-//
-//     // Get the playground images
-//     const { data: imagesData, error: imagesError } = await supabase
-//       .from(PLAYGROUND_IMAGES_TABLE_NAME)
-//       .select("*")
-//       .eq("playground_id", id);
-//
-//     if (imagesError) throw imagesError;
-//
-//     // Get the playground features
-//     const { data: featuresJunctionData, error: featuresJunctionError } =
-//       await supabase
-//         .from(PLAYGROUND_FEATURES_TABLE_NAME)
-//         .select("feature_id")
-//         .eq("playground_id", id);
-//
-//     if (featuresJunctionError) throw featuresJunctionError;
-//
-//     // Get all features
-//     const { data: featuresData, error: featuresError } = await supabase
-//       .from(FEATURES_TABLE_NAME)
-//       .select("*")
-//       .in(
-//         "id",
-//         featuresJunctionData.map((f) => f.feature_id),
-//       );
-//
-//     if (featuresError) throw featuresError;
-//
-//     // Construct the playground object
-//     return {
-//       id: playground.id,
-//       name: playground.name,
-//       address: playground.address,
-//       description: playground.description,
-//       hours: playground.hours,
-//       ageRange: playground.age_range,
-//       access: playground.access,
-//       features: featuresData.map((f) => f.name),
-//       images: imagesData.map((img) => img.image_url),
-//       location: {
-//         lat: playground.lat,
-//         lng: playground.lng,
-//       },
-//     };
-//   } catch (error) {
-//     console.error("Error fetching playground:", error);
-//     return null;
 //   }
 // }
 //

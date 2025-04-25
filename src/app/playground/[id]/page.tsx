@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, MapPin, Clock, Calendar, DollarSign } from "lucide-react";
@@ -8,23 +8,29 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MapViewSingle from "@/components/map-view-single";
-import { mockPlaygrounds } from "@/data/mockPlaygrounds";
-import type { PlaygroundDetails } from "@/types/types";
+import { getPlaygroundById } from "@/data/playgrounds";
+import { PlaygroundDetails } from "@/types/types";
+
+type PlaygroundDetailParams = {
+  id: string;
+};
 
 export default function PlaygroundDetail({
   params,
 }: {
-  params: { id: string };
+  params: Promise<PlaygroundDetailParams>;
 }) {
+  const resolvedParams = use(params);
   const [playground, setPlayground] = useState<PlaygroundDetails | null>(null);
 
   useEffect(() => {
-    // Find the playground by ID
-    const foundPlayground = mockPlaygrounds.find(
-      (p) => p.id === Number.parseInt(params.id),
-    );
-    setPlayground(foundPlayground || null);
-  }, [params.id]);
+    const fetchPlayground = async () => {
+      const p = await getPlaygroundById(resolvedParams.id);
+      setPlayground(p);
+    };
+
+    fetchPlayground();
+  }, []);
 
   if (!playground) {
     return (
@@ -41,7 +47,7 @@ export default function PlaygroundDetail({
     <main className="pb-16">
       <div className="relative h-64">
         <Image
-          src={playground.images[0] || "/placeholders/playground.svg"}
+          src={playground.images[0]}
           alt={playground.name}
           fill
           className="object-cover"
