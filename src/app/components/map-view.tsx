@@ -19,8 +19,10 @@ const CLUSTER_LAYER_ID = "clusters";
 const CLUSTER_COUNT_LAYER_ID = "cluster-count";
 const UNCLUSTERED_POINT_LAYER_ID = "unclustered-point";
 const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
-const DEFAULT_CENTER: [number, number] = [-73.9712, 40.7831]; // New York City
-const DEFAULT_ZOOM = 12;
+const DEFAULT_BOUNDS = [
+  [-74.2709, 40.48972],
+  [-73.7042, 40.93288],
+]; // New Your City
 
 const getMapStyle = (theme: string | undefined) => {
   return theme === "light"
@@ -82,12 +84,13 @@ const createGeoJson = (
 
 export function MapView() {
   const { theme } = useTheme();
-  const { setMapBounds } = useFilters();
+  const { mapBounds, setMapBounds } = useFilters();
   const { playgrounds } = usePlaygrounds();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const playgroundsGeoJson = useCallback((): FeatureCollection<
     Point,
@@ -206,15 +209,23 @@ export function MapView() {
 
   useEffect(() => {
     if (map.current || !mapContainer) {
-      return undefined;
+      return;
     }
 
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer,
         style: getMapStyle(theme),
-        center: DEFAULT_CENTER,
-        zoom: DEFAULT_ZOOM,
+        bounds: [
+          [
+            mapBounds?.west || DEFAULT_BOUNDS[0][0],
+            mapBounds?.south || DEFAULT_BOUNDS[0][1],
+          ],
+          [
+            mapBounds?.east || DEFAULT_BOUNDS[1][0],
+            mapBounds?.north || DEFAULT_BOUNDS[1][1],
+          ],
+        ],
         attributionControl: false,
       });
 
@@ -227,15 +238,12 @@ export function MapView() {
         setMapBounds(getMapBounds(map.current));
       });
     } catch (error) {
+      setError(
+        "Oops! The map is taking a timeout on the swings. Check back soon!",
+      );
       console.error("Error initializing map:", error);
     }
-
-    return () => {
-      map.current?.remove();
-      map.current = null;
-      setIsMapLoaded(false);
-    };
-  }, [mapContainer, theme, setMapBounds]);
+  }, [mapContainer, theme, mapBounds, setMapBounds]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -259,6 +267,21 @@ export function MapView() {
       updateMapStyle(map.current, theme);
     }
   }, [theme, isMapLoaded, updateMapStyle]);
+
+  useEffect(() => {
+    return () => {
+      map.current?.remove();
+      map.current = null;
+    };
+  }, [theme]);
+
+  if (error) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <>

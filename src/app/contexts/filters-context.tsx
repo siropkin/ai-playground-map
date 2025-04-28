@@ -7,115 +7,119 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { FilterCriteria, MapBounds } from "@/lib/types";
+// import type { FilterCriteria, MapBounds } from "@/lib/types";
+import type { MapBounds } from "@/lib/types";
 import {
-  getFilterStateFromUrl,
-  updateUrlWithFilters,
+  getMapBoundsStateFromUrl,
+  updateUrlWithMapBounds,
 } from "@/lib/filters-utils";
 
 interface FiltersContextType {
-  filters: FilterCriteria;
+  // filters: FilterCriteria;
   mapBounds: MapBounds | null;
   setMapBounds: (bounds: MapBounds) => void;
-  toggleAgeRange: (ageRange: string) => void;
-  toggleAccess: (access: string) => void;
-  toggleFeature: (feature: string) => void;
-  clearFilters: () => void;
-  isFilterActive: (filterType: string, value: string) => boolean;
+  // toggleAgeRange: (ageRange: string) => void;
+  // toggleAccess: (access: string) => void;
+  // toggleFeature: (feature: string) => void;
+  // clearFilters: () => void;
+  // isFilterActive: (filterType: string, value: string) => boolean;
 }
 
 const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
-  const [filters, setFilters] = useState<FilterCriteria>({
-    ageRanges: [],
-    access: [],
-    features: [],
-  });
+  // const [filters, setFilters] = useState<FilterCriteria>({
+  //   ageRanges: [],
+  //   access: [],
+  //   features: [],
+  // });
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize filters from URL on client-side
   useEffect(() => {
-    const urlFilters = getFilterStateFromUrl();
-    setFilters(urlFilters);
+    // const urlFilters = getFilterStateFromUrl();
+    // setFilters(urlFilters);
+    const urlBounds = getMapBoundsStateFromUrl();
+    setMapBounds(urlBounds);
     setIsInitialized(true);
   }, []);
 
   // Update URL when filters change (but only after initialization)
   useEffect(() => {
     if (isInitialized) {
-      updateUrlWithFilters(filters);
+      // updateUrlWithFilters(filters);
+      updateUrlWithMapBounds(mapBounds!);
     }
-  }, [filters, isInitialized]);
+  }, [mapBounds, isInitialized]);
 
-  const toggleAgeRange = (ageRange: string) => {
-    setFilters((prev) => {
-      const newAgeRanges = prev.ageRanges.includes(ageRange)
-        ? prev.ageRanges.filter((a) => a !== ageRange)
-        : [...prev.ageRanges, ageRange];
-
-      return {
-        ...prev,
-        ageRanges: newAgeRanges,
-      };
-    });
-  };
-
-  const toggleAccess = (access: string) => {
-    setFilters((prev) => {
-      const newAccess = prev.access.includes(access)
-        ? prev.access.filter((a) => a !== access)
-        : [...prev.access, access];
-
-      return {
-        ...prev,
-        access: newAccess,
-      };
-    });
-  };
-
-  const toggleFeature = (feature: string) => {
-    setFilters((prev) => {
-      const newFeatures = prev.features.includes(feature)
-        ? prev.features.filter((f) => f !== feature)
-        : [...prev.features, feature];
-
-      return {
-        ...prev,
-        features: newFeatures,
-      };
-    });
-  };
-
-  const clearFilters = () => {
-    setFilters({ ageRanges: [], access: [], features: [] });
-  };
-
-  const isFilterActive = (filterType: string, value: string): boolean => {
-    switch (filterType) {
-      case "age":
-        return filters.ageRanges.includes(value);
-      case "access":
-        return filters.access.includes(value);
-      case "feature":
-        return filters.features.includes(value);
-      default:
-        return false;
-    }
-  };
+  // const toggleAgeRange = (ageRange: string) => {
+  //   setFilters((prev) => {
+  //     const newAgeRanges = prev.ageRanges.includes(ageRange)
+  //       ? prev.ageRanges.filter((a) => a !== ageRange)
+  //       : [...prev.ageRanges, ageRange];
+  //
+  //     return {
+  //       ...prev,
+  //       ageRanges: newAgeRanges,
+  //     };
+  //   });
+  // };
+  //
+  // const toggleAccess = (access: string) => {
+  //   setFilters((prev) => {
+  //     const newAccess = prev.access.includes(access)
+  //       ? prev.access.filter((a) => a !== access)
+  //       : [...prev.access, access];
+  //
+  //     return {
+  //       ...prev,
+  //       access: newAccess,
+  //     };
+  //   });
+  // };
+  //
+  // const toggleFeature = (feature: string) => {
+  //   setFilters((prev) => {
+  //     const newFeatures = prev.features.includes(feature)
+  //       ? prev.features.filter((f) => f !== feature)
+  //       : [...prev.features, feature];
+  //
+  //     return {
+  //       ...prev,
+  //       features: newFeatures,
+  //     };
+  //   });
+  // };
+  //
+  // const clearFilters = () => {
+  //   setFilters({ ageRanges: [], access: [], features: [] });
+  // };
+  //
+  // const isFilterActive = (filterType: string, value: string): boolean => {
+  //   switch (filterType) {
+  //     case "age":
+  //       return filters.ageRanges.includes(value);
+  //     case "access":
+  //       return filters.access.includes(value);
+  //     case "feature":
+  //       return filters.features.includes(value);
+  //     default:
+  //       return false;
+  //   }
+  // };
 
   return (
     <FiltersContext.Provider
       value={{
-        filters,
+        // filters,
         mapBounds,
         setMapBounds,
-        toggleAgeRange,
-        toggleAccess,
-        toggleFeature,
-        clearFilters,
-        isFilterActive,
+        // toggleAgeRange,
+        // toggleAccess,
+        // toggleFeature,
+        // clearFilters,
+        // isFilterActive,
       }}
     >
       {children}
