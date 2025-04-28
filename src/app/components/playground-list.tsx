@@ -22,7 +22,7 @@ export function PlaygroundList() {
 
   return (
     <div className="flex flex-col space-y-3">
-      {playgrounds.map((playground) => {
+      {playgrounds.map((playground, index) => {
         const primaryPhoto = playground.photos?.find((p) => p.isPrimary);
         const displayPhoto = primaryPhoto || playground.photos?.[0];
         const ageRange =
@@ -46,11 +46,12 @@ export function PlaygroundList() {
               <div className="relative h-48 w-full bg-zinc-200 dark:bg-zinc-700">
                 {displayPhoto ? (
                   <Image
+                    className="h-full w-full object-cover"
                     src={displayPhoto.filename}
                     alt={displayPhoto.caption || `Photo of ${playground.name}`}
                     width={300}
                     height={200}
-                    className="h-full w-full object-cover"
+                    priority={index < 3}
                   />
                 ) : (
                   <div className="text-muted-foreground flex h-full w-full items-center justify-center">
