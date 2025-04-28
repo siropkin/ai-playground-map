@@ -1,5 +1,14 @@
 import type { MapBounds } from "@/lib/types";
 
+export function roundMapBounds(bounds: MapBounds): MapBounds {
+  return {
+    south: parseFloat(bounds.south.toFixed(4)),
+    north: parseFloat(bounds.north.toFixed(4)),
+    west: parseFloat(bounds.west.toFixed(4)),
+    east: parseFloat(bounds.east.toFixed(4)),
+  };
+}
+
 export function getMapBoundsStateFromUrl(): MapBounds | null {
   if (typeof window === "undefined") {
     return null;
@@ -36,7 +45,7 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   params.set("north", String(bounds.north));
   params.set("west", String(bounds.west));
   params.set("east", String(bounds.east));
-  window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
+  window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
 }
 
 // import type { FilterCriteria } from "@/lib/types";

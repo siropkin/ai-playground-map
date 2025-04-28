@@ -6,11 +6,13 @@ import {
   useState,
   useEffect,
   type ReactNode,
+  useCallback,
 } from "react";
 // import type { FilterCriteria, MapBounds } from "@/lib/types";
 import type { MapBounds } from "@/lib/types";
 import {
   getMapBoundsStateFromUrl,
+  roundMapBounds,
   updateUrlWithMapBounds,
 } from "@/lib/filters-utils";
 
@@ -36,12 +38,29 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize filters from URL on client-side
+  const updateMapBounds = useCallback((bounds: MapBounds) => {
+    setMapBounds((prevState) => {
+      const roundedBounds = roundMapBounds(bounds);
+
+      if (
+        prevState &&
+        prevState.south === roundedBounds.south &&
+        prevState.north === roundedBounds.north &&
+        prevState.west === roundedBounds.west &&
+        prevState.east === roundedBounds.east
+      ) {
+        return prevState;
+      }
+
+      return roundedBounds;
+    });
+  }, []);
+
   useEffect(() => {
-    // const urlFilters = getFilterStateFromUrl();
-    // setFilters(urlFilters);
     const urlBounds = getMapBoundsStateFromUrl();
-    setMapBounds(urlBounds);
+    if (urlBounds) {
+      setMapBounds(roundMapBounds(urlBounds));
+    }
     setIsInitialized(true);
   }, []);
 
@@ -49,7 +68,9 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isInitialized) {
       // updateUrlWithFilters(filters);
-      updateUrlWithMapBounds(mapBounds!);
+      if (mapBounds) {
+        updateUrlWithMapBounds(roundMapBounds(mapBounds));
+      }
     }
   }, [mapBounds, isInitialized]);
 
@@ -114,7 +135,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       value={{
         // filters,
         mapBounds,
-        setMapBounds,
+        setMapBounds: updateMapBounds,
         // toggleAgeRange,
         // toggleAccess,
         // toggleFeature,

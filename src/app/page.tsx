@@ -63,13 +63,6 @@ export default function Home() {
           <div className="absolute inset-0">
             <MapView />
           </div>
-
-          <div className="absolute right-4 bottom-4 z-10">
-            <Button variant="outline" aria-label="Filter by near me">
-              <MapPin className="h-4 w-4" />
-              <span>Near me</span>
-            </Button>
-          </div>
         </div>
       </main>
 

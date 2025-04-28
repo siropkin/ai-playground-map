@@ -8,6 +8,8 @@ import { useTheme } from "next-themes";
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import type { Playground } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { MapPin } from "lucide-react";
 
 if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
   console.error("Mapbox Access Token is not set. Map will not function.");
@@ -19,7 +21,7 @@ const CLUSTER_LAYER_ID = "clusters";
 const CLUSTER_COUNT_LAYER_ID = "cluster-count";
 const UNCLUSTERED_POINT_LAYER_ID = "unclustered-point";
 const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
-const DEFAULT_BOUNDS = [
+const DEFAULT_BOUNDS: [[number, number], [number, number]] = [
   [-74.2709, 40.48972],
   [-73.7042, 40.93288],
 ]; // New Your City
@@ -207,6 +209,29 @@ export function MapView() {
     [playgroundsGeoJson],
   );
 
+  const handleNearMeClick = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert("Oops! Geolocation is not supported by your browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (map.current) {
+          map.current.flyTo({
+            center: [longitude, latitude],
+            zoom: 14,
+          });
+        }
+      },
+      (error) => {
+        console.error("Error fetching location:", error);
+        alert("Oops! Unable to fetch your location. Please try again.");
+      },
+    );
+  }, []);
+
   useEffect(() => {
     if (map.current || !mapContainer) {
       return;
@@ -216,18 +241,24 @@ export function MapView() {
       map.current = new mapboxgl.Map({
         container: mapContainer,
         style: getMapStyle(theme),
-        bounds: [
-          [
-            mapBounds?.west || DEFAULT_BOUNDS[0][0],
-            mapBounds?.south || DEFAULT_BOUNDS[0][1],
-          ],
-          [
-            mapBounds?.east || DEFAULT_BOUNDS[1][0],
-            mapBounds?.north || DEFAULT_BOUNDS[1][1],
-          ],
-        ],
         attributionControl: false,
       });
+
+      if (mapBounds) {
+        map.current.fitBounds(
+          [
+            [mapBounds.west, mapBounds.south],
+            [mapBounds.east, mapBounds.north],
+          ],
+          {
+            animate: false,
+          },
+        );
+      } else {
+        map.current.fitBounds(DEFAULT_BOUNDS, {
+          animate: false,
+        });
+      }
 
       map.current.on("load", () => {
         setIsMapLoaded(true);
@@ -286,6 +317,16 @@ export function MapView() {
   return (
     <>
       <div ref={setMapContainer} className="h-full w-full" />
+      <div className="absolute right-4 bottom-4 z-10">
+        <Button
+          variant="outline"
+          aria-label="Filter by near me"
+          onClick={handleNearMeClick}
+        >
+          <MapPin className="h-4 w-4" />
+          <span>Near me</span>
+        </Button>
+      </div>
     </>
   );
 }
