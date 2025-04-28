@@ -7,7 +7,7 @@ import type { FeatureCollection, Point } from "geojson";
 import { useTheme } from "next-themes";
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import type { Playground } from "@/lib/types";
+import type { Playground } from "@/types/playground";
 import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
 

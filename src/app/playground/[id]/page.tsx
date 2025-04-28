@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MapViewSingle from "@/components/map-view-single";
 import { getPlaygroundById } from "@/data/playgrounds";
-import { PlaygroundDetails } from "@/lib/types";
+import { PlaygroundDetails } from "@/types/playground";
 
 type PlaygroundDetailParams = {
   id: string;

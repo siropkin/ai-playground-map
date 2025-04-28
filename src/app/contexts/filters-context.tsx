@@ -9,7 +9,7 @@ import {
   useCallback,
 } from "react";
 // import type { FilterCriteria, MapBounds } from "@/lib/types";
-import type { MapBounds } from "@/lib/types";
+import type { MapBounds } from "@/types/playground";
 import {
   getMapBoundsStateFromUrl,
   roundMapBounds,

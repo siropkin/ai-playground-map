@@ -1,5 +1,5 @@
 import { supabase as supabase } from "@/lib/supabase";
-import { Feature } from "@/lib/types";
+import { Feature } from "@/types/playground";
 
 const FEATURES_TABLE_NAME = "features";
 

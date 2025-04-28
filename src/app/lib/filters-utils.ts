@@ -1,4 +1,4 @@
-import type { MapBounds } from "@/lib/types";
+import type { MapBounds } from "@/types/playground";
 
 export function roundMapBounds(bounds: MapBounds): MapBounds {
   return {

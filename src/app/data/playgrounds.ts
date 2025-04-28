@@ -9,7 +9,7 @@ import {
   Playground,
   PlaygroundPhoto,
   SurfaceType,
-} from "@/lib/types";
+} from "@/types/playground";
 import { getFeatures } from "@/data/features";
 
 const PLAYGROUNDS_TABLE_NAME = "playgrounds";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Playground } from "@/lib/types";
+import type { Playground } from "@/types/playground";
 import {
   createContext,
   type ReactNode,
