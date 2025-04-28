@@ -1,4 +1,4 @@
-import type { FilterCriteria } from "@/types/types";
+import type { FilterCriteria } from "@/lib/types";
 
 export function getFilterStateFromUrl(): FilterCriteria {
   if (typeof window === "undefined") {

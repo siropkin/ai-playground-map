@@ -1,20 +1,20 @@
 import { supabase as supabase } from "@/lib/supabase";
-import { PlaygroundFeature } from "@/types/types";
+import { Feature } from "@/lib/types";
 
 const FEATURES_TABLE_NAME = "features";
 
 // Cache for features
-let cachedFeatures: PlaygroundFeature[] | null = null;
+let cachedFeatures: Feature[] | null = null;
 
 // Get all features
-export async function getFeatures(): Promise<PlaygroundFeature[]> {
+export async function getFeatures(): Promise<Feature[]> {
   if (!!cachedFeatures?.length) {
     return cachedFeatures;
   }
 
   const { data: featuresData, error: featuresError } = await supabase
     .from(FEATURES_TABLE_NAME)
-    .select("id, name")
+    .select("*")
     .order("name");
 
   if (featuresError) {
@@ -22,8 +22,16 @@ export async function getFeatures(): Promise<PlaygroundFeature[]> {
     return [];
   }
 
-  cachedFeatures = featuresData;
-  return featuresData;
+  cachedFeatures = featuresData.map(
+    (f) =>
+      ({
+        id: f.id,
+        name: f.name,
+        description: f.description,
+        createdAt: f.created_at,
+      }) as Feature,
+  );
+  return cachedFeatures;
 }
 
 // export async function createFeature(name: string) {

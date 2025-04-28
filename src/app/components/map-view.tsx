@@ -7,7 +7,7 @@ import type { FeatureCollection, Point } from "geojson";
 import { useTheme } from "next-themes";
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import type { PlaygroundDetails } from "@/types/types";
+import type { Playground } from "@/lib/types";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
@@ -39,19 +39,19 @@ const getMapBounds = (map: mapboxgl.Map | null) => {
 };
 
 const createGeoJson = (
-  playgrounds: PlaygroundDetails[],
+  playgrounds: Playground[],
 ): FeatureCollection<Point, { id: number; name: string }> => {
   return {
     type: "FeatureCollection",
-    features: playgrounds.map((pg) => ({
+    features: playgrounds.map((playground) => ({
       type: "Feature",
       geometry: {
         type: "Point",
-        coordinates: [pg.location.lng, pg.location.lat],
+        coordinates: [playground.longitude, playground.latitude],
       },
       properties: {
-        id: pg.id,
-        name: pg.name,
+        id: playground.id,
+        name: playground.name,
       },
     })),
   };

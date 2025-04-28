@@ -7,7 +7,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { FilterCriteria, MapBounds } from "@/types/types";
+import type { FilterCriteria, MapBounds } from "@/lib/types";
 import {
   getFilterStateFromUrl,
   updateUrlWithFilters,
