@@ -87,7 +87,7 @@ const createGeoJson = (
 export function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds } = usePlaygrounds();
+  const { playgrounds, flyToCoords, clearFlyToRequest } = usePlaygrounds();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -298,6 +298,17 @@ export function MapView() {
       updateMapStyle(map.current, theme);
     }
   }, [theme, isMapLoaded, updateMapStyle]);
+
+  useEffect(() => {
+    if (map.current && flyToCoords) {
+      map.current.flyTo({
+        center: flyToCoords,
+        zoom: 14,
+        essential: true,
+      });
+      clearFlyToRequest();
+    }
+  }, [flyToCoords, clearFlyToRequest]);
 
   useEffect(() => {
     return () => {

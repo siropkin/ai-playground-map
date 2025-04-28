@@ -13,10 +13,15 @@ import {
 import { useFilters } from "@/contexts/filters-context";
 import { getPlaygroundsForBounds } from "@/data/playgrounds";
 
+type FlyToCoordinates = [number, number]; // [longitude, latitude]
+
 interface PlaygroundsContextType {
   playgrounds: Playground[];
   loading: boolean;
   error: string | null;
+  flyToCoords: FlyToCoordinates | null;
+  requestFlyTo: (coords: FlyToCoordinates) => void;
+  clearFlyToRequest: () => void;
 }
 
 const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
@@ -30,6 +35,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -98,6 +104,14 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   //   [playgrounds, filters],
   // );
 
+  const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
+    setFlyToCoords(coords);
+  }, []);
+
+  const clearFlyToRequest = useCallback(() => {
+    setFlyToCoords(null);
+  }, []);
+
   return (
     <PlaygroundsContext.Provider
       value={{
@@ -105,6 +119,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         playgrounds,
         loading,
         error,
+        flyToCoords,
+        requestFlyTo,
+        clearFlyToRequest,
       }}
     >
       {children}
