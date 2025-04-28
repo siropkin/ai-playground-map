@@ -9,6 +9,9 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import type { Playground } from "@/lib/types";
 
+if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
+  console.error("Mapbox Access Token is not set. Map will not function.");
+}
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
 const SOURCE_ID = "playgrounds";
@@ -19,10 +22,30 @@ const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
 const DEFAULT_CENTER: [number, number] = [-73.9712, 40.7831]; // New York City
 const DEFAULT_ZOOM = 12;
 
-const getMapTheme = (theme: string | undefined) => {
+const getMapStyle = (theme: string | undefined) => {
   return theme === "light"
     ? "mapbox://styles/mapbox/light-v9"
     : "mapbox://styles/mapbox/dark-v9";
+};
+
+const getMapColors = (theme: string | undefined) => {
+  return theme === "light"
+    ? {
+        point: "#000000",
+        label: "#000000",
+        clusterBg: "#000000",
+        clusterText: "#FFFFFF",
+        pointStroke: "#FFFFFF",
+        labelHalo: "#FFFFFF",
+      }
+    : {
+        point: "#FFFFFF",
+        label: "#FFFFFF",
+        clusterBg: "#FFFFFF",
+        clusterText: "#000000",
+        pointStroke: "#000000",
+        labelHalo: "#000000",
+      };
 };
 
 const getMapBounds = (map: mapboxgl.Map | null) => {
@@ -66,127 +89,119 @@ export function MapView() {
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-  const playgroundsGeoJson = useCallback(() => {
+  const playgroundsGeoJson = useCallback((): FeatureCollection<
+    Point,
+    { id: number; name: string }
+  > => {
     return createGeoJson(playgrounds || []);
   }, [playgrounds]);
 
-  const addMapDataLayers = useCallback(
+  const updateMapStyle = useCallback(
+    (currentMap: mapboxgl.Map, currentTheme: string | undefined) => {
+      currentMap.setStyle(getMapStyle(currentTheme));
+    },
+    [],
+  );
+
+  const updateMapDataLayers = useCallback(
     (currentMap: mapboxgl.Map | null, currentTheme: string | undefined) => {
       if (!currentMap) {
         return;
       }
 
-      const pointColor = currentTheme === "dark" ? "#FFFFFF" : "#000000";
-      const labelColor = currentTheme === "dark" ? "#FFFFFF" : "#000000";
-      const clusterBackgroundColor =
-        currentTheme === "dark" ? "#FFFFFF" : "#000000";
-      const clusterTextColor = currentTheme === "dark" ? "#000000" : "#FFFFFF";
-
-      if (!currentMap.getSource(SOURCE_ID)) {
-        currentMap.addSource(SOURCE_ID, {
-          type: "geojson",
-          data: playgroundsGeoJson(),
-          cluster: true,
-          clusterMaxZoom: 9,
-          clusterRadius: 15,
-        });
-      } else {
-        (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
-          playgroundsGeoJson(),
-        );
+      const source = currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource;
+      if (source) {
+        source.setData(playgroundsGeoJson());
+        return;
       }
+
+      const mapColors = getMapColors(currentTheme);
+
+      // Source for GeoJSON data
+      currentMap.addSource(SOURCE_ID, {
+        type: "geojson",
+        data: playgroundsGeoJson(),
+        cluster: true,
+        clusterMaxZoom: 9,
+        clusterRadius: 15,
+      });
 
       // Layer for Clusters (Circles)
-      if (!currentMap.getLayer(CLUSTER_LAYER_ID)) {
-        currentMap.addLayer({
-          id: CLUSTER_LAYER_ID,
-          type: "circle",
-          source: SOURCE_ID,
-          filter: ["has", "point_count"],
-          paint: {
-            "circle-color": clusterBackgroundColor,
-            "circle-radius": [
-              "step",
-              ["get", "point_count"],
-              15, // Small clusters
-              100,
-              20, // Medium clusters
-              750,
-              25, // Large clusters
-            ],
-            "circle-stroke-width": 1,
-            "circle-stroke-color": clusterTextColor, // Contrast border
-          },
-        });
-      }
+      currentMap.addLayer({
+        id: CLUSTER_LAYER_ID,
+        type: "circle",
+        source: SOURCE_ID,
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": mapColors.clusterBg,
+          "circle-radius": [
+            "step",
+            ["get", "point_count"],
+            15, // Small clusters
+            100,
+            20, // Medium clusters
+            750,
+            25, // Large clusters
+          ],
+          "circle-stroke-width": 1,
+          "circle-stroke-color": mapColors.clusterText,
+        },
+      });
 
       // Layer for Cluster Counts (Text)
-      if (!currentMap.getLayer(CLUSTER_COUNT_LAYER_ID)) {
-        currentMap.addLayer({
-          id: CLUSTER_COUNT_LAYER_ID,
-          type: "symbol",
-          source: SOURCE_ID,
-          filter: ["has", "point_count"],
-          layout: {
-            "text-field": "{point_count_abbreviated}",
-            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-            "text-size": 12,
-          },
-          paint: {
-            "text-color": clusterTextColor,
-          },
-        });
-      }
+      currentMap.addLayer({
+        id: CLUSTER_COUNT_LAYER_ID,
+        type: "symbol",
+        source: SOURCE_ID,
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": "{point_count_abbreviated}",
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+          "text-size": 12,
+        },
+        paint: {
+          "text-color": mapColors.clusterText,
+        },
+      });
 
       // Layer for Unclustered Points (Circles)
-      if (!currentMap.getLayer(UNCLUSTERED_POINT_LAYER_ID)) {
-        currentMap.addLayer({
-          id: UNCLUSTERED_POINT_LAYER_ID,
-          type: "circle",
-          source: SOURCE_ID,
-          filter: ["!", ["has", "point_count"]],
-          paint: {
-            "circle-color": pointColor,
-            "circle-radius": 10,
-            "circle-stroke-width": 1,
-            "circle-stroke-color": currentTheme === "dark" ? "#000" : "#fff", // Contrast stroke
-          },
-        });
-      }
+      currentMap.addLayer({
+        id: UNCLUSTERED_POINT_LAYER_ID,
+        type: "circle",
+        source: SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-color": mapColors.point,
+          "circle-radius": 10,
+          "circle-stroke-width": 1,
+          "circle-stroke-color": mapColors.pointStroke,
+        },
+      });
 
       // Layer for Unclustered Point Labels (Playground Name)
-      if (!currentMap.getLayer(UNCLUSTERED_LABEL_LAYER_ID)) {
-        currentMap.addLayer({
-          id: UNCLUSTERED_LABEL_LAYER_ID,
-          type: "symbol",
-          source: SOURCE_ID,
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            "text-field": ["get", "name"], // Get the 'name' property from GeoJSON features
-            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-            "text-offset": [1.5, 0], // Offset text slightly to the right [x, y]
-            "text-anchor": "left", // Anchor text to the left of the point
-            "text-justify": "left",
-            "text-size": 12,
-            "text-allow-overlap": true, // Prevent labels overlapping points/other labels if desired
-            "text-optional": false, // Hide label if it doesn't fit
-          },
-          paint: {
-            "text-color": labelColor,
-            "text-halo-color": currentTheme === "dark" ? "#000000" : "#FFFFFF", // Halo for better readability
-            "text-halo-width": 1,
-          },
-        });
-      }
+      currentMap.addLayer({
+        id: UNCLUSTERED_LABEL_LAYER_ID,
+        type: "symbol",
+        source: SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        layout: {
+          "text-field": ["get", "name"], // Get the 'name' property from GeoJSON features
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+          "text-offset": [1.5, 0], // Offset text slightly to the right [x, y]
+          "text-anchor": "left", // Anchor text to the left of the point
+          "text-justify": "left",
+          "text-size": 12,
+          "text-allow-overlap": true, // Prevent labels overlapping points/other labels if desired
+          "text-optional": false, // Hide label if it doesn't fit
+        },
+        paint: {
+          "text-color": mapColors.label,
+          "text-halo-color": mapColors.labelHalo,
+          "text-halo-width": 1,
+        },
+      });
     },
     [playgroundsGeoJson],
-  );
-
-  const setMapStyle = useCallback(
-    (currentMap: mapboxgl.Map, currentTheme: string | undefined) => {
-      currentMap.setStyle(getMapTheme(currentTheme));
-    },
-    [],
   );
 
   useEffect(() => {
@@ -197,7 +212,7 @@ export function MapView() {
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer,
-        style: getMapTheme(theme),
+        style: getMapStyle(theme),
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
         attributionControl: false,
@@ -229,7 +244,7 @@ export function MapView() {
         if (!map.current!.isStyleLoaded()) {
           timeout = setTimeout(waiting, 200);
         } else {
-          addMapDataLayers(map.current, theme);
+          updateMapDataLayers(map.current, theme);
         }
       };
       waiting();
@@ -237,13 +252,13 @@ export function MapView() {
     return () => {
       clearTimeout(timeout);
     };
-  }, [isMapLoaded, theme, addMapDataLayers]);
+  }, [isMapLoaded, theme, updateMapDataLayers]);
 
   useEffect(() => {
     if (map.current && isMapLoaded) {
-      setMapStyle(map.current, theme);
+      updateMapStyle(map.current, theme);
     }
-  }, [theme, isMapLoaded, setMapStyle]);
+  }, [theme, isMapLoaded, updateMapStyle]);
 
   return (
     <>
