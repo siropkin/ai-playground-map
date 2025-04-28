@@ -1,15 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { MapPin } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { FeatureCollection, Point } from "geojson";
-import { useTheme } from "next-themes";
+
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import type { Playground } from "@/types/playground";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import type { Playground } from "@/types/playground";
 
 if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
   console.error("Mapbox Access Token is not set. Map will not function.");
@@ -88,6 +90,7 @@ export function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
   const { playgrounds, flyToCoords, clearFlyToRequest } = usePlaygrounds();
+  const router = useRouter(); // Get router instance
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -309,6 +312,63 @@ export function MapView() {
       clearFlyToRequest();
     }
   }, [flyToCoords, clearFlyToRequest]);
+
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) {
+      return undefined;
+    }
+
+    const handlePointClick = (
+      e: mapboxgl.MapMouseEvent & {
+        features?: mapboxgl.MapboxGeoJSONFeature[];
+      },
+    ) => {
+      e.originalEvent.stopPropagation();
+      const feature = e.features?.[0];
+      if (feature && feature.properties?.id) {
+        router.push(`/playground/${feature.properties.id}`);
+      }
+    };
+
+    const handleMouseEnter = () => {
+      if (map.current) {
+        map.current.getCanvas().style.cursor = "pointer";
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (map.current) {
+        map.current.getCanvas().style.cursor = "";
+      }
+    };
+
+    map.current.on("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
+    map.current.on("mouseenter", UNCLUSTERED_POINT_LAYER_ID, handleMouseEnter);
+    map.current.on("mouseleave", UNCLUSTERED_POINT_LAYER_ID, handleMouseLeave);
+
+    return () => {
+      if (map.current) {
+        try {
+          map.current.off(
+            "click",
+            UNCLUSTERED_POINT_LAYER_ID,
+            handlePointClick,
+          );
+          map.current.off(
+            "mouseenter",
+            UNCLUSTERED_POINT_LAYER_ID,
+            handleMouseEnter,
+          );
+          map.current.off(
+            "mouseleave",
+            UNCLUSTERED_POINT_LAYER_ID,
+            handleMouseLeave,
+          );
+          map.current.getCanvas().style.cursor = "";
+        } catch (error) {}
+      }
+    };
+  }, [isMapLoaded, router]);
 
   useEffect(() => {
     return () => {
