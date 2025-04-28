@@ -330,6 +330,44 @@ export function MapView() {
       }
     };
 
+    const handleClusterClick = (
+      e: mapboxgl.MapMouseEvent & {
+        features?: mapboxgl.MapboxGeoJSONFeature[];
+      },
+    ) => {
+      e.originalEvent.stopPropagation();
+      const feature = e.features?.[0];
+      if (
+        !feature?.properties?.cluster_id ||
+        feature.geometry.type !== "Point"
+      ) {
+        return;
+      }
+
+      const clusterId = feature.properties.cluster_id;
+      const source = map.current!.getSource(SOURCE_ID) as
+        | mapboxgl.GeoJSONSource
+        | undefined;
+
+      if (!source || typeof source.getClusterExpansionZoom !== "function") {
+        return;
+      }
+
+      // Get the zoom level needed to expand this cluster
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) {
+          return;
+        }
+        if (feature.geometry.type === "Point") {
+          const coordinates = feature.geometry.coordinates as [number, number];
+          map.current!.easeTo({
+            center: coordinates,
+            zoom: (zoom || 0) + 4, // Add a slight buffer to ensure it expands
+          });
+        }
+      });
+    };
+
     const handleMouseEnter = () => {
       if (map.current) {
         map.current.getCanvas().style.cursor = "pointer";
@@ -342,13 +380,19 @@ export function MapView() {
       }
     };
 
+    // Point
     map.current.on("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
     map.current.on("mouseenter", UNCLUSTERED_POINT_LAYER_ID, handleMouseEnter);
     map.current.on("mouseleave", UNCLUSTERED_POINT_LAYER_ID, handleMouseLeave);
+    // Cluster
+    map.current.on("click", CLUSTER_LAYER_ID, handleClusterClick);
+    map.current.on("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
+    map.current.on("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
 
     return () => {
-      if (map.current) {
+      if (map.current && map.current.getCanvas()) {
         try {
+          // Unclustered Points
           map.current.off(
             "click",
             UNCLUSTERED_POINT_LAYER_ID,
@@ -364,8 +408,13 @@ export function MapView() {
             UNCLUSTERED_POINT_LAYER_ID,
             handleMouseLeave,
           );
+          // Clusters
+          map.current.off("click", CLUSTER_LAYER_ID, handleClusterClick);
+          map.current.off("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
+          map.current.off("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
+          // Reset cursor just in case
           map.current.getCanvas().style.cursor = "";
-        } catch (error) {}
+        } catch (_) {}
       }
     };
   }, [isMapLoaded, router]);
