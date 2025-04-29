@@ -5,12 +5,7 @@ import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-
-// Helper function to format enum-like strings (e.g., 'park_district' -> 'Park District')
-function formatEnumString(str: string | undefined | null): string {
-  if (!str) return "";
-  return str.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
+import { formatEnumString } from "@/lib/utils";
 
 export function PlaygroundList() {
   const { playgrounds, requestFlyTo } = usePlaygrounds();
