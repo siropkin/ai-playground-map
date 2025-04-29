@@ -12,6 +12,7 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import type { Playground } from "@/types/playground";
+import { Loading } from "@/components/Loading";
 
 if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
   console.error("Mapbox Access Token is not set. Map will not function.");
@@ -442,11 +443,7 @@ export function MapView() {
           <span>Near me</span>
         </Button>
       </div>
-      {!isMapLoaded && !error && (
-        <div className="bg-background/50 absolute inset-0 z-20 flex items-center justify-center">
-          3... 2... 1... 🎠
-        </div>
-      )}
+      {!isMapLoaded && !error && <Loading />}
     </div>
   );
 }
