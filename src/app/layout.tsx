@@ -13,8 +13,8 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Playground Map",
-  description: "Find the best playgrounds for kids near you",
+  title: "Good Playground Map",
+  description: "Find good playgrounds for kids near you",
 };
 
 export default function RootLayout({
@@ -38,10 +38,10 @@ export default function RootLayout({
                   <div>
                     <Link href="/">
                       <h1 className="text-xl font-bold uppercase">
-                        Playground Map
+                        Good Playground Map
                       </h1>
                       <h4 className="text-xs whitespace-nowrap">
-                        Find the best playgrounds for kids near you
+                        Find good playgrounds for kids near you
                       </h4>
                     </Link>
                   </div>
