@@ -260,17 +260,36 @@ export function MapView() {
           ],
           { animate: false },
         );
-      } else {
-        map.current.fitBounds(DEFAULT_BOUNDS, { animate: false });
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            map.current?.flyTo({
+              center: [longitude, latitude],
+              zoom: 14,
+              essential: true,
+            });
+          },
+          (error) => {
+            map.current?.fitBounds(DEFAULT_BOUNDS, { animate: false });
+            console.error("Error fetching location:", error);
+          },
+        );
       }
 
       map.current.on("load", () => {
-        setMapBounds(getMapBounds(map.current));
+        const zoom = map.current?.getZoom() || 0;
+        if (zoom > 1) {
+          setMapBounds(getMapBounds(map.current));
+        }
         setIsMapLoaded(true);
       });
 
       map.current.on("moveend", () => {
-        setMapBounds(getMapBounds(map.current));
+        const zoom = map.current?.getZoom() || 0;
+        if (zoom > 1) {
+          setMapBounds(getMapBounds(map.current));
+        }
       });
     } catch (error) {
       setError(
