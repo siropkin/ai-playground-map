@@ -1,17 +1,11 @@
+import { cache } from "react";
 import { supabase as supabase } from "@/lib/supabase";
 import { Feature } from "@/types/playground";
 
 const FEATURES_TABLE_NAME = "features";
 
-// Cache for features
-let cachedFeatures: Feature[] | null = null;
-
 // Get all features
-export async function getFeatures(): Promise<Feature[]> {
-  if (!!cachedFeatures?.length) {
-    return cachedFeatures;
-  }
-
+export const getFeatures = cache(async (): Promise<Feature[]> => {
   const { data: featuresData, error: featuresError } = await supabase
     .from(FEATURES_TABLE_NAME)
     .select("*")
@@ -22,7 +16,7 @@ export async function getFeatures(): Promise<Feature[]> {
     return [];
   }
 
-  cachedFeatures = featuresData.map(
+  return featuresData.map(
     (f) =>
       ({
         id: f.id,
@@ -31,8 +25,7 @@ export async function getFeatures(): Promise<Feature[]> {
         createdAt: f.created_at,
       }) as Feature,
   );
-  return cachedFeatures;
-}
+});
 
 // export async function createFeature(name: string) {
 //   try {
