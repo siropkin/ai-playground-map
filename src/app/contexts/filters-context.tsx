@@ -64,13 +64,15 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   // Update URL when URL parameters change and map bounds where removed (but only after initialization)
   useEffect(() => {
     if (isInitialized && mapBounds) {
-      const hasAllBounds =
-        searchParams.has("south") &&
-        searchParams.has("north") &&
-        searchParams.has("west") &&
-        searchParams.has("east");
-      if (!hasAllBounds) {
-        updateUrlWithMapBounds(roundMapBounds(mapBounds));
+      if (window.location.pathname === "/") {
+        const hasAllBounds =
+          searchParams.has("south") &&
+          searchParams.has("north") &&
+          searchParams.has("west") &&
+          searchParams.has("east");
+        if (!hasAllBounds) {
+          updateUrlWithMapBounds(roundMapBounds(mapBounds));
+        }
       }
     }
   }, [mapBounds, isInitialized, searchParams]);
