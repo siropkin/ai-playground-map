@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { supabase as supabase } from "@/lib/supabase";
 import {
   AccessType,
@@ -130,101 +131,103 @@ export async function getPlaygroundsForBounds(
   }
 }
 
-export async function getPlaygroundById(
-  id: string,
-): Promise<Playground | null> {
-  try {
-    const { data: playgroundData, error: playgroundError } = await supabase
-      .from(PLAYGROUNDS_TABLE_NAME)
-      .select("*")
-      .eq("id", id)
-      .single();
+export const getPlaygroundById = cache(
+  async (id: string): Promise<Playground | null> => {
+    try {
+      const { data: playgroundData, error: playgroundError } = await supabase
+        .from(PLAYGROUNDS_TABLE_NAME)
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (playgroundError) {
-      throw playgroundError;
-    }
+      if (playgroundError) {
+        throw playgroundError;
+      }
 
-    if (!playgroundData) {
+      if (!playgroundData) {
+        return null;
+      }
+
+      const playground: Playground = {
+        id: playgroundData.id,
+        name: playgroundData.name,
+        description: playgroundData.description,
+        latitude: playgroundData.latitude,
+        longitude: playgroundData.longitude,
+        address: playgroundData.address,
+        city: playgroundData.city,
+        state: playgroundData.state,
+        zipCode: playgroundData.zip_code,
+        ageMin: playgroundData.age_min,
+        ageMax: playgroundData.age_max,
+        openHours: playgroundData.open_hours as OpenHours,
+        accessType: playgroundData.access_type as AccessType,
+        surfaceType: playgroundData.surface_type as SurfaceType,
+        features: [],
+        photos: [],
+        createdAt: playgroundData.created_at,
+        updatedAt: playgroundData.updated_at,
+      };
+
+      // Get all features
+      const features = await getFeatures();
+
+      // Create a map of feature IDs to names
+      const featuresMap = new Map(
+        features ? features.map((f) => [f.id, f]) : [],
+      );
+
+      // Get playground features
+      const { data: featuresJunctionData, error: featuresJunctionError } =
+        await supabase
+          .from(PLAYGROUND_FEATURES_TABLE_NAME)
+          .select("feature_id")
+          .eq("playground_id", id);
+
+      if (featuresJunctionError) {
+        throw featuresJunctionError;
+      }
+
+      // Add features to their respective playgrounds
+      if (featuresJunctionData) {
+        featuresJunctionData.forEach((junction) => {
+          const feature = featuresMap.get(junction.feature_id);
+          if (feature) {
+            playground.features.push(feature.name);
+          }
+        });
+      }
+
+      // Get all playground photos
+      const { data: photosJunctionData, error: photosJunctionError } =
+        await supabase
+          .from(PLAYGROUND_PHOTOS_TABLE_NAME)
+          .select("filename, caption, is_primary, created_at")
+          .eq("playground_id", id);
+
+      if (photosJunctionError) {
+        throw photosJunctionError;
+      }
+
+      // Add photos to their respective playgrounds
+      if (photosJunctionData) {
+        photosJunctionData.forEach((junction) => {
+          playground.photos.push({
+            filename: junction.filename,
+            caption: junction.caption,
+            isPrimary: junction.is_primary,
+            createdAt: junction.created_at,
+          } as PlaygroundPhoto);
+        });
+      }
+
+      return playground;
+    } catch (error) {
+      console.error("Error fetching playground by ID:", error);
       return null;
     }
-
-    const playground: Playground = {
-      id: playgroundData.id,
-      name: playgroundData.name,
-      description: playgroundData.description,
-      latitude: playgroundData.latitude,
-      longitude: playgroundData.longitude,
-      address: playgroundData.address,
-      city: playgroundData.city,
-      state: playgroundData.state,
-      zipCode: playgroundData.zip_code,
-      ageMin: playgroundData.age_min,
-      ageMax: playgroundData.age_max,
-      openHours: playgroundData.open_hours as OpenHours,
-      accessType: playgroundData.access_type as AccessType,
-      surfaceType: playgroundData.surface_type as SurfaceType,
-      features: [],
-      photos: [],
-      createdAt: playgroundData.created_at,
-      updatedAt: playgroundData.updated_at,
-    };
-
-    // Get all features
-    const features = await getFeatures();
-
-    // Create a map of feature IDs to names
-    const featuresMap = new Map(features ? features.map((f) => [f.id, f]) : []);
-
-    // Get playground features
-    const { data: featuresJunctionData, error: featuresJunctionError } =
-      await supabase
-        .from(PLAYGROUND_FEATURES_TABLE_NAME)
-        .select("feature_id")
-        .eq("playground_id", id);
-
-    if (featuresJunctionError) {
-      throw featuresJunctionError;
-    }
-
-    // Add features to their respective playgrounds
-    if (featuresJunctionData) {
-      featuresJunctionData.forEach((junction) => {
-        const feature = featuresMap.get(junction.feature_id);
-        if (feature) {
-          playground.features.push(feature.name);
-        }
-      });
-    }
-
-    // Get all playground photos
-    const { data: photosJunctionData, error: photosJunctionError } =
-      await supabase
-        .from(PLAYGROUND_PHOTOS_TABLE_NAME)
-        .select("filename, caption, is_primary, created_at")
-        .eq("playground_id", id);
-
-    if (photosJunctionError) {
-      throw photosJunctionError;
-    }
-
-    // Add photos to their respective playgrounds
-    if (photosJunctionData) {
-      photosJunctionData.forEach((junction) => {
-        playground.photos.push({
-          filename: junction.filename,
-          caption: junction.caption,
-          isPrimary: junction.is_primary,
-          createdAt: junction.created_at,
-        } as PlaygroundPhoto);
-      });
-    }
-
-    return playground;
-  } catch (error) {
-    console.error("Error fetching playground by ID:", error);
-    return null;
-  }
-}
+  },
+);
 
 // export async function checkPlaygroundsDbSetup(): Promise<boolean> {
 //   try {

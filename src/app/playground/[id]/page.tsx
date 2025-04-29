@@ -1,6 +1,3 @@
-"use client";
-
-import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import { MapPin, Clock } from "lucide-react";
 
@@ -38,24 +35,13 @@ function getTodayOpenHours(openHours: Playground["openHours"]) {
   return `${hours.open}–${hours.close}`;
 }
 
-export default function PlaygroundDetail({
+export default async function PlaygroundDetail({
   params,
 }: {
   params: Promise<PlaygroundDetailParams>;
 }) {
-  const resolvedParams = use(params);
-  const [playground, setPlayground] = useState<Playground | null>(null);
-
-  useEffect(() => {
-    if (!resolvedParams.id) {
-      return;
-    }
-    const fetchPlayground = async () => {
-      const p = await getPlaygroundById(resolvedParams.id);
-      setPlayground(p);
-    };
-    fetchPlayground();
-  }, [resolvedParams.id]);
+  const resolvedParams = await params;
+  const playground = await getPlaygroundById(resolvedParams.id);
 
   if (!playground) {
     return null;
