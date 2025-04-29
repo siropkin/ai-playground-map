@@ -1,71 +1,116 @@
-import Link from "next/link";
+"use client";
+
 import Image from "next/image";
-import { MapPin, Star } from "lucide-react";
-
+import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { playgrounds } from "@/lib/placeholder-data";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { usePlaygrounds } from "@/contexts/playgrounds-context";
 
-export default function PlaygroundList() {
+// Helper function to format enum-like strings (e.g., 'park_district' -> 'Park District')
+function formatEnumString(str: string | undefined | null): string {
+  if (!str) return "";
+  return str.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function PlaygroundList() {
+  const { playgrounds, requestFlyTo } = usePlaygrounds();
+
+  if (!playgrounds || playgrounds.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="flex w-full flex-col gap-4">
-      {playgrounds.map((playground) => (
-        <Link href={`/playground/${playground.id}`} key={playground.id}>
-          <Card className="overflow-hidden bg-white">
-            <div className="relative">
-              <Image
-                src={playground.image || "/playground-placeholder.svg"}
-                alt={playground.name}
-                width={300}
-                height={200}
-                className="h-48 w-full object-cover"
-              />
-              <button
-                className="absolute top-2 right-2 rounded-full bg-white/80 p-1.5"
-                aria-label={
-                  playground.bookmarked
-                    ? "Remove from bookmarks"
-                    : "Add to bookmarks"
-                }
-              >
-                <Star
-                  className={`h-5 w-5 ${playground.bookmarked ? "fill-yellow-400 text-yellow-400" : "text-gray-500"}`}
-                />
-              </button>
-            </div>
+    <div className="flex flex-col space-y-3">
+      {playgrounds.map((playground, index) => {
+        const primaryPhoto = playground.photos?.find((p) => p.isPrimary);
+        const displayPhoto = primaryPhoto || playground.photos?.[0];
+        const ageRange =
+          playground.ageMin != null && playground.ageMax != null
+            ? `Ages ${playground.ageMin}-${playground.ageMax}`
+            : playground.ageMin != null
+              ? `Ages ${playground.ageMin}+`
+              : playground.ageMax != null
+                ? `Ages up to ${playground.ageMax}`
+                : "Ages N/A";
+
+        return (
+          <Card
+            key={playground.id}
+            className="bg-background/95 cursor-pointer gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+            onClick={() => {
+              requestFlyTo([playground.longitude, playground.latitude]);
+            }}
+          >
+            <CardHeader className="gap-0 p-0">
+              <div className="relative h-48 w-full bg-zinc-200 dark:bg-zinc-700">
+                {displayPhoto ? (
+                  <Image
+                    className="h-full w-full object-cover"
+                    src={displayPhoto.filename}
+                    alt={displayPhoto.caption || `Photo of ${playground.name}`}
+                    width={300}
+                    height={200}
+                    priority={index < 3}
+                  />
+                ) : (
+                  <div className="text-muted-foreground flex h-full w-full items-center justify-center">
+                    <span>No Image Available</span>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <h3 className="text-lg font-semibold">{playground.name}</h3>
-                <div className="flex items-center">
-                  <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-medium">
-                    {playground.rating}
-                  </span>
-                  <span className="text-muted-foreground ml-1 text-xs">
-                    ({playground.reviews})
-                  </span>
-                </div>
               </div>
+
               <div className="text-muted-foreground mt-1 flex items-center text-sm">
                 <MapPin className="mr-1 h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate">{playground.address}</span>
-                <span className="ml-2 flex-shrink-0">
-                  {playground.distance}
+                <span className="truncate">
+                  {playground.address}, {playground.city}
                 </span>
               </div>
+
               <div className="mt-3 flex flex-wrap gap-1">
-                <Badge variant="outline">{playground.access}</Badge>
-                <Badge variant="outline">Ages {playground.ageRange}</Badge>
-                {playground.features.map((feature) => (
-                  <Badge variant="outline" key={feature}>
-                    {feature}
+                {/* Access Type Badge */}
+                {playground.accessType && (
+                  <Badge variant="outline">
+                    {formatEnumString(playground.accessType)}
                   </Badge>
-                ))}
+                )}
+
+                {/* Age Range Badge */}
+                <Badge variant="outline">{ageRange}</Badge>
+
+                {/* Surface Type Badge (Optional but useful) */}
+                {playground.surfaceType && (
+                  <Badge variant="outline">
+                    {formatEnumString(playground.surfaceType)} Surface
+                  </Badge>
+                )}
+
+                {/* Features Badges */}
+                {playground.features?.slice(0, 2).map(
+                  (
+                    feature, // Show fewer features initially to save space
+                  ) => (
+                    <Badge variant="outline" key={feature}>
+                      {formatEnumString(feature)}
+                    </Badge>
+                  ),
+                )}
+
+                {playground.features?.length > 2 && (
+                  <Badge variant="outline">
+                    +{playground.features.length - 2} more
+                  </Badge>
+                )}
               </div>
             </CardContent>
           </Card>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }
