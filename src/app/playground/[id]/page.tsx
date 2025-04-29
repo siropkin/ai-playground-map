@@ -139,7 +139,7 @@ export default function PlaygroundDetail({
           <div className="mb-6 flex items-start gap-2 text-sm">
             <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div>
-              <p className="font-medium">Today's Hours</p>
+              <p className="font-medium">Today&apos;s Hours</p>
               <p>{getTodayOpenHours(playground.openHours)}</p>
             </div>
           </div>
