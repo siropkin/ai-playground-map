@@ -90,127 +90,12 @@ export function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
   const { playgrounds, flyToCoords, clearFlyToRequest } = usePlaygrounds();
-  const router = useRouter(); // Get router instance
+  const router = useRouter();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const playgroundsGeoJson = useCallback((): FeatureCollection<
-    Point,
-    { id: number; name: string }
-  > => {
-    return createGeoJson(playgrounds || []);
-  }, [playgrounds]);
-
-  const updateMapStyle = useCallback(
-    (currentMap: mapboxgl.Map, currentTheme: string | undefined) => {
-      currentMap.setStyle(getMapStyle(currentTheme));
-    },
-    [],
-  );
-
-  const updateMapDataLayers = useCallback(
-    (currentMap: mapboxgl.Map | null, currentTheme: string | undefined) => {
-      if (!currentMap) {
-        return;
-      }
-
-      const source = currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource;
-      if (source) {
-        source.setData(playgroundsGeoJson());
-        return;
-      }
-
-      const mapColors = getMapColors(currentTheme);
-
-      // Source for GeoJSON data
-      currentMap.addSource(SOURCE_ID, {
-        type: "geojson",
-        data: playgroundsGeoJson(),
-        cluster: true,
-        clusterMaxZoom: 9,
-        clusterRadius: 15,
-      });
-
-      // Layer for Clusters (Circles)
-      currentMap.addLayer({
-        id: CLUSTER_LAYER_ID,
-        type: "circle",
-        source: SOURCE_ID,
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": mapColors.clusterBg,
-          "circle-radius": [
-            "step",
-            ["get", "point_count"],
-            15, // Small clusters
-            100,
-            20, // Medium clusters
-            750,
-            25, // Large clusters
-          ],
-          "circle-stroke-width": 1,
-          "circle-stroke-color": mapColors.clusterText,
-        },
-      });
-
-      // Layer for Cluster Counts (Text)
-      currentMap.addLayer({
-        id: CLUSTER_COUNT_LAYER_ID,
-        type: "symbol",
-        source: SOURCE_ID,
-        filter: ["has", "point_count"],
-        layout: {
-          "text-field": "{point_count_abbreviated}",
-          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-          "text-size": 12,
-        },
-        paint: {
-          "text-color": mapColors.clusterText,
-        },
-      });
-
-      // Layer for Unclustered Points (Circles)
-      currentMap.addLayer({
-        id: UNCLUSTERED_POINT_LAYER_ID,
-        type: "circle",
-        source: SOURCE_ID,
-        filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-color": mapColors.point,
-          "circle-radius": 10,
-          "circle-stroke-width": 1,
-          "circle-stroke-color": mapColors.pointStroke,
-        },
-      });
-
-      // Layer for Unclustered Point Labels (Playground Name)
-      currentMap.addLayer({
-        id: UNCLUSTERED_LABEL_LAYER_ID,
-        type: "symbol",
-        source: SOURCE_ID,
-        filter: ["!", ["has", "point_count"]],
-        layout: {
-          "text-field": ["get", "name"], // Get the 'name' property from GeoJSON features
-          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-          "text-offset": [1.5, 0], // Offset text slightly to the right [x, y]
-          "text-anchor": "left", // Anchor text to the left of the point
-          "text-justify": "left",
-          "text-size": 12,
-          "text-allow-overlap": true, // Prevent labels overlapping points/other labels if desired
-          "text-optional": false, // Hide label if it doesn't fit
-        },
-        paint: {
-          "text-color": mapColors.label,
-          "text-halo-color": mapColors.labelHalo,
-          "text-halo-width": 1,
-        },
-      });
-    },
-    [playgroundsGeoJson],
-  );
 
   const handleNearMeClick = useCallback(() => {
     if (!navigator.geolocation) {
@@ -235,6 +120,125 @@ export function MapView() {
     );
   }, []);
 
+  const playgroundsGeoJson = useCallback((): FeatureCollection<
+    Point,
+    { id: number; name: string }
+  > => {
+    return createGeoJson(playgrounds || []);
+  }, [playgrounds]);
+
+  const updateMapStyle = useCallback(
+    (currentMap: mapboxgl.Map, currentTheme: string | undefined) => {
+      currentMap.setStyle(getMapStyle(currentTheme));
+    },
+    [],
+  );
+
+  const addOrUpdateMapDataLayers = useCallback(
+    (currentMap: mapboxgl.Map, currentTheme: string | undefined) => {
+      const mapColors = getMapColors(currentTheme);
+
+      // Source for GeoJSON data
+      if (!currentMap.getSource(SOURCE_ID)) {
+        currentMap.addSource(SOURCE_ID, {
+          type: "geojson",
+          data: playgroundsGeoJson(),
+          cluster: true,
+          clusterMaxZoom: 9,
+          clusterRadius: 15,
+        });
+      } else {
+        (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
+          playgroundsGeoJson(),
+        );
+      }
+
+      // Layer for Clusters (Circles)
+      if (!currentMap.getLayer(CLUSTER_LAYER_ID)) {
+        currentMap.addLayer({
+          id: CLUSTER_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": mapColors.clusterBg,
+            "circle-radius": [
+              "step",
+              ["get", "point_count"],
+              15,
+              100,
+              20,
+              750,
+              25,
+            ],
+            "circle-stroke-width": 1,
+            "circle-stroke-color": mapColors.clusterText,
+          },
+        });
+      }
+
+      // Layer for Cluster Counts (Text)
+      if (!currentMap.getLayer(CLUSTER_COUNT_LAYER_ID)) {
+        currentMap.addLayer({
+          id: CLUSTER_COUNT_LAYER_ID,
+          type: "symbol",
+          source: SOURCE_ID,
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": "{point_count_abbreviated}",
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-size": 12,
+          },
+          paint: {
+            "text-color": mapColors.clusterText,
+          },
+        });
+      }
+
+      // Layer for Unclustered Points (Circles)
+      if (!currentMap.getLayer(UNCLUSTERED_POINT_LAYER_ID)) {
+        currentMap.addLayer({
+          id: UNCLUSTERED_POINT_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": mapColors.point,
+            "circle-radius": 10,
+            "circle-stroke-width": 1,
+            "circle-stroke-color": mapColors.pointStroke,
+          },
+        });
+      }
+
+      // Layer for Unclustered Point Labels (Playground Name)
+      if (!currentMap.getLayer(UNCLUSTERED_LABEL_LAYER_ID)) {
+        currentMap.addLayer({
+          id: UNCLUSTERED_LABEL_LAYER_ID,
+          type: "symbol",
+          source: SOURCE_ID,
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            "text-field": ["get", "name"],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-offset": [1.5, 0],
+            "text-anchor": "left",
+            "text-justify": "left",
+            "text-size": 12,
+            "text-allow-overlap": true,
+            "text-optional": false,
+          },
+          paint: {
+            "text-color": mapColors.label,
+            "text-halo-color": mapColors.labelHalo,
+            "text-halo-width": 1,
+          },
+        });
+      }
+    },
+    [playgroundsGeoJson],
+  );
+
   useEffect(() => {
     if (map.current || !mapContainer) {
       return;
@@ -253,19 +257,15 @@ export function MapView() {
             [mapBounds.west, mapBounds.south],
             [mapBounds.east, mapBounds.north],
           ],
-          {
-            animate: false,
-          },
+          { animate: false },
         );
       } else {
-        map.current.fitBounds(DEFAULT_BOUNDS, {
-          animate: false,
-        });
+        map.current.fitBounds(DEFAULT_BOUNDS, { animate: false });
       }
 
       map.current.on("load", () => {
-        setIsMapLoaded(true);
         setMapBounds(getMapBounds(map.current));
+        setIsMapLoaded(true);
       });
 
       map.current.on("moveend", () => {
@@ -280,38 +280,24 @@ export function MapView() {
   }, [mapContainer, theme, mapBounds, setMapBounds]);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (map.current && isMapLoaded) {
-      const waiting = () => {
-        if (!map.current!.isStyleLoaded()) {
-          timeout = setTimeout(waiting, 200);
-        } else {
-          updateMapDataLayers(map.current, theme);
-        }
-      };
-      waiting();
+    if (!map.current || !isMapLoaded) {
+      return undefined;
     }
-    return () => {
-      clearTimeout(timeout);
+
+    const handleStyleData = () => {
+      addOrUpdateMapDataLayers(map.current!, theme);
     };
-  }, [isMapLoaded, theme, updateMapDataLayers]);
 
-  useEffect(() => {
-    if (map.current && isMapLoaded) {
-      updateMapStyle(map.current, theme);
-    }
-  }, [theme, isMapLoaded, updateMapStyle]);
+    map.current.on("styledata", handleStyleData);
 
-  useEffect(() => {
-    if (map.current && flyToCoords) {
-      map.current.flyTo({
-        center: flyToCoords,
-        zoom: 14,
-        essential: true,
-      });
-      clearFlyToRequest();
+    if (map.current.isStyleLoaded()) {
+      addOrUpdateMapDataLayers(map.current, theme);
     }
-  }, [flyToCoords, clearFlyToRequest]);
+
+    return () => {
+      map.current?.off("styledata", handleStyleData);
+    };
+  }, [isMapLoaded, theme, addOrUpdateMapDataLayers]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {
@@ -325,7 +311,7 @@ export function MapView() {
     ) => {
       e.originalEvent.stopPropagation();
       const feature = e.features?.[0];
-      if (feature && feature.properties?.id) {
+      if (feature?.properties?.id) {
         router.push(`/playground/${feature.properties.id}`);
       }
     };
@@ -355,76 +341,81 @@ export function MapView() {
 
       // Get the zoom level needed to expand this cluster
       source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) {
-          return;
-        }
-        if (feature.geometry.type === "Point") {
+        if (!err && feature.geometry.type === "Point") {
           const coordinates = feature.geometry.coordinates as [number, number];
           map.current!.easeTo({
             center: coordinates,
-            zoom: (zoom || 0) + 4, // Add a slight buffer to ensure it expands
+            zoom: (zoom || 0) + 4,
           });
         }
       });
     };
 
     const handleMouseEnter = () => {
-      if (map.current) {
-        map.current.getCanvas().style.cursor = "pointer";
-      }
+      map.current!.getCanvas().style.cursor = "pointer";
     };
 
     const handleMouseLeave = () => {
-      if (map.current) {
-        map.current.getCanvas().style.cursor = "";
-      }
+      map.current!.getCanvas().style.cursor = "";
     };
 
-    // Point
+    // Unclustered Points
     map.current.on("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
     map.current.on("mouseenter", UNCLUSTERED_POINT_LAYER_ID, handleMouseEnter);
     map.current.on("mouseleave", UNCLUSTERED_POINT_LAYER_ID, handleMouseLeave);
-    // Cluster
+    // Clusters
     map.current.on("click", CLUSTER_LAYER_ID, handleClusterClick);
     map.current.on("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
     map.current.on("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
 
     return () => {
-      if (map.current && map.current.getCanvas()) {
-        try {
-          // Unclustered Points
-          map.current.off(
-            "click",
-            UNCLUSTERED_POINT_LAYER_ID,
-            handlePointClick,
-          );
-          map.current.off(
-            "mouseenter",
-            UNCLUSTERED_POINT_LAYER_ID,
-            handleMouseEnter,
-          );
-          map.current.off(
-            "mouseleave",
-            UNCLUSTERED_POINT_LAYER_ID,
-            handleMouseLeave,
-          );
-          // Clusters
-          map.current.off("click", CLUSTER_LAYER_ID, handleClusterClick);
-          map.current.off("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
-          map.current.off("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
-          // Reset cursor just in case
-          map.current.getCanvas().style.cursor = "";
-        } catch (_) {}
-      }
+      // Unclustered Points
+      map.current!.off("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
+      map.current!.off(
+        "mouseenter",
+        UNCLUSTERED_POINT_LAYER_ID,
+        handleMouseEnter,
+      );
+      map.current!.off(
+        "mouseleave",
+        UNCLUSTERED_POINT_LAYER_ID,
+        handleMouseLeave,
+      );
+      // Clusters
+      map.current!.off("click", CLUSTER_LAYER_ID, handleClusterClick);
+      map.current!.off("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
+      map.current!.off("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
+      // Reset cursor just in case
+      map.current!.getCanvas().style.cursor = "";
     };
   }, [isMapLoaded, router]);
 
   useEffect(() => {
+    if (map.current) {
+      updateMapStyle(map.current, theme);
+    }
+  }, [theme, updateMapStyle]);
+
+  useEffect(() => {
+    if (map.current && flyToCoords) {
+      map.current.flyTo({
+        center: flyToCoords,
+        zoom: 14,
+        essential: true,
+      });
+      clearFlyToRequest();
+    }
+  }, [flyToCoords, clearFlyToRequest]);
+
+  useEffect(() => {
     return () => {
-      map.current?.remove();
-      map.current = null;
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+        setIsMapLoaded(false);
+      }
     };
-  }, [theme]);
+  }, []);
 
   if (error) {
     return (
@@ -435,18 +426,27 @@ export function MapView() {
   }
 
   return (
-    <>
-      <div ref={setMapContainer} className="h-full w-full" />
+    <div className="relative h-full w-full">
+      <div
+        ref={setMapContainer}
+        className="absolute top-0 left-0 h-full w-full"
+      />
       <div className="absolute right-4 bottom-4 z-10">
         <Button
           variant="outline"
-          aria-label="Filter by near me"
+          aria-label="Center map on my location"
           onClick={handleNearMeClick}
+          className="bg-background/80 flex items-center gap-1 backdrop-blur-sm"
         >
           <MapPin className="h-4 w-4" />
           <span>Near me</span>
         </Button>
       </div>
-    </>
+      {!isMapLoaded && !error && (
+        <div className="bg-background/50 absolute inset-0 z-20 flex items-center justify-center">
+          3... 2... 1... Go!
+        </div>
+      )}
+    </div>
   );
 }
