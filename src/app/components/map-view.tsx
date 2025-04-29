@@ -444,7 +444,7 @@ export function MapView() {
       </div>
       {!isMapLoaded && !error && (
         <div className="bg-background/50 absolute inset-0 z-20 flex items-center justify-center">
-          3... 2... 1... Go!
+          3... 2... 1... 🎠
         </div>
       )}
     </div>
