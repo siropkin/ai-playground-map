@@ -12,6 +12,7 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import type { Playground } from "@/types/playground";
+import { Loading } from "@/components/Loading";
 
 if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
   console.error("Mapbox Access Token is not set. Map will not function.");
@@ -259,17 +260,36 @@ export function MapView() {
           ],
           { animate: false },
         );
-      } else {
-        map.current.fitBounds(DEFAULT_BOUNDS, { animate: false });
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            map.current?.flyTo({
+              center: [longitude, latitude],
+              zoom: 14,
+              essential: true,
+            });
+          },
+          (error) => {
+            map.current?.fitBounds(DEFAULT_BOUNDS, { animate: false });
+            console.error("Error fetching location:", error);
+          },
+        );
       }
 
       map.current.on("load", () => {
-        setMapBounds(getMapBounds(map.current));
+        const zoom = map.current?.getZoom() || 0;
+        if (zoom > 1) {
+          setMapBounds(getMapBounds(map.current));
+        }
         setIsMapLoaded(true);
       });
 
       map.current.on("moveend", () => {
-        setMapBounds(getMapBounds(map.current));
+        const zoom = map.current?.getZoom() || 0;
+        if (zoom > 1) {
+          setMapBounds(getMapBounds(map.current));
+        }
       });
     } catch (error) {
       setError(
@@ -442,11 +462,7 @@ export function MapView() {
           <span>Near me</span>
         </Button>
       </div>
-      {!isMapLoaded && !error && (
-        <div className="bg-background/50 absolute inset-0 z-20 flex items-center justify-center">
-          3... 2... 1... 🎠
-        </div>
-      )}
+      {!isMapLoaded && !error && <Loading />}
     </div>
   );
 }
