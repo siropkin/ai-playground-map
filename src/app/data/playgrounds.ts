@@ -3,7 +3,6 @@
 import { supabase as supabase } from "@/lib/supabase";
 import {
   AccessType,
-  FeatureType,
   MapBounds,
   OpenHours,
   Playground,

@@ -106,7 +106,7 @@ export default function PlaygroundDetail({
           <div className="mb-2 flex items-center gap-2 text-sm">
             <Clock className="text-muted-foreground h-4 w-4" />
             <span>
-              <span className="text-muted-foreground">Today's Hours:</span>{" "}
+              <span className="text-muted-foreground">Today&apos;s Hours:</span>{" "}
               {getTodayOpenHours(playground.openHours)}
             </span>
           </div>
