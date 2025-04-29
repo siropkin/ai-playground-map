@@ -27,8 +27,7 @@ export default function RootLayout({
       <body className={cn(inter.className, "flex min-h-screen flex-col")}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
           disableTransitionOnChange
         >
           <FilterProvider>
