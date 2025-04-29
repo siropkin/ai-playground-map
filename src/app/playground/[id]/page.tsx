@@ -40,12 +40,15 @@ export default function PlaygroundDetail({
   const [playground, setPlayground] = useState<Playground | null>(null);
 
   useEffect(() => {
+    if (!resolvedParams.id) {
+      return;
+    }
     const fetchPlayground = async () => {
       const p = await getPlaygroundById(resolvedParams.id);
       setPlayground(p);
     };
     fetchPlayground();
-  }, []);
+  }, [resolvedParams.id]);
 
   if (!playground) {
     return null;
