@@ -8,7 +8,7 @@ import {
   type ReactNode,
   useCallback,
 } from "react";
-// import type { FilterCriteria, MapBounds } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
 import type { MapBounds } from "@/types/playground";
 import {
   getMapBoundsStateFromUrl,
@@ -17,31 +17,21 @@ import {
 } from "@/lib/filters-utils";
 
 interface FiltersContextType {
-  // filters: FilterCriteria;
   mapBounds: MapBounds | null;
   setMapBounds: (bounds: MapBounds) => void;
-  // toggleAgeRange: (ageRange: string) => void;
-  // toggleAccess: (access: string) => void;
-  // toggleFeature: (feature: string) => void;
-  // clearFilters: () => void;
-  // isFilterActive: (filterType: string, value: string) => boolean;
 }
 
 const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
-  // const [filters, setFilters] = useState<FilterCriteria>({
-  //   ageRanges: [],
-  //   access: [],
-  //   features: [],
-  // });
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const searchParams = useSearchParams();
 
+  // Update map bounds only if they have changed
   const updateMapBounds = useCallback((bounds: MapBounds) => {
     setMapBounds((prevState) => {
       const roundedBounds = roundMapBounds(bounds);
-
       if (
         prevState &&
         prevState.south === roundedBounds.south &&
@@ -51,11 +41,11 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       ) {
         return prevState;
       }
-
       return roundedBounds;
     });
   }, []);
 
+  // Load map bounds from URL when the component mounts
   useEffect(() => {
     const urlBounds = getMapBoundsStateFromUrl();
     if (urlBounds) {
@@ -66,81 +56,30 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   // Update URL when filters change (but only after initialization)
   useEffect(() => {
-    if (isInitialized) {
-      // updateUrlWithFilters(filters);
-      if (mapBounds) {
-        updateUrlWithMapBounds(roundMapBounds(mapBounds));
-      }
+    if (isInitialized && mapBounds) {
+      updateUrlWithMapBounds(roundMapBounds(mapBounds));
     }
   }, [mapBounds, isInitialized]);
 
-  // const toggleAgeRange = (ageRange: string) => {
-  //   setFilters((prev) => {
-  //     const newAgeRanges = prev.ageRanges.includes(ageRange)
-  //       ? prev.ageRanges.filter((a) => a !== ageRange)
-  //       : [...prev.ageRanges, ageRange];
-  //
-  //     return {
-  //       ...prev,
-  //       ageRanges: newAgeRanges,
-  //     };
-  //   });
-  // };
-  //
-  // const toggleAccess = (access: string) => {
-  //   setFilters((prev) => {
-  //     const newAccess = prev.access.includes(access)
-  //       ? prev.access.filter((a) => a !== access)
-  //       : [...prev.access, access];
-  //
-  //     return {
-  //       ...prev,
-  //       access: newAccess,
-  //     };
-  //   });
-  // };
-  //
-  // const toggleFeature = (feature: string) => {
-  //   setFilters((prev) => {
-  //     const newFeatures = prev.features.includes(feature)
-  //       ? prev.features.filter((f) => f !== feature)
-  //       : [...prev.features, feature];
-  //
-  //     return {
-  //       ...prev,
-  //       features: newFeatures,
-  //     };
-  //   });
-  // };
-  //
-  // const clearFilters = () => {
-  //   setFilters({ ageRanges: [], access: [], features: [] });
-  // };
-  //
-  // const isFilterActive = (filterType: string, value: string): boolean => {
-  //   switch (filterType) {
-  //     case "age":
-  //       return filters.ageRanges.includes(value);
-  //     case "access":
-  //       return filters.access.includes(value);
-  //     case "feature":
-  //       return filters.features.includes(value);
-  //     default:
-  //       return false;
-  //   }
-  // };
+  // Update URL when URL parameters change and map bounds where removed (but only after initialization)
+  useEffect(() => {
+    if (isInitialized && mapBounds) {
+      const hasAllBounds =
+        searchParams.has("south") &&
+        searchParams.has("north") &&
+        searchParams.has("west") &&
+        searchParams.has("east");
+      if (!hasAllBounds) {
+        updateUrlWithMapBounds(roundMapBounds(mapBounds));
+      }
+    }
+  }, [mapBounds, isInitialized, searchParams]);
 
   return (
     <FiltersContext.Provider
       value={{
-        // filters,
         mapBounds,
         setMapBounds: updateMapBounds,
-        // toggleAgeRange,
-        // toggleAccess,
-        // toggleFeature,
-        // clearFilters,
-        // isFilterActive,
       }}
     >
       {children}
