@@ -28,6 +28,16 @@ function getTodayOpenHours(openHours: Playground["openHours"]) {
   return `${hours.open}–${hours.close}`;
 }
 
+function formatAddress(playground: Playground): string {
+  const arr = [
+    playground.address,
+    playground.city,
+    playground.state,
+    playground.zipCode,
+  ].filter(Boolean);
+  return arr.join(", ") || "No address available";
+}
+
 export default async function PlaygroundDetail({
   params,
 }: {
@@ -96,26 +106,26 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Address */}
-          <div className="mb-6 flex items-start gap-2 text-sm">
-            <div>
-              <p>
-                {playground.address}, {playground.city}, {playground.state}{" "}
-                {playground.zipCode}
-              </p>
-              <span className="text-muted-foreground">
-                {" "}
-                (
-                <a
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  get directions
-                </a>
-                )
-              </span>
-            </div>
+          <div className="mb-6">
+            <h3 className="text-muted-foreground text-sm font-medium">
+              Address
+            </h3>
+            <p className="text-sm leading-relaxed">
+              {formatAddress(playground)}
+            </p>
+            <span className="text-muted-foreground text-sm">
+              {" "}
+              (
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                get directions
+              </a>
+              )
+            </span>
           </div>
 
           {/* Hours */}
@@ -144,9 +154,7 @@ export default async function PlaygroundDetail({
             </h3>
             <div className="flex flex-wrap gap-2">
               {playground.features.length === 0 ? (
-                <span className="text-muted-foreground text-sm">
-                  No features listed
-                </span>
+                <p className="text-sm leading-relaxed">No features listed</p>
               ) : (
                 playground.features.map((feature: string) => (
                   <span

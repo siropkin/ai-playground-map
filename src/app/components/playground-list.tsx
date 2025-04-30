@@ -69,7 +69,7 @@ export function PlaygroundList() {
                 )}
 
                 {/* Age Range Badge */}
-                <Badge variant="outline">{ageRange}</Badge>
+                {ageRange && <Badge variant="outline">{ageRange}</Badge>}
 
                 {/* Surface Type Badge (Optional but useful) */}
                 {playground.surfaceType && (
