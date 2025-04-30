@@ -5,16 +5,9 @@ import type { Playground } from "@/types/playground";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
-import { formatEnumString } from "@/lib/utils";
+import { formatEnumString, getAgeRange } from "@/lib/utils";
 
 type PlaygroundDetailParams = { id: string };
-
-function getAgeRange(ageMin: number | null, ageMax: number | null) {
-  if (!ageMin && !ageMax) return null;
-  if (!ageMin) return `Ages up to ${ageMax}`;
-  if (!ageMax) return `Ages ${ageMin}+`;
-  return `Ages ${ageMin}-${ageMax}`;
-}
 
 function getTodayOpenHours(openHours: Playground["openHours"]) {
   if (!openHours) {
@@ -103,26 +96,30 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Address */}
-          <div className="mb-4 flex items-start gap-2 text-sm">
-            <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <div className="mb-6 flex items-start gap-2 text-sm">
             <div>
               <p>
                 {playground.address}, {playground.city}, {playground.state}{" "}
                 {playground.zipCode}
               </p>
-              <a
-                href={googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground underline"
-              >
-                Get directions
-              </a>
+              <span className="text-muted-foreground">
+                {" "}
+                (
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  get directions
+                </a>
+                )
+              </span>
             </div>
           </div>
 
           {/* Hours */}
-          <div className="mb-6 flex items-start gap-2 text-sm">
+          <div className="mb-6 hidden items-start gap-2 text-sm">
             <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div>
               <p className="font-medium">Today&apos;s Hours</p>
