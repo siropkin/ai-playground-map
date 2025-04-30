@@ -14,12 +14,12 @@ export async function generateMetadata({
   const playground = await getPlaygroundById(resolvedParams.id);
   if (!playground) {
     return {
-      title: "Playground Not Found – Good Playground Map",
+      title: "Playground Not Found | Good Playground Map",
       description: "The requested playground was not found.",
     };
   }
   return {
-    title: `${playground.name} – Good Playground Map`,
+    title: `${playground.name} | Good Playground Map`,
     description: playground.description,
   };
 }

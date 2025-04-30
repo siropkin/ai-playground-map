@@ -8,6 +8,7 @@ import { FilterProvider } from "@/contexts/filters-context";
 import { PlaygroundsProvider } from "@/contexts/playgrounds-context";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AddPlaygroundDialog } from "@/components/add-playground-dialog";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -45,7 +46,10 @@ export default function RootLayout({
                     </Link>
                   </div>
 
-                  <ThemeToggle />
+                  <div className="flex items-center gap-4">
+                    <AddPlaygroundDialog />
+                    <ThemeToggle />
+                  </div>
                 </nav>
               </header>
 
