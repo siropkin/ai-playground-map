@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Trash2, Upload } from "lucide-react";
 
 import { AccessType, FeatureType, OpenHours } from "@/types/playground";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { formatEnumString } from "@/lib/utils";
+
+const MAX_PHOTOS = 5;
 
 // const ACCESS_TYPES: AccessType[] = [
 //   "public",
@@ -170,6 +173,46 @@ export function AddPlaygroundDialog() {
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureType[]>([]);
   const [openHours, setOpenHours] = useState<OpenHours | null>(null);
   const [accessType, setAccessType] = useState<AccessType | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle photo input
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []).slice(0, 3 - photos.length);
+    setPhotos((prev) => [
+      ...prev,
+      ...files.map((file, i) => ({
+        file,
+        preview: URL.createObjectURL(file),
+        caption: "",
+        isPrimary: prev.length === 0 && i === 0, // First photo is primary if none yet
+      })),
+    ]);
+    e.target.value = ""; // Reset input
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => {
+      const newPhotos = prev.filter((_, i) => i !== index);
+      // Ensure at least one is primary
+      if (!newPhotos.some((p) => p.isPrimary) && newPhotos[0]) {
+        newPhotos[0].isPrimary = true;
+      }
+      return newPhotos;
+    });
+  }
+
+  function updatePhotoCaption(index: number, caption: string) {
+    setPhotos((prev) => {
+      const newPhotos = [...prev];
+      newPhotos[index].caption = caption;
+      return newPhotos;
+    });
+  }
+
+  function setPrimaryPhoto(index: number) {
+    setPhotos((prev) => prev.map((p, i) => ({ ...p, isPrimary: i === index })));
+  }
 
   // Handler for Google Maps link input
   const handleGoogleMapsUrl = async (
@@ -485,7 +528,7 @@ export function AddPlaygroundDialog() {
 
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="accessType" className="text-right">
-                    Access
+                    Access (optional)
                   </Label>
                   <Input
                     type="hidden"
@@ -508,7 +551,7 @@ export function AddPlaygroundDialog() {
 
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="features" className="text-right">
-                    Features
+                    Features (optional)
                   </Label>
                   <div className="mb-2 flex flex-wrap gap-2">
                     {FEATURE_TYPES.map((type) => (
@@ -531,6 +574,90 @@ export function AddPlaygroundDialog() {
                         {formatEnumString(type)}
                       </Badge>
                     ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="features" className="text-right">
+                    Photos (optional, max {MAX_PHOTOS})
+                  </Label>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-4">
+                      {photos.map((photo, index) => (
+                        <div
+                          key={index}
+                          className="relative h-34 w-34 overflow-hidden rounded-md border border-gray-300"
+                        >
+                          <img
+                            src={photo.preview}
+                            alt={`Preview ${index + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex flex-col justify-between bg-black/40 p-2 opacity-0 transition-opacity hover:opacity-100">
+                            <div className="flex justify-end space-x-1">
+                              <button
+                                type="button"
+                                onClick={() => removePhoto(index)}
+                                className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                value={photo.caption}
+                                onChange={(e) =>
+                                  updatePhotoCaption(index, e.target.value)
+                                }
+                                placeholder="Caption"
+                                className="w-full rounded border border-gray-300 bg-white/90 px-2 py-1 text-xs"
+                              />
+                              <div className="flex items-center">
+                                <input
+                                  type="radio"
+                                  id={`primary-${index}`}
+                                  name="primaryPhoto"
+                                  checked={photo.isPrimary}
+                                  onChange={() => setPrimaryPhoto(index)}
+                                  className="text-primary focus:ring-primary h-3 w-3 border-gray-300"
+                                />
+                                <label
+                                  htmlFor={`primary-${index}`}
+                                  className="ml-1 text-xs text-white"
+                                >
+                                  Primary
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {photos.length < MAX_PHOTOS && (
+                        <div className="flex h-34 w-34 items-center justify-center rounded-md border border-dashed border-gray-300 hover:border-gray-400">
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handlePhotoSelect}
+                            accept="image/*"
+                            className="hidden"
+                            multiple
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex flex-col items-center space-y-1 text-gray-500 hover:text-gray-700"
+                          >
+                            <Upload className="h-6 w-6" />
+                            <span className="text-xs">Upload Photo</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Click on a photo to add a caption or set as primary. The
+                      primary photo will be displayed as the main image.
+                    </p>
                   </div>
                 </div>
               </div>
