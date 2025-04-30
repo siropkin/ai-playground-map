@@ -8,7 +8,7 @@ import {
 import { createPlayground } from "@/data/playgrounds";
 
 // Parse multipart form data for playground submissions
-export async function parseSubmitPlaygroundFormData(
+async function parseSubmitPlaygroundFormData(
   req: NextRequest,
 ): Promise<PlaygroundSubmitData> {
   const formData = await req.formData();
