@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { FeatureType, OpenHours } from "@/types/playground";
@@ -88,13 +88,12 @@ export function AddPlaygroundDialog() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<PhotoUpload[]>([]);
-  const [selectedFeatures, setSelectedFeatures] = useState<FeatureType[]>([]);
-  const [openHours, setOpenHours] = useState<OpenHours | null>(null);
 
-  // New state for address fields
+  // Google
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
-
+  const [showGoogleInput, setShowGoogleInput] = useState(false);
+  const googleInputRef = useRef<HTMLInputElement>(null);
+  // Form
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [latitude, setLatitude] = useState("");
@@ -103,6 +102,9 @@ export function AddPlaygroundDialog() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [photos, setPhotos] = useState<PhotoUpload[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<FeatureType[]>([]);
+  const [openHours, setOpenHours] = useState<OpenHours | null>(null);
 
   // Handler for Google Maps link input
   const handleGoogleMapsUrl = async (
@@ -185,24 +187,7 @@ export function AddPlaygroundDialog() {
       }
 
       const data = await response.json();
-
-      // Show success message
       setSuccess(data.id);
-
-      // Clear form state
-      setGoogleMapsUrl("");
-      setName("");
-      setDescription("");
-      setLatitude("");
-      setLongitude("");
-      setAddress("");
-      setCity("");
-      setState("");
-      setZipCode("");
-
-      setPhotos([]);
-      setSelectedFeatures([]);
-      setOpenHours(null);
     } catch (err: any) {
       setError(
         err.message || "An error occurred while submitting the playground",
@@ -215,6 +200,23 @@ export function AddPlaygroundDialog() {
   useEffect(() => {
     return () => {
       setSuccess(null);
+
+      // Google
+      setGoogleMapsUrl("");
+      setShowGoogleInput(false);
+
+      // Form
+      setName("");
+      setDescription("");
+      setLatitude("");
+      setLongitude("");
+      setAddress("");
+      setCity("");
+      setState("");
+      setZipCode("");
+      setPhotos([]);
+      setSelectedFeatures([]);
+      setOpenHours(null);
     };
   }, [open]);
 
@@ -265,6 +267,39 @@ export function AddPlaygroundDialog() {
               </div>
             )}
 
+            {/* Autofill with Google button */}
+            {!showGoogleInput && (
+              <Button
+                variant="outline"
+                className="mb-4"
+                type="button"
+                onClick={() => {
+                  setShowGoogleInput(true);
+                  setTimeout(() => googleInputRef.current?.focus(), 0);
+                }}
+              >
+                Autofill with Google
+              </Button>
+            )}
+
+            {showGoogleInput && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="googleMapsUrl" className="text-right">
+                  Google Maps Link
+                </Label>
+                <Input
+                  id="googleMapsUrl"
+                  name="googleMapsUrl"
+                  type="text"
+                  className="col-span-3"
+                  value={googleMapsUrl}
+                  onChange={handleGoogleMapsUrl}
+                  placeholder="Paste Google Maps share link"
+                  ref={googleInputRef}
+                />
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 py-4">
                 <div className="flex flex-col gap-2">
@@ -296,23 +331,6 @@ export function AddPlaygroundDialog() {
                   />
                 </div>
 
-                {/* New: Google Maps Link input */}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="googleMapsUrl" className="text-right">
-                    Google Maps Link
-                  </Label>
-                  <Input
-                    id="googleMapsUrl"
-                    name="googleMapsUrl"
-                    type="text"
-                    className="col-span-3"
-                    value={googleMapsUrl}
-                    onChange={handleGoogleMapsUrl}
-                    placeholder="Paste Google Maps share link"
-                  />
-                </div>
-
-                {/* Prefilled address fields */}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="latitude" className="text-right">
                     Latitude
