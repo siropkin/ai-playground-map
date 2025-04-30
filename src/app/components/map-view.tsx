@@ -278,18 +278,12 @@ export function MapView() {
       }
 
       map.current.on("load", () => {
-        const zoom = map.current?.getZoom() || 0;
-        if (zoom > 1) {
-          setMapBounds(getMapBounds(map.current));
-        }
+        setMapBounds(getMapBounds(map.current));
         setIsMapLoaded(true);
       });
 
       map.current.on("moveend", () => {
-        const zoom = map.current?.getZoom() || 0;
-        if (zoom > 1) {
-          setMapBounds(getMapBounds(map.current));
-        }
+        setMapBounds(getMapBounds(map.current));
       });
     } catch (error) {
       setError(

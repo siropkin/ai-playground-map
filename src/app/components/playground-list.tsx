@@ -5,12 +5,12 @@ import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import { formatEnumString } from "@/lib/utils";
+import { formatEnumString, getAgeRange } from "@/lib/utils";
 
 export function PlaygroundList() {
   const { playgrounds, requestFlyTo } = usePlaygrounds();
 
-  if (!playgrounds || playgrounds.length === 0) {
+  if (!playgrounds?.length) {
     return null;
   }
 
@@ -19,14 +19,7 @@ export function PlaygroundList() {
       {playgrounds.map((playground, index) => {
         const primaryPhoto = playground.photos?.find((p) => p.isPrimary);
         const displayPhoto = primaryPhoto || playground.photos?.[0];
-        const ageRange =
-          playground.ageMin != null && playground.ageMax != null
-            ? `Ages ${playground.ageMin}-${playground.ageMax}`
-            : playground.ageMin != null
-              ? `Ages ${playground.ageMin}+`
-              : playground.ageMax != null
-                ? `Ages up to ${playground.ageMax}`
-                : "Ages N/A";
+        const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 
         return (
           <Card
@@ -76,7 +69,7 @@ export function PlaygroundList() {
                 )}
 
                 {/* Age Range Badge */}
-                <Badge variant="outline">{ageRange}</Badge>
+                {ageRange && <Badge variant="outline">{ageRange}</Badge>}
 
                 {/* Surface Type Badge (Optional but useful) */}
                 {playground.surfaceType && (

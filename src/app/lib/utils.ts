@@ -10,3 +10,11 @@ export function formatEnumString(str: string | undefined | null): string {
   if (!str) return "";
   return str.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
+
+// Helper function to format age range
+export function getAgeRange(ageMin: number | null, ageMax: number | null) {
+  if (!ageMin && !ageMax) return null;
+  if (!ageMin) return `Ages up to ${ageMax}`;
+  if (!ageMax) return `Ages ${ageMin}+`;
+  return `Ages ${ageMin}-${ageMax}`;
+}

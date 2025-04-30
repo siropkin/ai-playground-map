@@ -1,20 +1,13 @@
 import Image from "next/image";
-import { MapPin, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 
 import type { Playground } from "@/types/playground";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
-import { formatEnumString } from "@/lib/utils";
+import { formatEnumString, getAgeRange } from "@/lib/utils";
 
 type PlaygroundDetailParams = { id: string };
-
-function getAgeRange(ageMin: number | null, ageMax: number | null) {
-  if (!ageMin && !ageMax) return null;
-  if (!ageMin) return `Ages up to ${ageMax}`;
-  if (!ageMax) return `Ages ${ageMin}+`;
-  return `Ages ${ageMin}-${ageMax}`;
-}
 
 function getTodayOpenHours(openHours: Playground["openHours"]) {
   if (!openHours) {
@@ -33,6 +26,16 @@ function getTodayOpenHours(openHours: Playground["openHours"]) {
   const hours = openHours[today];
   if (!hours || hours.closed) return "Closed today";
   return `${hours.open}–${hours.close}`;
+}
+
+function formatAddress(playground: Playground): string {
+  const arr = [
+    playground.address,
+    playground.city,
+    playground.state,
+    playground.zipCode,
+  ].filter(Boolean);
+  return arr.join(", ") || "No address available";
 }
 
 export default async function PlaygroundDetail({
@@ -103,26 +106,30 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Address */}
-          <div className="mb-4 flex items-start gap-2 text-sm">
-            <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <div>
-              <p>
-                {playground.address}, {playground.city}, {playground.state}{" "}
-                {playground.zipCode}
-              </p>
+          <div className="mb-6">
+            <h3 className="text-muted-foreground text-sm font-medium">
+              Address
+            </h3>
+            <p className="text-sm leading-relaxed">
+              {formatAddress(playground)}
+            </p>
+            <span className="text-muted-foreground text-sm">
+              {" "}
+              (
               <a
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground underline"
+                className="underline"
               >
-                Get directions
+                get directions
               </a>
-            </div>
+              )
+            </span>
           </div>
 
           {/* Hours */}
-          <div className="mb-6 flex items-start gap-2 text-sm">
+          <div className="mb-6 flex hidden items-start gap-2 text-sm">
             <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div>
               <p className="font-medium">Today&apos;s Hours</p>
@@ -147,9 +154,7 @@ export default async function PlaygroundDetail({
             </h3>
             <div className="flex flex-wrap gap-2">
               {playground.features.length === 0 ? (
-                <span className="text-muted-foreground text-sm">
-                  No features listed
-                </span>
+                <p className="text-sm leading-relaxed">No features listed</p>
               ) : (
                 playground.features.map((feature: string) => (
                   <span

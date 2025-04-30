@@ -1,6 +1,8 @@
 "use server";
 
 import { cache } from "react";
+import { v4 as uuidv4 } from "uuid";
+
 import { supabase as supabase } from "@/lib/supabase";
 import {
   AccessType,
@@ -9,6 +11,7 @@ import {
   Playground,
   PlaygroundPhoto,
   SurfaceType,
+  PlaygroundSubmitData,
 } from "@/types/playground";
 import { getFeatures } from "@/data/features";
 
@@ -23,6 +26,7 @@ export async function getPlaygroundsForBounds(
     const { data: playgroundsData, error: playgroundsError } = await supabase
       .from(PLAYGROUNDS_TABLE_NAME)
       .select("*")
+      .eq("is_approved", true)
       .gte("latitude", bounds.south)
       .lte("latitude", bounds.north)
       .gte("longitude", bounds.west)
@@ -229,320 +233,119 @@ export const getPlaygroundById = cache(
   },
 );
 
-// export async function checkPlaygroundsDbSetup(): Promise<boolean> {
-//   try {
-//     const { error } = await supabase
-//       .from(PLAYGROUNDS_TABLE_NAME)
-//       .select("id")
-//       .limit(1);
-//     if (error) {
-//       throw error;
-//     }
-//     return true;
-//   } catch (error) {
-//     console.error("Error checking database setup:", error);
-//     return false;
-//   }
-// }
+export async function createPlayground(
+  playground: PlaygroundSubmitData,
+): Promise<{ success: boolean; id?: number; error?: string }> {
+  try {
+    // 1. Insert playground
+    const { data: inserted, error: insertError } = await supabase
+      .from(PLAYGROUNDS_TABLE_NAME)
+      .insert({
+        name: playground.name,
+        description: playground.description,
+        latitude: playground.latitude,
+        longitude: playground.longitude,
+        address: playground.address,
+        city: playground.city,
+        state: playground.state,
+        zip_code: playground.zipCode,
+        age_min: playground.ageMin,
+        age_max: playground.ageMax,
+        open_hours: playground.openHours,
+        access_type: playground.accessType,
+        surface_type: playground.surfaceType,
+        is_approved: false,
+      })
+      .select("id")
+      .single();
 
-// export async function getPlaygrounds(): Promise<Playground[]> {
-//   try {
-//     const isDbSetup = await checkPlaygroundsDbSetup();
-//     if (!isDbSetup) {
-//       return [];
-//     }
-//
-//     const { data: playgroundsData, error: playgroundsError } = await supabase
-//       .from(PLAYGROUNDS_TABLE_NAME)
-//       .select("*");
-//
-//     if (playgroundsError) {
-//       throw playgroundsError;
-//     }
-//
-//     const playgroundsMap = new Map(
-//       playgroundsData.map((p) => [
-//         p.id,
-//         {
-//           id: p.id,
-//           name: p.name,
-//           address: p.address,
-//           description: p.description,
-//           hours: p.hours,
-//           ageRange: p.age_range,
-//           access: p.access,
-//           features: [],
-//           images: [],
-//           location: {
-//             lat: p.lat,
-//             lng: p.lng,
-//           },
-//         } as Playground,
-//       ]),
-//     );
-//
-//     // Get all playground images
-//     const { data: imagesData, error: imagesError } = await supabase
-//       .from(PLAYGROUND_PHOTOS_TABLE_NAME)
-//       .select("*")
-//       .in(
-//         "playground_id",
-//         playgroundsData.map((p) => p.id),
-//       );
-//
-//     if (imagesError) {
-//       throw imagesError;
-//     }
-//
-//     // Add images to their respective playgrounds
-//     imagesData.forEach((image) => {
-//       const playground = playgroundsMap.get(image.playground_id);
-//       if (playground) {
-//         playground.images.push(image.image_url);
-//       }
-//     });
-//
-//     // Get all playground features
-//     const { data: featuresJunctionData, error: featuresJunctionError } =
-//       await supabase
-//         .from(PLAYGROUND_FEATURES_TABLE_NAME)
-//         .select("playground_id, feature_id")
-//         .in(
-//           "playground_id",
-//           playgroundsData.map((p) => p.id),
-//         );
-//
-//     if (featuresJunctionError) throw featuresJunctionError;
-//
-//     // Get all features
-//     const { data: featuresData, error: featuresError } = await supabase
-//       .from(FEATURES_TABLE_NAME)
-//       .select("*");
-//
-//     if (featuresError) {
-//       throw featuresError;
-//     }
-//
-//     // Create a map of feature IDs to names
-//     const featureMap = new Map(featuresData.map((f) => [f.id, f.name]));
-//
-//     // Add features to their respective playgrounds
-//     featuresJunctionData.forEach((junction) => {
-//       const playground = playgroundsMap.get(junction.playground_id);
-//       const featureName = featureMap.get(junction.feature_id);
-//       if (
-//         playground &&
-//         featureName &&
-//         !playground.features.includes(featureName)
-//       ) {
-//         playground.features.push(featureName);
-//       }
-//     });
-//
-//     return Array.from(playgroundsMap.values());
-//   } catch (error) {
-//     console.error("Error fetching playgrounds:", error);
-//     return [];
-//   }
-// }
-//
-// // Update the filterPlaygroundsByBounds function to handle non-JSON responses
-//
-// // CRUD Operations for Playgrounds
-//
-// export async function createPlayground(formData: PlaygroundFormData) {
-//   try {
-//     // Insert the playground
-//     const { data: playground, error: playgroundError } = await supabase
-//       .from(PLAYGROUNDS_TABLE_NAME)
-//       .insert({
-//         name: formData.name,
-//         address: formData.address,
-//         description: formData.description,
-//         hours: formData.hours,
-//         age_range: formData.ageRange,
-//         access: formData.access,
-//         lat: formData.lat,
-//         lng: formData.lng,
-//       })
-//       .select("id")
-//       .single();
-//
-//     if (playgroundError) throw playgroundError;
-//
-//     const playgroundId = playground.id;
-//
-//     // Insert images if provided
-//     if (formData.images && formData.images.length > 0) {
-//       const imageInserts = formData.images.map((imageUrl, index) => ({
-//         playground_id: playgroundId,
-//         image_url: imageUrl,
-//         is_primary: index === 0, // First image is primary
-//       }));
-//
-//       const { error: imagesError } = await supabase
-//         .from(PLAYGROUND_PHOTOS_TABLE_NAME)
-//         .insert(imageInserts);
-//
-//       if (imagesError) throw imagesError;
-//     }
-//
-//     // Insert features if provided
-//     if (formData.features && formData.features.length > 0) {
-//       // Get feature IDs from names
-//       const { data: featureData, error: featuresQueryError } = await supabase
-//         .from(FEATURES_TABLE_NAME)
-//         .select("id, name")
-//         .in("name", formData.features);
-//
-//       if (featuresQueryError) throw featuresQueryError;
-//
-//       // Map feature names to IDs
-//       const featureMap = new Map(featureData.map((f) => [f.name, f.id]));
-//
-//       // Create feature connections
-//       const featureInserts = formData.features
-//         .filter((name) => featureMap.has(name))
-//         .map((name) => ({
-//           playground_id: playgroundId,
-//           feature_id: featureMap.get(name),
-//         }));
-//
-//       if (featureInserts.length > 0) {
-//         const { error: featureJunctionError } = await supabase
-//           .from(PLAYGROUND_FEATURES_TABLE_NAME)
-//           .insert(featureInserts);
-//
-//         if (featureJunctionError) throw featureJunctionError;
-//       }
-//     }
-//
-//     revalidatePath("/");
-//     revalidatePath("/admin/playgrounds");
-//
-//     return { success: true, id: playgroundId };
-//   } catch (error) {
-//     console.error("Error creating playground:", error);
-//     return { success: false, error: error.message };
-//   }
-// }
-//
-// export async function updatePlayground(
-//   id: string,
-//   formData: PlaygroundFormData,
-// ) {
-//   try {
-//     // Update the playground
-//     const { error: playgroundError } = await supabase
-//       .from(PLAYGROUNDS_TABLE_NAME)
-//       .update({
-//         name: formData.name,
-//         address: formData.address,
-//         description: formData.description,
-//         hours: formData.hours,
-//         age_range: formData.ageRange,
-//         access: formData.access,
-//         lat: formData.lat,
-//         lng: formData.lng,
-//       })
-//       .eq("id", id);
-//
-//     if (playgroundError) throw playgroundError;
-//
-//     // Handle images if provided
-//     if (formData.images) {
-//       // Delete existing images
-//       const { error: deleteImagesError } = await supabase
-//         .from(PLAYGROUND_PHOTOS_TABLE_NAME)
-//         .delete()
-//         .eq("playground_id", id);
-//
-//       if (deleteImagesError) throw deleteImagesError;
-//
-//       // Insert new images
-//       if (formData.images.length > 0) {
-//         const imageInserts = formData.images.map((imageUrl, index) => ({
-//           playground_id: id,
-//           image_url: imageUrl,
-//           is_primary: index === 0, // First image is primary
-//         }));
-//
-//         const { error: imagesError } = await supabase
-//           .from(PLAYGROUND_PHOTOS_TABLE_NAME)
-//           .insert(imageInserts);
-//
-//         if (imagesError) throw imagesError;
-//       }
-//     }
-//
-//     // Handle features if provided
-//     if (formData.features) {
-//       // Delete existing feature connections
-//       const { error: deleteFeaturesError } = await supabase
-//         .from(PLAYGROUND_FEATURES_TABLE_NAME)
-//         .delete()
-//         .eq("playground_id", id);
-//
-//       if (deleteFeaturesError) throw deleteFeaturesError;
-//
-//       // Insert new feature connections
-//       if (formData.features.length > 0) {
-//         // Get feature IDs from names
-//         const { data: featureData, error: featuresQueryError } = await supabase
-//           .from(FEATURES_TABLE_NAME)
-//           .select("id, name")
-//           .in("name", formData.features);
-//
-//         if (featuresQueryError) throw featuresQueryError;
-//
-//         // Map feature names to IDs
-//         const featureMap = new Map(featureData.map((f) => [f.name, f.id]));
-//
-//         // Create feature connections
-//         const featureInserts = formData.features
-//           .filter((name) => featureMap.has(name))
-//           .map((name) => ({
-//             playground_id: id,
-//             feature_id: featureMap.get(name),
-//           }));
-//
-//         if (featureInserts.length > 0) {
-//           const { error: featureJunctionError } = await supabase
-//             .from(PLAYGROUND_FEATURES_TABLE_NAME)
-//             .insert(featureInserts);
-//
-//           if (featureJunctionError) throw featureJunctionError;
-//         }
-//       }
-//     }
-//
-//     revalidatePath("/");
-//     revalidatePath(`/playground/${id}`);
-//     revalidatePath("/admin/playgrounds");
-//
-//     return { success: true };
-//   } catch (error) {
-//     console.error("Error updating playground:", error);
-//     return { success: false, error: error.message };
-//   }
-// }
-//
-// export async function deletePlayground(id: string) {
-//   try {
-//     // Delete the playground (cascade will handle related records)
-//     const { error } = await supabase
-//       .from(PLAYGROUNDS_TABLE_NAME)
-//       .delete()
-//       .eq("id", id);
-//
-//     if (error) throw error;
-//
-//     revalidatePath("/");
-//     revalidatePath("/admin/playgrounds");
-//
-//     return { success: true };
-//   } catch (error) {
-//     console.error("Error deleting playground:", error);
-//     return { success: false, error: error.message };
-//   }
-// }
+    if (insertError) {
+      throw insertError;
+    }
+
+    const playgroundId = inserted.id;
+
+    // 2. Insert features
+    if (playground.features && playground.features.length > 0) {
+      // Get feature IDs from names
+      const { data: featureRows, error: featuresError } = await supabase
+        .from("features")
+        .select("id, name")
+        .in("name", playground.features);
+
+      if (featuresError) {
+        throw featuresError;
+      }
+
+      const featureMap = new Map(featureRows.map((f) => [f.name, f.id]));
+      const featureInserts = playground.features
+        .filter((name) => featureMap.has(name))
+        .map((name) => ({
+          playground_id: playgroundId,
+          feature_id: featureMap.get(name),
+        }));
+
+      if (featureInserts.length > 0) {
+        const { error: pfError } = await supabase
+          .from(PLAYGROUND_FEATURES_TABLE_NAME)
+          .insert(featureInserts);
+        if (pfError) {
+          throw pfError;
+        }
+      }
+    }
+
+    // 3. Upload photos and insert metadata
+    for (const photo of playground.photos) {
+      const uuid = uuidv4();
+
+      // Get file extension safely
+      let ext = "jpg"; // Default extension
+      if (photo.file && typeof photo.file === "object") {
+        const fileName = (photo.file as File).name;
+        if (fileName && typeof fileName === "string") {
+          const parts = fileName.split(".");
+          if (parts.length > 1) {
+            ext = parts.pop() || ext;
+          }
+        }
+      }
+
+      const filename = `playground-photos/${playgroundId}/${uuid}.${ext}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("playground-photos")
+        .upload(`${playgroundId}/${uuid}.${ext}`, photo.file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Insert photo metadata
+      const { error: photoInsertError } = await supabase
+        .from(PLAYGROUND_PHOTOS_TABLE_NAME)
+        .insert({
+          playground_id: playgroundId,
+          filename,
+          caption: photo.caption,
+          is_primary: photo.isPrimary,
+        });
+
+      if (photoInsertError) {
+        throw photoInsertError;
+      }
+    }
+
+    return { success: true, id: playgroundId };
+  } catch (error: unknown) {
+    console.error("Error submitting playground:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
