@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-import { FeatureType, OpenHours } from "@/types/playground";
+import { AccessType, FeatureType, OpenHours } from "@/types/playground";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,69 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { formatEnumString } from "@/lib/utils";
+
+// const ACCESS_TYPES: AccessType[] = [
+//   "public",
+//   "private",
+//   "school",
+//   "community_center",
+//   "park_district",
+//   "hoa",
+//   "mall_indoor",
+// ];
+
+const ACCESS_TYPES: AccessType[] = [
+  "public",
+  "school",
+  "community_center",
+  "mall_indoor",
+];
+
+// const FEATURE_TYPES: FeatureType[] = [
+//   "swings",
+//   "baby_swings",
+//   "slides",
+//   "spiral_slide",
+//   "climbing_wall",
+//   "rope_course",
+//   "monkey_bars",
+//   "balance_beam",
+//   "sandpit",
+//   "water_play",
+//   "zip_line",
+//   "see_saw",
+//   "spinning_equipment",
+//   "shade_structure",
+//   "picnic_tables",
+//   "benches",
+//   "restrooms",
+//   "parking_lot",
+//   "bike_rack",
+//   "dog_friendly",
+//   "sensory_play",
+//   "musical_instruments",
+//   "fitness_equipment",
+//   "walking_trails",
+//   "wheelchair_accessible",
+//   "water_fountain",
+// ];
+
+const FEATURE_TYPES: FeatureType[] = [
+  "swings",
+  "slides",
+  "climbing_wall",
+  "monkey_bars",
+  "sandpit",
+  "water_play",
+  "see_saw",
+  "shade_structure",
+  "picnic_tables",
+  "benches",
+  "restrooms",
+  "parking_lot",
+  "wheelchair_accessible",
+];
 
 interface PhotoUpload {
   file: File;
@@ -105,6 +169,7 @@ export function AddPlaygroundDialog() {
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureType[]>([]);
   const [openHours, setOpenHours] = useState<OpenHours | null>(null);
+  const [accessType, setAccessType] = useState<AccessType | null>(null);
 
   // Handler for Google Maps link input
   const handleGoogleMapsUrl = async (
@@ -217,6 +282,7 @@ export function AddPlaygroundDialog() {
       setPhotos([]);
       setSelectedFeatures([]);
       setOpenHours(null);
+      setAccessType(null);
     };
   }, [open]);
 
@@ -267,18 +333,16 @@ export function AddPlaygroundDialog() {
               </div>
             )}
 
-            {/* Autofill with Google button */}
             {!showGoogleInput && (
               <Button
-                variant="outline"
-                className="mb-4"
+                className="my-2"
                 type="button"
                 onClick={() => {
                   setShowGoogleInput(true);
                   setTimeout(() => googleInputRef.current?.focus(), 0);
                 }}
               >
-                Autofill with Google
+                Autofill with Google Maps link
               </Button>
             )}
 
@@ -317,48 +381,36 @@ export function AddPlaygroundDialog() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="description" className="text-right">
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    className="col-span-3"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
-                  />
-                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="latitude" className="text-right">
+                      Latitude
+                    </Label>
+                    <Input
+                      id="latitude"
+                      name="latitude"
+                      type="text"
+                      className="col-span-3"
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="latitude" className="text-right">
-                    Latitude
-                  </Label>
-                  <Input
-                    id="latitude"
-                    name="latitude"
-                    type="text"
-                    className="col-span-3"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="longitude" className="text-right">
-                    Longitude
-                  </Label>
-                  <Input
-                    id="longitude"
-                    name="longitude"
-                    type="text"
-                    className="col-span-3"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    required
-                  />
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="longitude" className="text-right">
+                      Longitude
+                    </Label>
+                    <Input
+                      id="longitude"
+                      name="longitude"
+                      type="text"
+                      className="col-span-3"
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -375,7 +427,7 @@ export function AddPlaygroundDialog() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex hidden flex-col gap-2">
                   <Label htmlFor="city" className="text-right">
                     City (optional)
                   </Label>
@@ -389,7 +441,7 @@ export function AddPlaygroundDialog() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex hidden flex-col gap-2">
                   <Label htmlFor="state" className="text-right">
                     State (optional)
                   </Label>
@@ -403,7 +455,7 @@ export function AddPlaygroundDialog() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex hidden flex-col gap-2">
                   <Label htmlFor="zipCode" className="text-right">
                     Zip Code (optional)
                   </Label>
@@ -415,6 +467,71 @@ export function AddPlaygroundDialog() {
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value)}
                   />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    className="col-span-3"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="accessType" className="text-right">
+                    Access
+                  </Label>
+                  <Input
+                    type="hidden"
+                    name="accessType"
+                    value={accessType || ""}
+                  />
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {ACCESS_TYPES.map((type) => (
+                      <Badge
+                        key={type}
+                        variant={accessType === type ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => setAccessType(type)}
+                      >
+                        {formatEnumString(type)}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="features" className="text-right">
+                    Features
+                  </Label>
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {FEATURE_TYPES.map((type) => (
+                      <Badge
+                        key={type}
+                        variant={
+                          selectedFeatures.includes(type)
+                            ? "default"
+                            : "outline"
+                        }
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setSelectedFeatures((prev) =>
+                            prev.includes(type)
+                              ? prev.filter((f) => f !== type)
+                              : [...prev, type],
+                          );
+                        }}
+                      >
+                        {formatEnumString(type)}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
 

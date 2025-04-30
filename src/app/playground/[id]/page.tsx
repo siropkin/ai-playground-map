@@ -119,7 +119,7 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Hours */}
-          <div className="mb-6 hidden items-start gap-2 text-sm">
+          <div className="mb-6 flex hidden items-start gap-2 text-sm">
             <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div>
               <p className="font-medium">Today&apos;s Hours</p>
