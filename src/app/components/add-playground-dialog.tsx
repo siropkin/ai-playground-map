@@ -342,10 +342,10 @@ export function AddPlaygroundDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="h-full w-full max-w-none overflow-y-auto rounded-none sm:max-h-[80vh] sm:rounded-lg">
+      <DialogContent className="h-full w-full max-w-none overflow-y-auto rounded-none sm:h-auto sm:max-h-[80vh] sm:rounded-lg">
         {success ? (
           <>
-            <DialogHeader>
+            <DialogHeader className="flex flex-col items-center">
               <DialogTitle>Success!</DialogTitle>
             </DialogHeader>
 
@@ -359,13 +359,11 @@ export function AddPlaygroundDialog() {
                 While your playground is not yet visible on the map, you can
                 reach it by direct link{" "}
               </div>
-            </div>
 
-            <DialogFooter>
-              <Link href={`/playground/${success}`}>
+              <Link href={`/playground/${success}`} className="mx-auto mt-2">
                 <Button onClick={() => setOpen(false)}>View playground</Button>
               </Link>
-            </DialogFooter>
+            </div>
           </>
         ) : (
           <>
