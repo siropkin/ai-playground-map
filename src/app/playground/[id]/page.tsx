@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { MapPin, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 
 import type { Playground } from "@/types/playground";
 import { getPlaygroundById } from "@/data/playgrounds";

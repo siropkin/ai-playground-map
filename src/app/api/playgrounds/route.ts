@@ -47,7 +47,7 @@ export async function parseSubmitPlaygroundFormData(
     // Check if file exists and is a Blob or File (both have size property)
     if (file && typeof file === "object" && "size" in file) {
       photos.push({
-        file: file as any, // Cast to any to avoid type issues
+        file: file as File,
         caption,
         isPrimary,
       });

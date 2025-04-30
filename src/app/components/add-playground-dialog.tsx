@@ -296,10 +296,14 @@ export function AddPlaygroundDialog() {
 
       const data = await response.json();
       setSuccess(data.id);
-    } catch (err: any) {
-      setError(
-        err.message || "An error occurred while submitting the playground",
-      );
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(
+          err.message || "An error occurred while submitting the playground",
+        );
+      } else {
+        setError("An error occurred while submitting the playground");
+      }
     } finally {
       setIsSubmitting(false);
     }

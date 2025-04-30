@@ -302,7 +302,7 @@ export async function createPlayground(
       // Get file extension safely
       let ext = "jpg"; // Default extension
       if (photo.file && typeof photo.file === "object") {
-        const fileName = (photo.file as any).name;
+        const fileName = (photo.file as File).name;
         if (fileName && typeof fileName === "string") {
           const parts = fileName.split(".");
           if (parts.length > 1) {
@@ -341,8 +341,11 @@ export async function createPlayground(
     }
 
     return { success: true, id: playgroundId };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error submitting playground:", error);
-    return { success: false, error: error.message || String(error) };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
