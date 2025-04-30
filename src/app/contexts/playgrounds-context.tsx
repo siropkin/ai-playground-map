@@ -13,6 +13,8 @@ import {
 import { useFilters } from "@/contexts/filters-context";
 import { getPlaygroundsForBounds } from "@/data/playgrounds";
 
+const MAX_ZOOM_LEVEL_TO_FETCH_DATA = 5;
+
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
 interface PlaygroundsContextType {
@@ -50,8 +52,18 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       try {
         if (mapBounds) {
-          const playgroundsForBounds = await getPlaygroundsForBounds(mapBounds);
-          setPlaygrounds(playgroundsForBounds);
+          const zoomLevel = Math.max(
+            Math.abs(mapBounds.north - mapBounds.south),
+            Math.abs(mapBounds.east - mapBounds.west),
+          );
+
+          if (zoomLevel <= MAX_ZOOM_LEVEL_TO_FETCH_DATA) {
+            const playgroundsForBounds =
+              await getPlaygroundsForBounds(mapBounds);
+            setPlaygrounds(playgroundsForBounds);
+          } else {
+            setPlaygrounds([]);
+          }
         }
       } catch (err) {
         console.error("Error fetching playgrounds:", err);
