@@ -104,3 +104,14 @@ export interface MapBounds {
   east: number;
   west: number;
 }
+
+export type PlaygroundSubmitData = Omit<
+  Playground,
+  "id" | "createdAt" | "updatedAt" | "photos"
+> & {
+  photos: {
+    file: File;
+    caption: string;
+    isPrimary: boolean;
+  }[];
+};
