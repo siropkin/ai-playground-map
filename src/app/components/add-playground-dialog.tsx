@@ -336,10 +336,13 @@ export function AddPlaygroundDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button onClick={() => setOpen(true)}>Add playground</Button>
+        <Button onClick={() => setOpen(true)}>
+          <span className="hidden sm:block">Add playground</span>
+          <span className="sm:hidden">Add</span>
+        </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
+      <DialogContent className="h-full w-full max-w-none overflow-y-auto rounded-none sm:max-h-[80vh] sm:rounded-lg">
         {success ? (
           <>
             <DialogHeader>
