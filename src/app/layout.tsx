@@ -6,7 +6,7 @@ import "./globals.css";
 
 import { FilterProvider } from "@/contexts/filters-context";
 import { PlaygroundsProvider } from "@/contexts/playgrounds-context";
-import { ThemeToggle } from "@/components/theme-toggle";
+// import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AddPlaygroundDialog } from "@/components/add-playground-dialog";
 import { cn } from "@/lib/utils";
@@ -48,7 +48,7 @@ export default function RootLayout({
 
                   <div className="flex items-center gap-4">
                     <AddPlaygroundDialog />
-                    <ThemeToggle />
+                    {/*<ThemeToggle />*/}
                   </div>
                 </nav>
               </header>
