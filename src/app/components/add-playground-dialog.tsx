@@ -335,7 +335,7 @@ export function AddPlaygroundDialog() {
         <Button onClick={() => setOpen(true)}>Add playground</Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
         {success ? (
           <>
             <DialogHeader>
