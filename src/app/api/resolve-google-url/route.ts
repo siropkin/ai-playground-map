@@ -10,9 +10,9 @@ export async function POST(req: NextRequest) {
     const response = await fetch(url, { method: "HEAD", redirect: "follow" });
 
     return NextResponse.json({ resolvedUrl: response.url });
-  } catch (_) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: "Failed to resolve URL" },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 },
     );
   }
