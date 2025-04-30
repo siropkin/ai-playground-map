@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { PlaygroundSubmitData } from "@/types/playground";
+import {
+  PlaygroundSubmitData,
+  AccessType,
+  SurfaceType,
+} from "@/types/playground";
 import { createPlayground } from "@/data/playgrounds";
 
 // Parse multipart form data for playground submissions
@@ -20,8 +24,8 @@ export async function parseSubmitPlaygroundFormData(
   const zipCode = formData.get("zipCode") as string;
   const ageMin = parseInt(formData.get("ageMin") as string);
   const ageMax = parseInt(formData.get("ageMax") as string);
-  const accessType = formData.get("accessType") as any;
-  const surfaceType = formData.get("surfaceType") as any;
+  const accessType = (formData.get("accessType") || null) as AccessType;
+  const surfaceType = (formData.get("surfaceType") || null) as SurfaceType;
 
   // Parse features (comes as a JSON string)
   const featuresStr = formData.get("features") as string;
