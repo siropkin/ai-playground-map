@@ -10,7 +10,6 @@ import { PlaygroundsProvider } from "@/contexts/playgrounds-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AddPlaygroundDialog } from "@/components/add-playground-dialog";
 import { cn } from "@/lib/utils";
-import { Github } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
 
