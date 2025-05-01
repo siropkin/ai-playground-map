@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Plus } from "lucide-react";
 
 import { AccessType, FeatureType, OpenHours } from "@/types/playground";
 import { Button } from "@/components/ui/button";
@@ -342,8 +342,8 @@ export function AddPlaygroundDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" />
           <span className="hidden sm:block">Add playground</span>
-          <span className="sm:hidden">Add</span>
         </Button>
       </DialogTrigger>
 

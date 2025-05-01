@@ -12,7 +12,7 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import type { Playground } from "@/types/playground";
-import { Loading } from "@/components/Loading";
+import { Loading } from "@/components/loading";
 
 if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
   console.error("Mapbox Access Token is not set. Map will not function.");
@@ -250,7 +250,6 @@ export function MapView() {
       map.current = new mapboxgl.Map({
         container: mapContainer,
         style: getMapStyle(theme),
-        attributionControl: false,
       });
 
       if (mapBounds) {
@@ -446,15 +445,14 @@ export function MapView() {
         ref={setMapContainer}
         className="absolute top-0 left-0 h-full w-full"
       />
-      <div className="absolute right-4 bottom-4 z-10">
+      <div className="absolute right-2 bottom-10 z-1 flex sm:right-4 sm:bottom-8">
         <Button
           variant="outline"
           aria-label="Center map on my location"
           onClick={handleNearMeClick}
-          className="bg-background/80 flex items-center gap-1 backdrop-blur-sm"
         >
           <MapPin className="h-4 w-4" />
-          <span>Near me</span>
+          <span className="hidden sm:block">Near me</span>
         </Button>
       </div>
       {!isMapLoaded && !error && <Loading />}

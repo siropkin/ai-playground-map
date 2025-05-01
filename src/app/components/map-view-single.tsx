@@ -45,7 +45,6 @@ export default function MapViewSingle({ playground }: MapViewSingleProps) {
       style: getMapStyle(theme),
       center: [playground.longitude, playground.latitude],
       zoom: 15,
-      attributionControl: false,
     });
 
     map.current.on("load", () => {

@@ -37,12 +37,22 @@ export default function RootLayout({
                 <nav className="flex items-center justify-between space-x-2 border-b p-4">
                   <div>
                     <Link href="/">
-                      <h1 className="text-xl font-bold uppercase">
-                        Good Playground Map
+                      <div className="hidden items-center gap-1 sm:flex">
+                        <h1 className="text-4xl font-bold uppercase">🛝</h1>
+
+                        <div>
+                          <h1 className="text-xl font-bold uppercase">
+                            Good Playground Map
+                          </h1>
+                          <h4 className="text-muted-foreground text-xs whitespace-nowrap">
+                            Find good playgrounds for kids near you
+                          </h4>
+                        </div>
+                      </div>
+
+                      <h1 className="text-xl font-bold uppercase sm:hidden">
+                        🛝 G P M
                       </h1>
-                      <h4 className="text-xs whitespace-nowrap">
-                        Find good playgrounds for kids near you
-                      </h4>
                     </Link>
                   </div>
 
