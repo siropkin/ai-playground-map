@@ -10,6 +10,7 @@ import {
   formatAddress,
   getTodayOpenHours,
 } from "@/lib/utils";
+import Link from "next/link";
 
 type PlaygroundDetailParams = { id: string };
 
@@ -51,9 +52,7 @@ export default async function PlaygroundDetail({
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
-                <span className="text-muted-foreground">
-                  No image available
-                </span>
+                <span className="text-muted-foreground">No image</span>
               </div>
             )}
           </div>
@@ -91,14 +90,15 @@ export default async function PlaygroundDetail({
             <span className="text-muted-foreground text-sm">
               {" "}
               (
-              <a
+              <Link
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Get directions to this playground"
                 className="underline"
               >
                 get directions
-              </a>
+              </Link>
               )
             </span>
           </div>
