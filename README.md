@@ -37,7 +37,3 @@ A modern web app to discover and share the best playgrounds for kids near you.
 
 Feel free to reach out if you want to contribute or have ideas:  
 **ivan.seredkin@gmail.com**
-
----
-
-MIT License
