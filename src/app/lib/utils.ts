@@ -20,6 +20,26 @@ export function getAgeRange(ageMin: number | null, ageMax: number | null) {
   return `Ages ${ageMin}-${ageMax}`;
 }
 
+// Helper function to get today's open hours
+export function getTodayOpenHours(openHours: Playground["openHours"]) {
+  if (!openHours) {
+    return "No info available";
+  }
+  const days: (keyof Playground["openHours"])[] = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const today = days[new Date().getDay()];
+  const hours = openHours[today];
+  if (!hours || hours.closed) return "Closed today";
+  return `${hours.open}–${hours.close}`;
+}
+
 // Function to format the address of a playground
 export function formatAddress(playground: Playground): string {
   const arr = [

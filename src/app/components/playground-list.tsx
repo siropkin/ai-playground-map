@@ -7,11 +7,23 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { formatAddress, formatEnumString, getAgeRange } from "@/lib/utils";
 
-export function PlaygroundList() {
+export function PlaygroundList({
+  showEmptyState,
+}: {
+  showEmptyState?: boolean;
+}) {
   const { playgrounds, requestFlyTo } = usePlaygrounds();
 
   if (!playgrounds?.length) {
-    return null;
+    return showEmptyState ? (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="text-muted-foreground mb-2 text-5xl">🔍</div>
+        <h3 className="mb-1 font-semibold">No playgrounds found</h3>
+        <p className="text-muted-foreground text-sm">
+          Try adjusting your search criteria
+        </p>
+      </div>
+    ) : null;
   }
 
   return (
@@ -78,15 +90,11 @@ export function PlaygroundList() {
                 )}
 
                 {/* Features Badges */}
-                {playground.features?.slice(0, 2).map(
-                  (
-                    feature, // Show fewer features initially to save space
-                  ) => (
-                    <Badge variant="outline" key={feature}>
-                      {formatEnumString(feature)}
-                    </Badge>
-                  ),
-                )}
+                {playground.features?.slice(0, 2).map((feature) => (
+                  <Badge variant="outline" key={feature}>
+                    {formatEnumString(feature)}
+                  </Badge>
+                ))}
 
                 {playground.features?.length > 2 && (
                   <Badge variant="outline">

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Loading } from "@/components/Loading";
+import { Loading } from "@/components/loading";
 import { getPlaygroundById } from "@/data/playgrounds";
 
 type PlaygroundDetailParams = { id: string };

@@ -1,32 +1,17 @@
 import Image from "next/image";
 import { Clock } from "lucide-react";
 
-import type { Playground } from "@/types/playground";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
-import { formatEnumString, getAgeRange, formatAddress } from "@/lib/utils";
+import {
+  formatEnumString,
+  getAgeRange,
+  formatAddress,
+  getTodayOpenHours,
+} from "@/lib/utils";
 
 type PlaygroundDetailParams = { id: string };
-
-function getTodayOpenHours(openHours: Playground["openHours"]) {
-  if (!openHours) {
-    return "No info available";
-  }
-  const days: (keyof Playground["openHours"])[] = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const today = days[new Date().getDay()];
-  const hours = openHours[today];
-  if (!hours || hours.closed) return "Closed today";
-  return `${hours.open}–${hours.close}`;
-}
 
 export default async function PlaygroundDetail({
   params,
@@ -119,13 +104,15 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Hours */}
-          <div className="mb-6 flex hidden items-start gap-2 text-sm">
-            <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <div>
-              <p className="font-medium">Today&apos;s Hours</p>
-              <p>{getTodayOpenHours(playground.openHours)}</p>
+          {playground.openHours && (
+            <div className="mb-6 flex items-start gap-2 text-sm">
+              <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Today&apos;s Hours</p>
+                <p>{getTodayOpenHours(playground.openHours)}</p>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Description */}
           <div className="mb-6">

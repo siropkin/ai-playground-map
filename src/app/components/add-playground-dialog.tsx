@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Plus } from "lucide-react";
 
 import { AccessType, FeatureType, OpenHours } from "@/types/playground";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatEnumString } from "@/lib/utils";
+import { cn, formatEnumString } from "@/lib/utils";
 
 const MAX_PHOTOS = 5;
 
@@ -93,7 +93,7 @@ interface PhotoUpload {
 }
 
 // Helper: resolve short URL to real Google Maps URL via backend
-async function resolveShortUrl(shortUrl: string): Promise<string> {
+async function resolveGoogleUrl(shortUrl: string): Promise<string> {
   try {
     const res = await fetch("/api/resolve-google-url", {
       method: "POST",
@@ -157,9 +157,11 @@ export function AddPlaygroundDialog() {
   const [error, setError] = useState<string | null>(null);
 
   // Google
+  const googleInputRef = useRef<HTMLInputElement>(null);
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [showGoogleInput, setShowGoogleInput] = useState(false);
-  const googleInputRef = useRef<HTMLInputElement>(null);
+  const [isGoogleAutofillLoading, setIsGoogleAutofillLoading] = useState(false);
+
   // Form
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -225,40 +227,42 @@ export function AddPlaygroundDialog() {
       return;
     }
 
+    setIsGoogleAutofillLoading(true);
+
     // Step 1: resolve short URL
     let resolvedUrl = url;
     if (url.includes("goo.gl")) {
-      resolvedUrl = await resolveShortUrl(url);
+      resolvedUrl = await resolveGoogleUrl(url);
     }
 
     // Step 2: extract latitude/longitude
     const coords = extractLatLng(resolvedUrl);
-    if (!coords) {
-      return;
+    if (coords) {
+      // Step 3: reverse geocode for address, city, state, zipCode, name
+      const geocodeData = await reverseGeocode(coords.lat, coords.lng);
+
+      setLatitude(coords.lat);
+      setLongitude(coords.lng);
+      setAddress(geocodeData.display_name || "");
+      setCity(
+        geocodeData.address?.city ||
+          geocodeData.address?.town ||
+          geocodeData.address?.village ||
+          geocodeData.address?.hamlet ||
+          geocodeData.address?.suburb ||
+          "",
+      );
+      setState(geocodeData.address?.state || "");
+      setZipCode(geocodeData.address?.postcode || "");
+      setName(
+        geocodeData.address?.amenity ||
+          geocodeData.address?.road ||
+          geocodeData.address?.neighbourhood ||
+          "",
+      );
     }
 
-    // Step 3: reverse geocode for address, city, state, zipCode, name
-    const geocodeData = await reverseGeocode(coords.lat, coords.lng);
-
-    setLatitude(coords.lat);
-    setLongitude(coords.lng);
-    setAddress(geocodeData.display_name || "");
-    setCity(
-      geocodeData.address?.city ||
-        geocodeData.address?.town ||
-        geocodeData.address?.village ||
-        geocodeData.address?.hamlet ||
-        geocodeData.address?.suburb ||
-        "",
-    );
-    setState(geocodeData.address?.state || "");
-    setZipCode(geocodeData.address?.postcode || "");
-    setName(
-      geocodeData.address?.amenity ||
-        geocodeData.address?.road ||
-        geocodeData.address?.neighbourhood ||
-        "",
-    );
+    setIsGoogleAutofillLoading(false);
   };
 
   // Handle form submission
@@ -316,6 +320,7 @@ export function AddPlaygroundDialog() {
       // Google
       setGoogleMapsUrl("");
       setShowGoogleInput(false);
+      setIsGoogleAutofillLoading(false);
 
       // Form
       setName("");
@@ -337,8 +342,8 @@ export function AddPlaygroundDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" />
           <span className="hidden sm:block">Add playground</span>
-          <span className="sm:hidden">Add</span>
         </Button>
       </DialogTrigger>
 
@@ -389,6 +394,7 @@ export function AddPlaygroundDialog() {
                   setShowGoogleInput(true);
                   setTimeout(() => googleInputRef.current?.focus(), 0);
                 }}
+                disabled={isGoogleAutofillLoading || isSubmitting}
               >
                 Autofill with Google Maps link
               </Button>
@@ -408,6 +414,7 @@ export function AddPlaygroundDialog() {
                   onChange={handleGoogleMapsUrl}
                   placeholder="Paste Google Maps share link"
                   ref={googleInputRef}
+                  disabled={isGoogleAutofillLoading || isSubmitting}
                 />
               </div>
             )}
@@ -426,6 +433,7 @@ export function AddPlaygroundDialog() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    disabled={isGoogleAutofillLoading || isSubmitting}
                   />
                 </div>
 
@@ -442,6 +450,7 @@ export function AddPlaygroundDialog() {
                       value={latitude}
                       onChange={(e) => setLatitude(e.target.value)}
                       required
+                      disabled={isGoogleAutofillLoading || isSubmitting}
                     />
                   </div>
 
@@ -457,6 +466,7 @@ export function AddPlaygroundDialog() {
                       value={longitude}
                       onChange={(e) => setLongitude(e.target.value)}
                       required
+                      disabled={isGoogleAutofillLoading || isSubmitting}
                     />
                   </div>
                 </div>
@@ -472,6 +482,7 @@ export function AddPlaygroundDialog() {
                     className="col-span-3"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
+                    disabled={isGoogleAutofillLoading || isSubmitting}
                   />
                 </div>
 
@@ -486,6 +497,7 @@ export function AddPlaygroundDialog() {
                     className="col-span-3"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
+                    disabled={isGoogleAutofillLoading || isSubmitting}
                   />
                 </div>
 
@@ -500,6 +512,7 @@ export function AddPlaygroundDialog() {
                     className="col-span-3"
                     value={state}
                     onChange={(e) => setState(e.target.value)}
+                    disabled={isGoogleAutofillLoading || isSubmitting}
                   />
                 </div>
 
@@ -514,6 +527,7 @@ export function AddPlaygroundDialog() {
                     className="col-span-3"
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value)}
+                    disabled={isGoogleAutofillLoading || isSubmitting}
                   />
                 </div>
 
@@ -528,6 +542,7 @@ export function AddPlaygroundDialog() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
+                    disabled={isGoogleAutofillLoading || isSubmitting}
                   />
                 </div>
 
@@ -545,7 +560,10 @@ export function AddPlaygroundDialog() {
                       <Badge
                         key={type}
                         variant={accessType === type ? "default" : "outline"}
-                        className="cursor-pointer"
+                        className={cn("cursor-pointer", {
+                          "pointer-events-none opacity-50":
+                            isGoogleAutofillLoading || isSubmitting,
+                        })}
                         onClick={() => setAccessType(type)}
                       >
                         {formatEnumString(type)}
@@ -567,7 +585,10 @@ export function AddPlaygroundDialog() {
                             ? "default"
                             : "outline"
                         }
-                        className="cursor-pointer"
+                        className={cn("cursor-pointer", {
+                          "pointer-events-none opacity-50":
+                            isGoogleAutofillLoading || isSubmitting,
+                        })}
                         onClick={() => {
                           setSelectedFeatures((prev) =>
                             prev.includes(type)
@@ -604,6 +625,9 @@ export function AddPlaygroundDialog() {
                                 type="button"
                                 onClick={() => removePhoto(index)}
                                 className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                disabled={
+                                  isGoogleAutofillLoading || isSubmitting
+                                }
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -617,6 +641,9 @@ export function AddPlaygroundDialog() {
                                 }
                                 placeholder="Caption"
                                 className="w-full rounded border border-gray-300 bg-white/90 px-2 py-1 text-xs"
+                                disabled={
+                                  isGoogleAutofillLoading || isSubmitting
+                                }
                               />
                               <div className="flex items-center">
                                 <input
@@ -626,6 +653,9 @@ export function AddPlaygroundDialog() {
                                   checked={photo.isPrimary}
                                   onChange={() => setPrimaryPhoto(index)}
                                   className="text-primary focus:ring-primary h-3 w-3 border-gray-300"
+                                  disabled={
+                                    isGoogleAutofillLoading || isSubmitting
+                                  }
                                 />
                                 <label
                                   htmlFor={`primary-${index}`}
@@ -647,11 +677,13 @@ export function AddPlaygroundDialog() {
                             accept="image/*"
                             className="hidden"
                             multiple
+                            disabled={isGoogleAutofillLoading || isSubmitting}
                           />
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             className="flex flex-col items-center space-y-1 text-gray-500 hover:text-gray-700"
+                            disabled={isGoogleAutofillLoading || isSubmitting}
                           >
                             <Upload className="h-6 w-6" />
                             <span className="text-xs">Upload Photo</span>
@@ -668,7 +700,10 @@ export function AddPlaygroundDialog() {
               </div>
 
               <DialogFooter>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  disabled={isGoogleAutofillLoading || isSubmitting}
+                >
                   {isSubmitting ? "Submitting..." : "Submit playground"}
                 </Button>
               </DialogFooter>
