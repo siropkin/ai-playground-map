@@ -16,13 +16,15 @@ export function PlaygroundList({
 
   if (!playgrounds?.length) {
     return showEmptyState ? (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <div className="text-muted-foreground mb-2 text-5xl">🔍</div>
-        <h3 className="mb-1 font-semibold">No playgrounds found</h3>
-        <p className="text-muted-foreground text-sm">
-          Try adjusting your search criteria
-        </p>
-      </div>
+      <Card className="bg-background/95 flex w-[100%] flex-col items-center justify-center gap-0 overflow-hidden p-8 shadow-lg backdrop-blur-sm transition-shadow">
+        <CardContent className="flex flex-col items-center p-0">
+          <div className="text-muted-foreground mb-2 text-5xl">🔍</div>
+          <h3 className="mb-1 font-semibold">No playgrounds found</h3>
+          <p className="text-muted-foreground text-sm">
+            Try zooming out or moving the map to find more playgrounds.
+          </p>
+        </CardContent>
+      </Card>
     ) : null;
   }
 
@@ -54,7 +56,7 @@ export function PlaygroundList({
                   />
                 ) : (
                   <div className="text-muted-foreground flex h-full w-full items-center justify-center text-xs">
-                    <span>No image available</span>
+                    No image
                   </div>
                 )}
               </div>

@@ -51,9 +51,7 @@ export default async function PlaygroundDetail({
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
-                <span className="text-muted-foreground">
-                  No image available
-                </span>
+                <span className="text-muted-foreground">No image</span>
               </div>
             )}
           </div>
