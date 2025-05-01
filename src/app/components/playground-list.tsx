@@ -78,15 +78,11 @@ export function PlaygroundList() {
                 )}
 
                 {/* Features Badges */}
-                {playground.features?.slice(0, 2).map(
-                  (
-                    feature, // Show fewer features initially to save space
-                  ) => (
-                    <Badge variant="outline" key={feature}>
-                      {formatEnumString(feature)}
-                    </Badge>
-                  ),
-                )}
+                {playground.features?.slice(0, 2).map((feature) => (
+                  <Badge variant="outline" key={feature}>
+                    {formatEnumString(feature)}
+                  </Badge>
+                ))}
 
                 {playground.features?.length > 2 && (
                   <Badge variant="outline">
