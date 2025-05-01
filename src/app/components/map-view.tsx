@@ -117,7 +117,7 @@ export function MapView() {
       },
       (error) => {
         console.error("Error fetching location:", error);
-        alert("Oops! Unable to fetch your location. Please try again.");
+        alert("Oops! Can’t get your location. Maybe geolocation is blocked?");
       },
     );
   }, []);
