@@ -5,7 +5,7 @@ import type { Playground } from "@/types/playground";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
-import { formatEnumString, getAgeRange } from "@/lib/utils";
+import { formatEnumString, getAgeRange, formatAddress } from "@/lib/utils";
 
 type PlaygroundDetailParams = { id: string };
 
@@ -26,16 +26,6 @@ function getTodayOpenHours(openHours: Playground["openHours"]) {
   const hours = openHours[today];
   if (!hours || hours.closed) return "Closed today";
   return `${hours.open}–${hours.close}`;
-}
-
-function formatAddress(playground: Playground): string {
-  const arr = [
-    playground.address,
-    playground.city,
-    playground.state,
-    playground.zipCode,
-  ].filter(Boolean);
-  return arr.join(", ") || "No address available";
 }
 
 export default async function PlaygroundDetail({
@@ -77,7 +67,7 @@ export default async function PlaygroundDetail({
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <span className="text-muted-foreground">
-                  No Image Available
+                  No image available
                 </span>
               </div>
             )}
