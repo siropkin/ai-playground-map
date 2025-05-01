@@ -5,7 +5,7 @@ import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import { formatEnumString, getAgeRange } from "@/lib/utils";
+import { formatAddress, formatEnumString, getAgeRange } from "@/lib/utils";
 
 export function PlaygroundList() {
   const { playgrounds, requestFlyTo } = usePlaygrounds();
@@ -15,7 +15,7 @@ export function PlaygroundList() {
   }
 
   return (
-    <div className="flex flex-col space-y-3">
+    <div className="flex flex-col space-y-2">
       {playgrounds.map((playground, index) => {
         const primaryPhoto = playground.photos?.find((p) => p.isPrimary);
         const displayPhoto = primaryPhoto || playground.photos?.[0];
@@ -24,43 +24,42 @@ export function PlaygroundList() {
         return (
           <Card
             key={playground.id}
-            className="bg-background/95 cursor-pointer gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+            className="bg-background/95 flex cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
             onClick={() => {
               requestFlyTo([playground.longitude, playground.latitude]);
             }}
           >
-            <CardHeader className="gap-0 p-0">
-              <div className="relative h-48 w-full bg-zinc-200 dark:bg-zinc-700">
+            <CardHeader className="flex w-1/3 gap-0 p-0">
+              <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
                 {displayPhoto ? (
                   <Image
                     className="h-full w-full object-cover"
                     src={displayPhoto.filename}
                     alt={displayPhoto.caption || `Photo of ${playground.name}`}
-                    width={300}
-                    height={200}
+                    width={100}
+                    height={300}
                     priority={index < 3}
                   />
                 ) : (
-                  <div className="text-muted-foreground flex h-full w-full items-center justify-center">
-                    <span>No Image Available</span>
+                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-xs">
+                    <span>No image available</span>
                   </div>
                 )}
               </div>
             </CardHeader>
 
-            <CardContent className="p-4">
+            <CardContent className="flex w-2/3 flex-col p-4">
               <div className="flex items-start justify-between">
-                <h3 className="text-lg font-semibold">{playground.name}</h3>
+                <h3 className="font-semibold">{playground.name}</h3>
               </div>
 
-              <div className="text-muted-foreground mt-1 flex items-center text-sm">
-                <MapPin className="mr-1 h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate">
-                  {playground.address}, {playground.city}
-                </span>
-              </div>
+              {playground.description && (
+                <div className="text-muted-foreground text-xs">
+                  {playground.description}
+                </div>
+              )}
 
-              <div className="mt-3 flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap gap-1 empty:hidden">
                 {/* Access Type Badge */}
                 {playground.accessType && (
                   <Badge variant="outline">
@@ -94,6 +93,11 @@ export function PlaygroundList() {
                     +{playground.features.length - 2} more
                   </Badge>
                 )}
+              </div>
+
+              <div className="text-muted-foreground mt-2 flex items-center text-xs">
+                <MapPin className="mr-1 h-4 w-4 shrink-0" />
+                <span className="truncate">{formatAddress(playground)}</span>
               </div>
             </CardContent>
           </Card>
