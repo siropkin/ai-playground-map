@@ -68,8 +68,8 @@ export default function RootLayout({
                       <svg
                         role="img"
                         viewBox="0 0 24 24"
-                        width={36}
-                        height={36}
+                        width={32}
+                        height={32}
                         xmlns="http://www.w3.org/2000/svg"
                       >
                         <title>GitHub repository</title>
