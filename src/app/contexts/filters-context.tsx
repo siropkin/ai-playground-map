@@ -40,14 +40,6 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const searchParams = useSearchParams();
 
-  console.log("filters", {
-    mapBounds,
-    accesses,
-    ages,
-    features,
-    isInitialized,
-  });
-
   // Update map bounds only if they have changed
   const updateMapBounds = useCallback((bounds: MapBounds) => {
     setMapBounds((prevState) => {

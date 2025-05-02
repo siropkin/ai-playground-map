@@ -93,10 +93,10 @@ async function reverseGeocode(lat: string, lng: string) {
 export function AddPlaygroundDialog() {
   const [open, setOpen] = useState(false);
 
-  const [success, setSuccess] = useState<string | null>(null);
+  const [, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const success = true;
   // Google
   const googleInputRef = useRef<HTMLInputElement>(null);
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
@@ -309,20 +309,20 @@ export function AddPlaygroundDialog() {
           <>
             <DialogHeader className="flex flex-col items-center">
               <DialogTitle>Success!</DialogTitle>
+              <DialogDescription>
+                Your playground has been successfully submitted!
+              </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col items-center gap-2 text-center">
               <div className="rounded-md bg-green-100 p-2 text-green-700">
                 Thank you for your submission! We will review your playground
                 soon.
-              </div>
-
-              <div>
+                <br />
                 While your playground is not yet visible on the map, you can
-                reach it by direct link{" "}
+                reach it by direct link 👇
               </div>
-
-              <Link href={`/playground/${success}`} className="mx-auto mt-2">
+              <Link href={`/playground/${success}`} className="mt-2">
                 <Button onClick={() => setOpen(false)}>View playground</Button>
               </Link>
             </div>
@@ -443,49 +443,51 @@ export function AddPlaygroundDialog() {
                   />
                 </div>
 
-                <div className="flex hidden flex-col gap-2">
-                  <Label htmlFor="city" className="text-right">
-                    City (optional)
-                  </Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    type="text"
-                    className="col-span-3"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    disabled={isGoogleAutofillLoading || isSubmitting}
-                  />
-                </div>
+                <div className="hidden">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="city" className="text-right">
+                      City (optional)
+                    </Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      type="text"
+                      className="col-span-3"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      disabled={isGoogleAutofillLoading || isSubmitting}
+                    />
+                  </div>
 
-                <div className="flex hidden flex-col gap-2">
-                  <Label htmlFor="state" className="text-right">
-                    State (optional)
-                  </Label>
-                  <Input
-                    id="state"
-                    name="state"
-                    type="text"
-                    className="col-span-3"
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    disabled={isGoogleAutofillLoading || isSubmitting}
-                  />
-                </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="state" className="text-right">
+                      State (optional)
+                    </Label>
+                    <Input
+                      id="state"
+                      name="state"
+                      type="text"
+                      className="col-span-3"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      disabled={isGoogleAutofillLoading || isSubmitting}
+                    />
+                  </div>
 
-                <div className="flex hidden flex-col gap-2">
-                  <Label htmlFor="zipCode" className="text-right">
-                    Zip Code (optional)
-                  </Label>
-                  <Input
-                    id="zipCode"
-                    name="zipCode"
-                    type="text"
-                    className="col-span-3"
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value)}
-                    disabled={isGoogleAutofillLoading || isSubmitting}
-                  />
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="zipCode" className="text-right">
+                      Zip Code (optional)
+                    </Label>
+                    <Input
+                      id="zipCode"
+                      name="zipCode"
+                      type="text"
+                      className="col-span-3"
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value)}
+                      disabled={isGoogleAutofillLoading || isSubmitting}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">

@@ -98,7 +98,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       // Filter by ages (check if playground's age range overlaps with any selected age group)
       if (ageSet) {
-        const matchesAge = AGE_GROUPS.some((group: any) => {
+        const matchesAge = AGE_GROUPS.some((group: { key: string; min: number; max: number }) => {
           if (!ageSet.has(group.key)) return false;
           return (
             playground.ageMin <= group.max && playground.ageMax >= group.min
@@ -108,9 +108,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       }
 
       // Filter by features (must include all selected features)
-      if (featureSet) {
+      if (featureSet && features) {
         if (
-          !features!.every((feature) => playground.features.includes(feature))
+          !features.every((feature) => playground.features.includes(feature))
         ) {
           return false;
         }
@@ -147,7 +147,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 export function usePlaygrounds() {
   const context = useContext(PlaygroundsContext);
   if (context === undefined) {
-    throw new Error("useFilters must be used within a FilterProvider");
+    throw new Error("usePlaygrounds must be used within a PlaygroundsProvider");
   }
   return context;
 }

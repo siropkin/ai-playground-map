@@ -13,25 +13,68 @@ async function parseSubmitPlaygroundFormData(
 ): Promise<PlaygroundSubmitData> {
   const formData = await req.formData();
 
-  // Extract basic playground data
+  // Extract and validate required fields
   const name = formData.get("name") as string;
+  if (!name || name.trim() === "") {
+    throw new Error("Playground name is required");
+  }
+
   const description = formData.get("description") as string;
-  const latitude = parseFloat(formData.get("latitude") as string);
-  const longitude = parseFloat(formData.get("longitude") as string);
+  if (!description || description.trim() === "") {
+    throw new Error("Description is required");
+  }
+
+  // Parse and validate coordinates
+  const latitudeStr = formData.get("latitude") as string;
+  const longitudeStr = formData.get("longitude") as string;
+
+  if (!latitudeStr || !longitudeStr) {
+    throw new Error("Latitude and longitude are required");
+  }
+
+  const latitude = parseFloat(latitudeStr);
+  const longitude = parseFloat(longitudeStr);
+
+  if (isNaN(latitude) || isNaN(longitude)) {
+    throw new Error("Invalid latitude or longitude values");
+  }
+
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    throw new Error("Latitude or longitude values out of range");
+  }
+
+  // Extract optional fields
   const address = formData.get("address") as string;
   const city = formData.get("city") as string;
   const state = formData.get("state") as string;
   const zipCode = formData.get("zipCode") as string;
-  const ageMin = parseInt(formData.get("ageMin") as string);
-  const ageMax = parseInt(formData.get("ageMax") as string);
+
+  // Parse age ranges with validation
+  const ageMinStr = formData.get("ageMin") as string;
+  const ageMaxStr = formData.get("ageMax") as string;
+  const ageMin = ageMinStr ? parseInt(ageMinStr) : 0;
+  const ageMax = ageMaxStr ? parseInt(ageMaxStr) : 100;
+
+  if (isNaN(ageMin) || isNaN(ageMax) || ageMin < 0 || ageMax < ageMin) {
+    throw new Error("Invalid age range values");
+  }
+
   const accessType = (formData.get("accessType") || null) as AccessType;
   const surfaceType = (formData.get("surfaceType") || null) as SurfaceType;
 
-  // Parse features (comes as a JSON string)
+  // Parse features with validation
   const featuresStr = formData.get("features") as string;
-  const features = featuresStr ? JSON.parse(featuresStr) : [];
+  let features = [];
+  try {
+    features = featuresStr ? JSON.parse(featuresStr) : [];
+    if (!Array.isArray(features)) {
+      throw new Error("Features must be an array");
+    }
+  } catch (error) {
+    throw new Error("Invalid features format");
+  }
 
-  // Parse open hours (comes as a JSON string)
+  // Parse open hours with validation
   const openHoursStr = formData.get("openHours") as string;
   const openHours = openHoursStr ? JSON.parse(openHoursStr) : {};
 

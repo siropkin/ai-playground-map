@@ -5,6 +5,7 @@ import { Filter } from "lucide-react";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -74,8 +75,11 @@ export function FiltersSheet() {
       <SheetContent side="right" className="w-full max-w-full">
         <SheetHeader>
           <SheetTitle>Filter playgrounds</SheetTitle>
+          <SheetDescription>
+            Choose filters to narrow down the list of playgrounds.
+          </SheetDescription>
         </SheetHeader>
-        <div className="mt-4 flex flex-col gap-6 px-4">
+        <div className="flex flex-col gap-6 px-4">
           {/* Access Types */}
           <div>
             <Label className="mb-2 block">Access</Label>

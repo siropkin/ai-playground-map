@@ -13,10 +13,12 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import type { Playground } from "@/types/playground";
 
-if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
+// Safely set Mapbox access token with proper error handling
+const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+if (!mapboxToken) {
   console.error("Mapbox Access Token is not set. Map will not function.");
 }
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
+mapboxgl.accessToken = mapboxToken || "";
 
 const SOURCE_ID = "playgrounds";
 const CLUSTER_LAYER_ID = "clusters";
@@ -59,11 +61,14 @@ const getMapBounds = (map: mapboxgl.Map | null) => {
     return { south: 0, north: 0, west: 0, east: 0 };
   }
   const bounds = map.getBounds();
+  if (!bounds) {
+    return { south: 0, north: 0, west: 0, east: 0 };
+  }
   return {
-    south: bounds!.getSouth(),
-    north: bounds!.getNorth(),
-    west: bounds!.getWest(),
-    east: bounds!.getEast(),
+    south: bounds.getSouth(),
+    north: bounds.getNorth(),
+    west: bounds.getWest(),
+    east: bounds.getEast(),
   };
 };
 
@@ -298,7 +303,9 @@ export function MapView() {
     }
 
     const handleStyleData = () => {
-      addOrUpdateMapDataLayers(map.current!, theme);
+      if (map.current) {
+        addOrUpdateMapDataLayers(map.current, theme);
+      }
     };
 
     map.current.on("styledata", handleStyleData);
@@ -344,7 +351,9 @@ export function MapView() {
       }
 
       const clusterId = feature.properties.cluster_id;
-      const source = map.current!.getSource(SOURCE_ID) as
+      if (!map.current) return;
+
+      const source = map.current.getSource(SOURCE_ID) as
         | mapboxgl.GeoJSONSource
         | undefined;
 
@@ -356,20 +365,26 @@ export function MapView() {
       source.getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (!err && feature.geometry.type === "Point") {
           const coordinates = feature.geometry.coordinates as [number, number];
-          map.current!.easeTo({
-            center: coordinates,
-            zoom: (zoom || 0) + 4,
-          });
+          if (map.current) {
+            map.current.easeTo({
+              center: coordinates,
+              zoom: (zoom || 0) + 4,
+            });
+          }
         }
       });
     };
 
     const handleMouseEnter = () => {
-      map.current!.getCanvas().style.cursor = "pointer";
+      if (map.current) {
+        map.current.getCanvas().style.cursor = "pointer";
+      }
     };
 
     const handleMouseLeave = () => {
-      map.current!.getCanvas().style.cursor = "";
+      if (map.current) {
+        map.current.getCanvas().style.cursor = "";
+      }
     };
 
     // Unclustered Points
@@ -382,24 +397,26 @@ export function MapView() {
     map.current.on("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
 
     return () => {
-      // Unclustered Points
-      map.current!.off("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
-      map.current!.off(
-        "mouseenter",
-        UNCLUSTERED_POINT_LAYER_ID,
-        handleMouseEnter,
-      );
-      map.current!.off(
-        "mouseleave",
-        UNCLUSTERED_POINT_LAYER_ID,
-        handleMouseLeave,
-      );
-      // Clusters
-      map.current!.off("click", CLUSTER_LAYER_ID, handleClusterClick);
-      map.current!.off("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
-      map.current!.off("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
-      // Reset cursor just in case
-      map.current!.getCanvas().style.cursor = "";
+      if (map.current) {
+        // Unclustered Points
+        map.current.off("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
+        map.current.off(
+          "mouseenter",
+          UNCLUSTERED_POINT_LAYER_ID,
+          handleMouseEnter,
+        );
+        map.current.off(
+          "mouseleave",
+          UNCLUSTERED_POINT_LAYER_ID,
+          handleMouseLeave,
+        );
+        // Clusters
+        map.current.off("click", CLUSTER_LAYER_ID, handleClusterClick);
+        map.current.off("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
+        map.current.off("mouseleave", CLUSTER_LAYER_ID, handleMouseLeave);
+        // Reset cursor just in case
+        map.current.getCanvas().style.cursor = "";
+      }
     };
   }, [isMapLoaded, router]);
 
