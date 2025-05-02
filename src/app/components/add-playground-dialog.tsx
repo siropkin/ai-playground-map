@@ -675,10 +675,10 @@ export function AddPlaygroundDialog() {
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex flex-col items-center space-y-1 text-gray-500 hover:text-gray-700"
+                            className="text-muted-foreground flex h-full w-full cursor-pointer flex-col items-center justify-center space-y-1 outline-none hover:text-gray-700"
                             disabled={isGoogleAutofillLoading || isSubmitting}
                           >
-                            <Upload className="h-6 w-6" />
+                            <Upload className="h-4 w-4" />
                             <span className="text-xs">Upload Photo</span>
                           </button>
                         </div>
