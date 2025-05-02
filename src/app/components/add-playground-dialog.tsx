@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Trash2, Upload, Plus } from "lucide-react";
 
 import { AccessType, FeatureType, OpenHours } from "@/types/playground";
@@ -93,10 +94,10 @@ async function reverseGeocode(lat: string, lng: string) {
 export function AddPlaygroundDialog() {
   const [open, setOpen] = useState(false);
 
-  const [, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const success = true;
+
   // Google
   const googleInputRef = useRef<HTMLInputElement>(null);
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
@@ -603,10 +604,13 @@ export function AddPlaygroundDialog() {
                           key={index}
                           className="relative h-34 w-34 overflow-hidden rounded-md border border-gray-300"
                         >
-                          <img
+                          <Image
                             src={photo.preview}
                             alt={`Preview ${index + 1}`}
                             className="h-full w-full object-cover"
+                            width={300}
+                            height={300}
+                            unoptimized={true}
                           />
                           <div className="absolute inset-0 flex flex-col justify-between bg-black/40 p-2 opacity-0 transition-opacity hover:opacity-100">
                             <div className="flex justify-end space-x-1">
