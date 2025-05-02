@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { cn, formatEnumString } from "@/lib/utils";
+import { formatEnumString } from "@/lib/utils";
 import { useFilters } from "@/contexts/filters-context";
 import { ACCESS_TYPES, AGE_GROUPS, FEATURE_TYPES } from "@/lib/constants";
 import type { AccessType, FeatureType } from "@/types/playground";

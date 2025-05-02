@@ -70,7 +70,7 @@ async function parseSubmitPlaygroundFormData(
     if (!Array.isArray(features)) {
       throw new Error("Features must be an array");
     }
-  } catch (error) {
+  } catch {
     throw new Error("Invalid features format");
   }
 
