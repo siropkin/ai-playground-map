@@ -40,6 +40,8 @@ const ACCESS_TYPES: AccessType[] = [
   "mall_indoor",
 ];
 
+const sortedAccessTypes = [...ACCESS_TYPES].sort();
+
 // const FEATURE_TYPES: FeatureType[] = [
 //   "swings",
 //   "baby_swings",
@@ -83,6 +85,16 @@ const FEATURE_TYPES: FeatureType[] = [
   "restrooms",
   "parking_lot",
   "wheelchair_accessible",
+];
+
+const sortedFeatureTypes = [...FEATURE_TYPES].sort();
+
+// Age group definitions
+const AGE_GROUPS = [
+  { label: "Toddler (0-2)", min: 0, max: 2, key: "toddler" },
+  { label: "Preschool (2-5)", min: 2, max: 5, key: "preschool" },
+  { label: "School Age (5-12)", min: 5, max: 12, key: "school" },
+  { label: "Teen & Adult (13+)", min: 13, max: 100, key: "adult" },
 ];
 
 interface PhotoUpload {
@@ -172,6 +184,7 @@ export function AddPlaygroundDialog() {
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
+  const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([]);
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureType[]>([]);
   const [openHours, setOpenHours] = useState<OpenHours | null>(null);
   const [accessType, setAccessType] = useState<AccessType | null>(null);
@@ -288,6 +301,20 @@ export function AddPlaygroundDialog() {
         formData.append(`isPrimary${index}`, photo.isPrimary.toString());
       });
 
+      // Transform selectedAgeGroups to ageMin and ageMax
+      if (selectedAgeGroups.length > 0) {
+        const selected = AGE_GROUPS.filter((g) =>
+          selectedAgeGroups.includes(g.key),
+        );
+        const ageMin = Math.min(...selected.map((g) => g.min));
+        const ageMax = Math.max(...selected.map((g) => g.max));
+        formData.append("ageMin", ageMin.toString());
+        formData.append("ageMax", ageMax.toString());
+      } else {
+        formData.append("ageMin", "");
+        formData.append("ageMax", "");
+      }
+
       const response = await fetch("/api/playgrounds", {
         method: "POST",
         body: formData,
@@ -332,6 +359,7 @@ export function AddPlaygroundDialog() {
       setState("");
       setZipCode("");
       setPhotos([]);
+      setSelectedAgeGroups([]);
       setSelectedFeatures([]);
       setOpenHours(null);
       setAccessType(null);
@@ -556,7 +584,7 @@ export function AddPlaygroundDialog() {
                     value={accessType || ""}
                   />
                   <div className="mb-2 flex flex-wrap gap-2">
-                    {ACCESS_TYPES.map((type) => (
+                    {sortedAccessTypes.map((type) => (
                       <Badge
                         key={type}
                         variant={accessType === type ? "default" : "outline"}
@@ -572,12 +600,42 @@ export function AddPlaygroundDialog() {
                   </div>
                 </div>
 
+                {/* Age group badges */}
+                <div className="flex flex-col gap-2">
+                  <Label className="text-right">Ages</Label>
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {AGE_GROUPS.map((group) => (
+                      <Badge
+                        key={group.key}
+                        variant={
+                          selectedAgeGroups.includes(group.key)
+                            ? "default"
+                            : "outline"
+                        }
+                        className={cn("cursor-pointer", {
+                          "pointer-events-none opacity-50":
+                            isGoogleAutofillLoading || isSubmitting,
+                        })}
+                        onClick={() => {
+                          setSelectedAgeGroups((prev) =>
+                            prev.includes(group.key)
+                              ? prev.filter((k) => k !== group.key)
+                              : [...prev, group.key],
+                          );
+                        }}
+                      >
+                        {group.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="features" className="text-right">
                     Features (optional)
                   </Label>
                   <div className="mb-2 flex flex-wrap gap-2">
-                    {FEATURE_TYPES.map((type) => (
+                    {sortedFeatureTypes.map((type) => (
                       <Badge
                         key={type}
                         variant={
