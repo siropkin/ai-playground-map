@@ -16,8 +16,24 @@ import { Button } from "@/components/ui/button";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://goodplaygroundmap.com"),
   title: SITE_NAME,
   description: "Find good playgrounds for kids near you",
+  openGraph: {
+    title: SITE_NAME,
+    description: "Find good playgrounds for kids near you",
+    images: [
+      {
+        url: "/thumbnail.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Good Playground Map",
+      },
+    ],
+    type: "website",
+    locale: "en_US",
+    url: "https://goodplaygroundmap.com",
+  },
 };
 
 export default function RootLayout({
