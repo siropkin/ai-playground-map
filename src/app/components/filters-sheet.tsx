@@ -154,7 +154,7 @@ export function FiltersSheet() {
               Apply
             </Button>
             <Button variant="outline" onClick={handleClear} className="flex-1">
-              Clear All Filters
+              Clear all filters
             </Button>
           </div>
         </div>
