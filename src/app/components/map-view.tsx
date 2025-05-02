@@ -12,7 +12,6 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import type { Playground } from "@/types/playground";
-import { Loading } from "@/components/loading";
 
 if (!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
   console.error("Mapbox Access Token is not set. Map will not function.");
@@ -117,7 +116,7 @@ export function MapView() {
       },
       (error) => {
         console.error("Error fetching location:", error);
-        alert("Oops! Unable to fetch your location. Please try again.");
+        alert("Oops! Can’t get your location. Maybe geolocation is blocked?");
       },
     );
   }, []);
@@ -455,7 +454,6 @@ export function MapView() {
           <span className="hidden sm:block">Near me</span>
         </Button>
       </div>
-      {!isMapLoaded && !error && <Loading />}
       {loading && (
         <div className="text-muted-foreground bg-background/80 absolute top-1 left-1/2 z-10 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
           Loading playgrounds...

@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import Link from "next/link";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
+import { SITE_NAME } from "@/lib/constants";
 import { FilterProvider } from "@/contexts/filters-context";
 import { PlaygroundsProvider } from "@/contexts/playgrounds-context";
-// import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AddPlaygroundDialog } from "@/components/add-playground-dialog";
 import { cn } from "@/lib/utils";
+// import { ThemeToggle } from "@/components/theme-toggle";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Good Playground Map",
+  title: SITE_NAME,
   description: "Find good playgrounds for kids near you",
 };
 

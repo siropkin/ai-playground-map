@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Clock } from "lucide-react";
 
+import { SITE_NAME } from "@/lib/constants";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
@@ -10,9 +13,28 @@ import {
   formatAddress,
   getTodayOpenHours,
 } from "@/lib/utils";
-import Link from "next/link";
 
 type PlaygroundDetailParams = { id: string };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<PlaygroundDetailParams>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const playground = await getPlaygroundById(resolvedParams.id);
+  if (!playground) {
+    return {
+      title: `Playground Not Found | ${SITE_NAME}`,
+      description:
+        "Looks like this playground took a swing break. Try another one for more fun!",
+    };
+  }
+  return {
+    title: `${playground.name} | ${SITE_NAME}`,
+    description: playground.description,
+  };
+}
 
 export default async function PlaygroundDetail({
   params,
