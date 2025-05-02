@@ -2,16 +2,18 @@
 
 import type { Playground } from "@/types/playground";
 import {
-  createContext,
   type ReactNode,
+  createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { useFilters } from "@/contexts/filters-context";
 import { getPlaygroundsForBounds } from "@/data/playgrounds";
+import { AGE_GROUPS } from "@/lib/constants";
 
 const MAX_ZOOM_LEVEL_TO_FETCH_DATA = 5;
 
@@ -31,8 +33,7 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
 );
 
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
-  // const { filters, mapBounds } = useFilters();
-  const { mapBounds } = useFilters();
+  const { mapBounds, accesses, ages, features } = useFilters();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
@@ -84,37 +85,40 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     };
   }, [debouncedFetchPlaygrounds]);
 
-  // const filteredPlaygrounds = useMemo(
-  //   () =>
-  //     playgrounds.filter((playground) => {
-  //       // Filter by access
-  //       if (filters.accesses && filters.accesses.length > 0) {
-  //         const hasAllAccesses = filters.accesses.every(
-  //           (access) => playground.access === access,
-  //         );
-  //         if (!hasAllAccesses) return false;
-  //       }
-  //
-  //       // Filter by ages
-  //       if (filters.ages && filters.ages.length > 0) {
-  //         const hasAllAgeRanges = filters.ages.every((ageRange) =>
-  //           playground.ages.includes(ageRange),
-  //         );
-  //         if (!hasAllAgeRanges) return false;
-  //       }
-  //
-  //       // Filter by features
-  //       if (filters.features && filters.features.length > 0) {
-  //         const hasAllFeatures = filters.features.every((feature) =>
-  //           playground.features.includes(feature),
-  //         );
-  //         if (!hasAllFeatures) return false;
-  //       }
-  //
-  //       return true;
-  //     }),
-  //   [playgrounds, filters],
-  // );
+  const filteredPlaygrounds = useMemo(() => {
+    const accessSet = accesses && accesses.length ? new Set(accesses) : null;
+    const ageSet = ages && ages.length ? new Set(ages) : null;
+    const featureSet = features && features.length ? new Set(features) : null;
+
+    return playgrounds.filter((playground) => {
+      // Filter by access
+      if (accessSet && !accessSet.has(playground.accessType)) {
+        return false;
+      }
+
+      // Filter by ages (check if playground's age range overlaps with any selected age group)
+      if (ageSet) {
+        const matchesAge = AGE_GROUPS.some((group: any) => {
+          if (!ageSet.has(group.key)) return false;
+          return (
+            playground.ageMin <= group.max && playground.ageMax >= group.min
+          );
+        });
+        if (!matchesAge) return false;
+      }
+
+      // Filter by features (must include all selected features)
+      if (featureSet) {
+        if (
+          !features!.every((feature) => playground.features.includes(feature))
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [playgrounds, accesses, ages, features]);
 
   const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
     setFlyToCoords(coords);
@@ -127,8 +131,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   return (
     <PlaygroundsContext.Provider
       value={{
-        // playgrounds: filteredPlaygrounds,
-        playgrounds,
+        playgrounds: filteredPlaygrounds,
         loading,
         error,
         flyToCoords,

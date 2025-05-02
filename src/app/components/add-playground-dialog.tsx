@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Trash2, Upload, Plus } from "lucide-react";
 
 import { AccessType, FeatureType, OpenHours } from "@/types/playground";
+import { AGE_GROUPS, ACCESS_TYPES, FEATURE_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -21,88 +22,16 @@ import {
 } from "@/components/ui/dialog";
 import { cn, formatEnumString } from "@/lib/utils";
 
-const MAX_PHOTOS = 5;
-
-// const ACCESS_TYPES: AccessType[] = [
-//   "public",
-//   "private",
-//   "school",
-//   "community_center",
-//   "park_district",
-//   "hoa",
-//   "mall_indoor",
-// ];
-
-const ACCESS_TYPES: AccessType[] = [
-  "public",
-  "school",
-  "community_center",
-  "mall_indoor",
-];
-
-const sortedAccessTypes = [...ACCESS_TYPES].sort();
-
-// const FEATURE_TYPES: FeatureType[] = [
-//   "swings",
-//   "baby_swings",
-//   "slides",
-//   "spiral_slide",
-//   "climbing_wall",
-//   "rope_course",
-//   "monkey_bars",
-//   "balance_beam",
-//   "sandpit",
-//   "water_play",
-//   "zip_line",
-//   "see_saw",
-//   "spinning_equipment",
-//   "shade_structure",
-//   "picnic_tables",
-//   "benches",
-//   "restrooms",
-//   "parking_lot",
-//   "bike_rack",
-//   "dog_friendly",
-//   "sensory_play",
-//   "musical_instruments",
-//   "fitness_equipment",
-//   "walking_trails",
-//   "wheelchair_accessible",
-//   "water_fountain",
-// ];
-
-const FEATURE_TYPES: FeatureType[] = [
-  "swings",
-  "slides",
-  "climbing_wall",
-  "monkey_bars",
-  "sandpit",
-  "water_play",
-  "see_saw",
-  "shade_structure",
-  "picnic_tables",
-  "benches",
-  "restrooms",
-  "parking_lot",
-  "wheelchair_accessible",
-];
-
-const sortedFeatureTypes = [...FEATURE_TYPES].sort();
-
-// Age group definitions
-const AGE_GROUPS = [
-  { label: "Toddler (0-2)", min: 0, max: 2, key: "toddler" },
-  { label: "Preschool (2-5)", min: 2, max: 5, key: "preschool" },
-  { label: "School Age (5-12)", min: 5, max: 12, key: "school" },
-  { label: "Teen & Adult (13+)", min: 13, max: 100, key: "adult" },
-];
-
 interface PhotoUpload {
   file: File;
   preview: string;
   caption: string;
   isPrimary: boolean;
 }
+
+const MAX_PHOTOS = 5;
+const sortedAccessTypes = [...ACCESS_TYPES].sort();
+const sortedFeatureTypes = [...FEATURE_TYPES].sort();
 
 // Helper: resolve short URL to real Google Maps URL via backend
 async function resolveGoogleUrl(shortUrl: string): Promise<string> {

@@ -444,7 +444,7 @@ export function MapView() {
         ref={setMapContainer}
         className="absolute top-0 left-0 h-full w-full"
       />
-      <div className="absolute right-2 bottom-10 z-1 flex sm:right-4 sm:bottom-8">
+      <div className="absolute right-4 bottom-10 z-1 flex sm:right-4 sm:bottom-8">
         <Button
           variant="outline"
           aria-label="Center map on my location"
