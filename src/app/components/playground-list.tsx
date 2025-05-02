@@ -20,8 +20,9 @@ export function PlaygroundList({
         <CardContent className="flex flex-col items-center p-0">
           <div className="text-muted-foreground mb-2 text-5xl">🔍</div>
           <h3 className="mb-1 font-semibold">No playgrounds found</h3>
-          <p className="text-muted-foreground text-sm">
-            Try zooming out or moving the map to find more playgrounds.
+          <p className="text-muted-foreground text-center text-sm">
+            Try zooming out, moving the map, or adjusting the filters to find
+            more playgrounds.
           </p>
         </CardContent>
       </Card>

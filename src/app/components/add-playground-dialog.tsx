@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Trash2, Upload, Plus } from "lucide-react";
 
 import { AccessType, FeatureType, OpenHours } from "@/types/playground";
+import { AGE_GROUPS, ACCESS_TYPES, FEATURE_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -21,88 +23,16 @@ import {
 } from "@/components/ui/dialog";
 import { cn, formatEnumString } from "@/lib/utils";
 
-const MAX_PHOTOS = 5;
-
-// const ACCESS_TYPES: AccessType[] = [
-//   "public",
-//   "private",
-//   "school",
-//   "community_center",
-//   "park_district",
-//   "hoa",
-//   "mall_indoor",
-// ];
-
-const ACCESS_TYPES: AccessType[] = [
-  "public",
-  "school",
-  "community_center",
-  "mall_indoor",
-];
-
-const sortedAccessTypes = [...ACCESS_TYPES].sort();
-
-// const FEATURE_TYPES: FeatureType[] = [
-//   "swings",
-//   "baby_swings",
-//   "slides",
-//   "spiral_slide",
-//   "climbing_wall",
-//   "rope_course",
-//   "monkey_bars",
-//   "balance_beam",
-//   "sandpit",
-//   "water_play",
-//   "zip_line",
-//   "see_saw",
-//   "spinning_equipment",
-//   "shade_structure",
-//   "picnic_tables",
-//   "benches",
-//   "restrooms",
-//   "parking_lot",
-//   "bike_rack",
-//   "dog_friendly",
-//   "sensory_play",
-//   "musical_instruments",
-//   "fitness_equipment",
-//   "walking_trails",
-//   "wheelchair_accessible",
-//   "water_fountain",
-// ];
-
-const FEATURE_TYPES: FeatureType[] = [
-  "swings",
-  "slides",
-  "climbing_wall",
-  "monkey_bars",
-  "sandpit",
-  "water_play",
-  "see_saw",
-  "shade_structure",
-  "picnic_tables",
-  "benches",
-  "restrooms",
-  "parking_lot",
-  "wheelchair_accessible",
-];
-
-const sortedFeatureTypes = [...FEATURE_TYPES].sort();
-
-// Age group definitions
-const AGE_GROUPS = [
-  { label: "Toddler (0-2)", min: 0, max: 2, key: "toddler" },
-  { label: "Preschool (2-5)", min: 2, max: 5, key: "preschool" },
-  { label: "School Age (5-12)", min: 5, max: 12, key: "school" },
-  { label: "Teen & Adult (13+)", min: 13, max: 100, key: "adult" },
-];
-
 interface PhotoUpload {
   file: File;
   preview: string;
   caption: string;
   isPrimary: boolean;
 }
+
+const MAX_PHOTOS = 5;
+const sortedAccessTypes = [...ACCESS_TYPES].sort();
+const sortedFeatureTypes = [...FEATURE_TYPES].sort();
 
 // Helper: resolve short URL to real Google Maps URL via backend
 async function resolveGoogleUrl(shortUrl: string): Promise<string> {
@@ -380,20 +310,20 @@ export function AddPlaygroundDialog() {
           <>
             <DialogHeader className="flex flex-col items-center">
               <DialogTitle>Success!</DialogTitle>
+              <DialogDescription>
+                Your playground has been successfully submitted!
+              </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col items-center gap-2 text-center">
               <div className="rounded-md bg-green-100 p-2 text-green-700">
                 Thank you for your submission! We will review your playground
                 soon.
-              </div>
-
-              <div>
+                <br />
                 While your playground is not yet visible on the map, you can
-                reach it by direct link{" "}
+                reach it by direct link 👇
               </div>
-
-              <Link href={`/playground/${success}`} className="mx-auto mt-2">
+              <Link href={`/playground/${success}`} className="mt-2">
                 <Button onClick={() => setOpen(false)}>View playground</Button>
               </Link>
             </div>
@@ -514,49 +444,51 @@ export function AddPlaygroundDialog() {
                   />
                 </div>
 
-                <div className="flex hidden flex-col gap-2">
-                  <Label htmlFor="city" className="text-right">
-                    City (optional)
-                  </Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    type="text"
-                    className="col-span-3"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    disabled={isGoogleAutofillLoading || isSubmitting}
-                  />
-                </div>
+                <div className="hidden">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="city" className="text-right">
+                      City (optional)
+                    </Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      type="text"
+                      className="col-span-3"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      disabled={isGoogleAutofillLoading || isSubmitting}
+                    />
+                  </div>
 
-                <div className="flex hidden flex-col gap-2">
-                  <Label htmlFor="state" className="text-right">
-                    State (optional)
-                  </Label>
-                  <Input
-                    id="state"
-                    name="state"
-                    type="text"
-                    className="col-span-3"
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    disabled={isGoogleAutofillLoading || isSubmitting}
-                  />
-                </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="state" className="text-right">
+                      State (optional)
+                    </Label>
+                    <Input
+                      id="state"
+                      name="state"
+                      type="text"
+                      className="col-span-3"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      disabled={isGoogleAutofillLoading || isSubmitting}
+                    />
+                  </div>
 
-                <div className="flex hidden flex-col gap-2">
-                  <Label htmlFor="zipCode" className="text-right">
-                    Zip Code (optional)
-                  </Label>
-                  <Input
-                    id="zipCode"
-                    name="zipCode"
-                    type="text"
-                    className="col-span-3"
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value)}
-                    disabled={isGoogleAutofillLoading || isSubmitting}
-                  />
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="zipCode" className="text-right">
+                      Zip Code (optional)
+                    </Label>
+                    <Input
+                      id="zipCode"
+                      name="zipCode"
+                      type="text"
+                      className="col-span-3"
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value)}
+                      disabled={isGoogleAutofillLoading || isSubmitting}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -672,10 +604,13 @@ export function AddPlaygroundDialog() {
                           key={index}
                           className="relative h-34 w-34 overflow-hidden rounded-md border border-gray-300"
                         >
-                          <img
+                          <Image
                             src={photo.preview}
                             alt={`Preview ${index + 1}`}
                             className="h-full w-full object-cover"
+                            width={300}
+                            height={300}
+                            unoptimized={true}
                           />
                           <div className="absolute inset-0 flex flex-col justify-between bg-black/40 p-2 opacity-0 transition-opacity hover:opacity-100">
                             <div className="flex justify-end space-x-1">

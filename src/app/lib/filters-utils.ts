@@ -1,4 +1,5 @@
-import type { MapBounds } from "@/types/playground";
+import type { AccessType, FeatureType, MapBounds } from "@/types/playground";
+import type { FilterCriteria } from "@/types/filter";
 
 export function roundMapBounds(bounds: MapBounds): MapBounds {
   return {
@@ -48,47 +49,40 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
 }
 
-// import type { FilterCriteria } from "@/lib/types";
-//
-// export function getFilterStateFromUrl(): FilterCriteria {
-//   if (typeof window === "undefined") {
-//     return { ageRanges: [], access: [], features: [] };
-//   }
-//
-//   const params = new URLSearchParams(window.location.search);
-//
-//   return {
-//     ageRanges: params.getAll("age"),
-//     access: params.getAll("access"),
-//     features: params.getAll("feature"),
-//   };
-// }
-//
-// export function updateUrlWithFilters(filters: FilterCriteria) {
-//   if (typeof window === "undefined") {
-//     return;
-//   }
-//
-//   const url = new URL(window.location.href);
-//   const params = new URLSearchParams(url.search);
-//
-//   // Clear existing filter params
-//   params.delete("age");
-//   params.delete("access");
-//   params.delete("feature");
-//
-//   filters.ageRanges.forEach((age) => {
-//     params.append("age", age);
-//   });
-//
-//   filters.access.forEach((access) => {
-//     params.append("access", access);
-//   });
-//
-//   filters.features.forEach((feature) => {
-//     params.append("feature", feature);
-//   });
-//
-//   // Update URL without reloading the page
-//   window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
-// }
+export function getFilterStateFromUrl(): FilterCriteria | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+
+  return {
+    accesses: params.getAll("access") as AccessType[],
+    ages: params.getAll("age"),
+    features: params.getAll("feature") as FeatureType[],
+  };
+}
+
+export function updateUrlWithFilters(filters: FilterCriteria) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+
+  params.delete("access");
+  params.delete("age");
+  params.delete("feature");
+
+  filters.accesses.forEach((access) => {
+    params.append("access", access);
+  });
+  filters.ages.forEach((age) => {
+    params.append("age", age);
+  });
+  filters.features.forEach((feature) => {
+    params.append("feature", feature);
+  });
+  window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
+}

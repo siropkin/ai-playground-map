@@ -1,10 +1,16 @@
 import { PlaygroundList } from "@/components/playground-list";
 import { PlaygroundListSheet } from "@/components/playground-list-sheet";
 import { MapView } from "@/components/map-view";
+import { FiltersSheet } from "@/components/filters-sheet";
 
 export default function Home() {
   return (
     <div className="relative flex flex-1">
+      {/* Filters sheet */}
+      <div className="absolute top-2 right-4 z-1">
+        <FiltersSheet />
+      </div>
+
       {/* Desktop sidebar */}
       <div className="absolute top-0 left-0 z-1 hidden max-h-[calc(100vh-80px)] max-w-sm overflow-y-auto md:block">
         <div className="py-2 pr-2 pl-4">
