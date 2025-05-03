@@ -2,6 +2,8 @@ import { AccessType, FeatureType } from "@/types/playground";
 
 export const SITE_NAME = "Good Playground Map";
 
+export const PHOTOS_BUCKET_NAME = "playground-photos";
+
 export const AGE_GROUPS = [
   { label: "Toddler (0-2)", min: 0, max: 2, key: "toddler" },
   { label: "Preschool (2-5)", min: 2, max: 5, key: "preschool" },

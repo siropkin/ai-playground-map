@@ -1,9 +1,8 @@
 "use server";
 
 import { cache } from "react";
-import { v4 as uuidv4 } from "uuid";
 
-import { supabase as supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import {
   AccessType,
   MapBounds,
@@ -233,7 +232,7 @@ export const getPlaygroundById = cache(
   },
 );
 
-export async function createPlayground(
+export async function createPlaygroundMetadata(
   playground: PlaygroundSubmitData,
 ): Promise<{ success: boolean; id?: number; error?: string }> {
   try {
@@ -295,54 +294,42 @@ export async function createPlayground(
       }
     }
 
-    // 3. Upload photos and insert metadata
-    for (const photo of playground.photos) {
-      const uuid = uuidv4();
-
-      // Get file extension safely
-      let ext = "jpg"; // Default extension
-      if (photo.file && typeof photo.file === "object") {
-        const fileName = (photo.file as File).name;
-        if (fileName && typeof fileName === "string") {
-          const parts = fileName.split(".");
-          if (parts.length > 1) {
-            ext = parts.pop() || ext;
-          }
-        }
-      }
-
-      const filename = `playground-photos/${playgroundId}/${uuid}.${ext}`;
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("playground-photos")
-        .upload(`${playgroundId}/${uuid}.${ext}`, photo.file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Insert photo metadata
-      const { error: photoInsertError } = await supabase
-        .from(PLAYGROUND_PHOTOS_TABLE_NAME)
-        .insert({
-          playground_id: playgroundId,
-          filename,
-          caption: photo.caption,
-          is_primary: photo.isPrimary,
-        });
-
-      if (photoInsertError) {
-        throw photoInsertError;
-      }
-    }
+    // Do NOT handle photos here because they are uploaded separately
 
     return { success: true, id: playgroundId };
   } catch (error: unknown) {
     console.error("Error submitting playground:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// Create photo metadata (after client uploads to storage)
+export async function createPlaygroundPhotoMetadata({
+  playgroundId,
+  filename,
+  caption,
+  isPrimary,
+}: {
+  playgroundId: number;
+  filename: string;
+  caption: string;
+  isPrimary: boolean;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase.from(PLAYGROUND_PHOTOS_TABLE_NAME).insert({
+      playground_id: playgroundId,
+      filename,
+      caption,
+      is_primary: isPrimary,
+    });
+    if (error) {
+      throw error;
+    }
+    return { success: true };
+  } catch (error: unknown) {
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

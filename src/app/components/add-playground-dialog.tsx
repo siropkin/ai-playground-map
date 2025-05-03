@@ -6,7 +6,12 @@ import Image from "next/image";
 import { Trash2, Upload, Plus } from "lucide-react";
 
 import { AccessType, FeatureType, OpenHours } from "@/types/playground";
-import { AGE_GROUPS, ACCESS_TYPES, FEATURE_TYPES } from "@/lib/constants";
+import {
+  AGE_GROUPS,
+  ACCESS_TYPES,
+  FEATURE_TYPES,
+  PHOTOS_BUCKET_NAME,
+} from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -22,6 +27,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn, formatEnumString } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 interface PhotoUpload {
   file: File;
@@ -123,7 +129,10 @@ export function AddPlaygroundDialog() {
 
   // Handle photo input
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []).slice(0, 3 - photos.length);
+    const files = Array.from(e.target.files || []).slice(
+      0,
+      MAX_PHOTOS - photos.length,
+    );
     setPhotos((prev) => [
       ...prev,
       ...files.map((file, i) => ({
@@ -215,21 +224,11 @@ export function AddPlaygroundDialog() {
     setError(null);
 
     try {
+      // 1. Prepare and send metadata (no images)
       const formData = new FormData(e.currentTarget);
 
-      // Add features as JSON string
       formData.append("features", JSON.stringify(selectedFeatures));
-
-      // Add open hours as JSON string
       formData.append("openHours", JSON.stringify(openHours));
-
-      // Add photos
-      formData.append("photoCount", photos.length.toString());
-      photos.forEach((photo, index) => {
-        formData.append(`photo${index}`, photo.file);
-        formData.append(`caption${index}`, photo.caption);
-        formData.append(`isPrimary${index}`, photo.isPrimary.toString());
-      });
 
       // Transform selectedAgeGroups to ageMin and ageMax
       if (selectedAgeGroups.length > 0) {
@@ -245,6 +244,19 @@ export function AddPlaygroundDialog() {
         formData.append("ageMax", "");
       }
 
+      // Remove any photo fields from formData (if present)
+      Array.from(formData.keys()).forEach((key) => {
+        if (
+          key.startsWith("photo") ||
+          key.startsWith("caption") ||
+          key.startsWith("isPrimary") ||
+          key === "photoCount"
+        ) {
+          formData.delete(key);
+        }
+      });
+
+      // 2. POST metadata to API
       const response = await fetch("/api/playgrounds", {
         method: "POST",
         body: formData,
@@ -256,7 +268,47 @@ export function AddPlaygroundDialog() {
       }
 
       const data = await response.json();
-      setSuccess(data.id);
+      const playgroundId = data.id;
+
+      // 3. Upload photos directly to Supabase Storage and send metadata
+      for (const photo of photos.values()) {
+        // TODO: Move this to a separate function
+        const uuid = crypto.randomUUID();
+        const ext = photo.file.name.split(".").pop() || "jpg";
+        const filename = `${playgroundId}/${uuid}.${ext}`;
+        const fullFilename = `${PHOTOS_BUCKET_NAME}/${filename}`;
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from(PHOTOS_BUCKET_NAME)
+          .upload(filename, photo.file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(`Photo upload failed: ${uploadError.message}`);
+        }
+
+        // POST photo metadata to API
+        const metaRes = await fetch("/api/playgrounds/photos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            playgroundId,
+            filename: fullFilename,
+            caption: photo.caption,
+            isPrimary: photo.isPrimary,
+          }),
+        });
+
+        if (!metaRes.ok) {
+          const metaErr = await metaRes.json();
+          throw new Error(metaErr.error || "Failed to save photo metadata");
+        }
+      }
+
+      setSuccess(playgroundId);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(
