@@ -5,7 +5,7 @@ import {
   AccessType,
   SurfaceType,
 } from "@/types/playground";
-import { createPlayground } from "@/data/playgrounds";
+import { createPlaygroundMetadata } from "@/data/playgrounds";
 
 // Parse multipart form data for playground submissions
 async function parseSubmitPlaygroundFormData(
@@ -78,25 +78,6 @@ async function parseSubmitPlaygroundFormData(
   const openHoursStr = formData.get("openHours") as string;
   const openHours = openHoursStr ? JSON.parse(openHoursStr) : {};
 
-  // Extract photos
-  const photos = [];
-  const photoCount = parseInt(formData.get("photoCount") as string) || 0;
-
-  for (let i = 0; i < photoCount; i++) {
-    const file = formData.get(`photo${i}`);
-    const caption = (formData.get(`caption${i}`) as string) || "";
-    const isPrimary = formData.get(`isPrimary${i}`) === "true";
-
-    // Check if file exists and is a Blob or File (both have size property)
-    if (file && typeof file === "object" && "size" in file) {
-      photos.push({
-        file: file as File,
-        caption,
-        isPrimary,
-      });
-    }
-  }
-
   return {
     name,
     description,
@@ -112,19 +93,16 @@ async function parseSubmitPlaygroundFormData(
     accessType,
     surfaceType,
     features,
-    photos,
+    photos: [], // No photos here
   };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    console.debug(">>>> POST");
     const playground: PlaygroundSubmitData =
       await parseSubmitPlaygroundFormData(req);
-    console.debug("Playground data:", playground);
 
-    const result = await createPlayground(playground);
-    console.debug("Create playground result:", result);
+    const result = await createPlaygroundMetadata(playground);
 
     if (result.success) {
       return NextResponse.json({ id: result.id }, { status: 201 });
