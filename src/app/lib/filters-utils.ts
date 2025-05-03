@@ -46,7 +46,11 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   params.set("north", String(bounds.north));
   params.set("west", String(bounds.west));
   params.set("east", String(bounds.east));
-  window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
+  if (params.toString()) {
+    window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
+  } else {
+    window.history.pushState({}, "", url.pathname);
+  }
 }
 
 export function getFilterStateFromUrl(): FilterCriteria | null {
@@ -84,5 +88,9 @@ export function updateUrlWithFilters(filters: FilterCriteria) {
   filters.features.forEach((feature) => {
     params.append("feature", feature);
   });
-  window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
+  if (params.toString()) {
+    window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
+  } else {
+    window.history.pushState({}, "", url.pathname);
+  }
 }
