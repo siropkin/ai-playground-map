@@ -52,6 +52,10 @@ async function resolveGoogleUrl(shortUrl: string): Promise<string> {
 
 // Helper: extract lat/lng from Google Maps URL (also supports !3dLAT!4dLNG and /search/LAT,LNG)
 function extractLatLng(url: string): { lat: string; lng: string } | null {
+  // Try to match !3dLAT!4dLNG (most accurate for place pins)
+  const dMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (dMatch) return { lat: dMatch[1], lng: dMatch[2] };
+
   // Try to match @lat,lng
   const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (atMatch) return { lat: atMatch[1], lng: atMatch[2] };
@@ -59,10 +63,6 @@ function extractLatLng(url: string): { lat: string; lng: string } | null {
   // Try to match /?q=lat,lng
   const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (qMatch) return { lat: qMatch[1], lng: qMatch[2] };
-
-  // Try to match !3dLAT!4dLNG
-  const dMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-  if (dMatch) return { lat: dMatch[1], lng: dMatch[2] };
 
   // Try to match /search/lat,lng (with optional space or %20 and + or -)
   const searchMatch = url.match(
@@ -179,7 +179,9 @@ export function AddPlaygroundDialog() {
     }
 
     // Step 2: extract latitude/longitude
+    console.log("Resolved URL:", resolvedUrl);
     const coords = extractLatLng(resolvedUrl);
+    console.log("Extracted coordinates:", coords);
     if (coords) {
       // Step 3: reverse geocode for address, city, state, zipCode, name
       const geocodeData = await reverseGeocode(coords.lat, coords.lng);
