@@ -6,6 +6,7 @@ import { List } from "lucide-react";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -41,6 +42,10 @@ export function PlaygroundListSheet() {
       >
         <SheetHeader>
           <SheetTitle>Playgrounds</SheetTitle>
+          <SheetDescription>
+            List of playgrounds near you. Click on a playground to view it on
+            the map.
+          </SheetDescription>
         </SheetHeader>
         <PlaygroundList showEmptyState />
       </SheetContent>
