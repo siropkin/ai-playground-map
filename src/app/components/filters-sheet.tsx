@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { Filter } from "lucide-react";
+
+import type { AccessType, FeatureType } from "@/types/playground";
+import { ACCESS_TYPES, AGE_GROUPS, FEATURE_TYPES } from "@/lib/constants";
+import { useFilters } from "@/contexts/filters-context";
 import {
   Sheet,
   SheetContent,
@@ -14,9 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatEnumString } from "@/lib/utils";
-import { useFilters } from "@/contexts/filters-context";
-import { ACCESS_TYPES, AGE_GROUPS, FEATURE_TYPES } from "@/lib/constants";
-import type { AccessType, FeatureType } from "@/types/playground";
 
 const sortedAccessTypes = [...ACCESS_TYPES].sort();
 const sortedFeatureTypes = [...FEATURE_TYPES].sort();
@@ -63,12 +64,24 @@ export function FiltersSheet() {
     setOpen(false);
   }
 
+  // Determine if any filter is set
+  const filtersSet =
+    (accesses && accesses.length > 0) ||
+    (ages && ages.length > 0) ||
+    (features && features.length > 0);
+
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="relative">
           <Filter className="h-4 w-4" />
           <span className="hidden sm:block">Filters</span>
+          {filtersSet && (
+            <span
+              className="bg-primary absolute top-1.5 right-1.5 block h-2 w-2 rounded-full"
+              aria-label="Filters set"
+            />
+          )}
         </Button>
       </SheetTrigger>
 
