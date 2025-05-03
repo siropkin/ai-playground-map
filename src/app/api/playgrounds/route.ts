@@ -118,13 +118,10 @@ async function parseSubmitPlaygroundFormData(
 
 export async function POST(req: NextRequest) {
   try {
-    console.debug(">>>> POST");
     const playground: PlaygroundSubmitData =
       await parseSubmitPlaygroundFormData(req);
-    console.debug("Playground data:", playground);
 
     const result = await createPlayground(playground);
-    console.debug("Create playground result:", result);
 
     if (result.success) {
       return NextResponse.json({ id: result.id }, { status: 201 });
