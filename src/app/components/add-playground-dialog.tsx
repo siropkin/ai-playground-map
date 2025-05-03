@@ -81,7 +81,7 @@ function extractLatLng(url: string): { lat: string; lng: string } | null {
 // Helper: reverse geocode using Nominatim
 async function reverseGeocode(lat: string, lng: string) {
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en`;
     const res = await fetch(url);
     if (!res.ok) return {};
     const data = await res.json();
