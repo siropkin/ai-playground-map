@@ -273,6 +273,7 @@ export function AddPlaygroundDialog() {
   useEffect(() => {
     return () => {
       setSuccess(null);
+      setError(null);
 
       // Google
       setGoogleMapsUrl("");
