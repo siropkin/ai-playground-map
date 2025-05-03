@@ -238,6 +238,7 @@ export async function createPlayground(
 ): Promise<{ success: boolean; id?: number; error?: string }> {
   try {
     // 1. Insert playground
+    console.debug(">>>> createPlayground", "insert playground", playground);
     const { data: inserted, error: insertError } = await supabase
       .from(PLAYGROUNDS_TABLE_NAME)
       .insert({
@@ -260,12 +261,22 @@ export async function createPlayground(
       .single();
 
     if (insertError) {
+      console.debug(
+        ">>>> createPlayground",
+        "insert playground error",
+        insertError,
+      );
       throw insertError;
     }
 
     const playgroundId = inserted.id;
 
     // 2. Insert features
+    console.debug(
+      ">>>> createPlayground",
+      "insert features",
+      playground.features,
+    );
     if (playground.features && playground.features.length > 0) {
       // Get feature IDs from names
       const { data: featureRows, error: featuresError } = await supabase
@@ -274,6 +285,11 @@ export async function createPlayground(
         .in("name", playground.features);
 
       if (featuresError) {
+        console.debug(
+          ">>>> createPlayground",
+          "insert features error",
+          featuresError,
+        );
         throw featuresError;
       }
 
@@ -286,16 +302,27 @@ export async function createPlayground(
         }));
 
       if (featureInserts.length > 0) {
+        console.debug(
+          ">>>> createPlayground",
+          "insert playground features",
+          featureInserts,
+        );
         const { error: pfError } = await supabase
           .from(PLAYGROUND_FEATURES_TABLE_NAME)
           .insert(featureInserts);
         if (pfError) {
+          console.debug(
+            ">>>> createPlayground",
+            "insert playground features error",
+            pfError,
+          );
           throw pfError;
         }
       }
     }
 
     // 3. Upload photos and insert metadata
+    console.debug(">>>> createPlayground", "upload photos", playground.photos);
     for (const photo of playground.photos) {
       const uuid = uuidv4();
 
@@ -314,6 +341,7 @@ export async function createPlayground(
       const filename = `playground-photos/${playgroundId}/${uuid}.${ext}`;
 
       // Upload to Supabase Storage
+      console.debug(">>>> createPlayground", "upload photo", filename);
       const { error: uploadError } = await supabase.storage
         .from("playground-photos")
         .upload(`${playgroundId}/${uuid}.${ext}`, photo.file, {
@@ -322,10 +350,16 @@ export async function createPlayground(
         });
 
       if (uploadError) {
+        console.debug(
+          ">>>> createPlayground",
+          "upload photo error",
+          uploadError,
+        );
         throw uploadError;
       }
 
       // Insert photo metadata
+      console.debug(">>>> createPlayground", "insert photo metadata", filename);
       const { error: photoInsertError } = await supabase
         .from(PLAYGROUND_PHOTOS_TABLE_NAME)
         .insert({
@@ -336,6 +370,11 @@ export async function createPlayground(
         });
 
       if (photoInsertError) {
+        console.debug(
+          ">>>> createPlayground",
+          "insert photo metadata error",
+          photoInsertError,
+        );
         throw photoInsertError;
       }
     }
