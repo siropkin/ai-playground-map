@@ -43,12 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          inter.className,
-          "flex min-h-[100dvh] flex-col overflow-hidden", // prevent body scroll
-        )}
-      >
+      <body className={cn(inter.className, "flex min-h-[100dvh] flex-col")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -105,9 +100,7 @@ export default function RootLayout({
                 </nav>
               </header>
 
-              <main className="bg-background flex min-h-0 flex-1 overflow-auto">
-                {children}
-              </main>
+              <main className="bg-background flex flex-1">{children}</main>
 
               <footer className="bg-background"></footer>
             </PlaygroundsProvider>
