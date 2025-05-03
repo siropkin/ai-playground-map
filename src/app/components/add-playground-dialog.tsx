@@ -179,9 +179,7 @@ export function AddPlaygroundDialog() {
     }
 
     // Step 2: extract latitude/longitude
-    console.log("Resolved URL:", resolvedUrl);
     const coords = extractLatLng(resolvedUrl);
-    console.log("Extracted coordinates:", coords);
     if (coords) {
       // Step 3: reverse geocode for address, city, state, zipCode, name
       const geocodeData = await reverseGeocode(coords.lat, coords.lng);

@@ -46,7 +46,7 @@ export default function RootLayout({
       <body
         className={cn(
           inter.className,
-          "flex min-h-[100dvh] flex-col overflow-hidden", // prevent body scroll
+          "flex max-h-[100dvh] min-h-[100dvh] flex-col overflow-hidden",
         )}
       >
         <ThemeProvider
@@ -105,7 +105,7 @@ export default function RootLayout({
                 </nav>
               </header>
 
-              <main className="bg-background flex min-h-0 flex-1 overflow-auto">
+              <main className="bg-background flex flex-1 overflow-auto">
                 {children}
               </main>
 

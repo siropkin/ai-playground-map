@@ -57,7 +57,7 @@ export default async function PlaygroundDetail({
   const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+    <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
       {/* Main details */}
       <div className="flex flex-col gap-8 md:flex-row">
         {/* Left side - Main image */}
