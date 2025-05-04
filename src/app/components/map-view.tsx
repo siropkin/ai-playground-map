@@ -25,10 +25,12 @@ const CLUSTER_LAYER_ID = "clusters";
 const CLUSTER_COUNT_LAYER_ID = "cluster-count";
 const UNCLUSTERED_POINT_LAYER_ID = "unclustered-point";
 const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
-const DEFAULT_BOUNDS: [[number, number], [number, number]] = [
-  [-74.2709, 40.48972],
-  [-73.7042, 40.93288],
-]; // New Your City
+const DEFAULT_BOUNDS = {
+  south: 38.806,
+  north: 38.9971,
+  west: -77.2768,
+  east: -76.8077,
+}; // Washington DC
 
 const getMapStyle = (theme: string | undefined) => {
   return theme === "light"
@@ -264,20 +266,34 @@ export function MapView() {
           ],
           { animate: false },
         );
-      } else if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            map.current?.flyTo({
-              center: [longitude, latitude],
-              zoom: 14,
-              essential: true,
-            });
-          },
-          (error) => {
-            map.current?.fitBounds(DEFAULT_BOUNDS, { animate: false });
-            console.error("Error fetching location:", error);
-          },
+        // } else if (navigator.geolocation) {
+        //   navigator.geolocation.getCurrentPosition(
+        //     (position) => {
+        //       const { latitude, longitude } = position.coords;
+        //       map.current?.flyTo({
+        //         center: [longitude, latitude],
+        //         zoom: 14,
+        //         essential: true,
+        //       });
+        //     },
+        //     (error) => {
+        //       map.current.fitBounds(
+        //         [
+        //           [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
+        //           [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
+        //         ],
+        //         { animate: false },
+        //       );
+        //       console.error("Error fetching location:", error);
+        //     },
+        //   );
+      } else {
+        map.current.fitBounds(
+          [
+            [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
+            [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
+          ],
+          { animate: false },
         );
       }
 
