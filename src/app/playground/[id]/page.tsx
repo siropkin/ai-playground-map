@@ -7,6 +7,7 @@ import { SITE_NAME } from "@/lib/constants";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
+import ImageCarousel from "@/components/image-carousel";
 import {
   formatEnumString,
   getAgeRange,
@@ -48,10 +49,6 @@ export default async function PlaygroundDetail({
     return null;
   }
 
-  const coverPhoto =
-    playground.photos.find((p: { isPrimary: boolean }) => p.isPrimary)
-      ?.filename || playground.photos[0]?.filename;
-
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.latitude},${playground.longitude}`;
 
   const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
@@ -60,24 +57,26 @@ export default async function PlaygroundDetail({
     <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
       {/* Main details */}
       <div className="flex flex-col gap-8 md:flex-row">
-        {/* Left side - Main image */}
+        {/* Left side - Image Carousel */}
         <div className="w-full md:w-1/2">
-          <div className="aspect-square overflow-hidden rounded-lg bg-zinc-100 md:aspect-[4/3] dark:bg-zinc-800">
-            {coverPhoto ? (
-              <Image
-                src={coverPhoto}
-                alt={playground.name}
-                width={600}
-                height={450}
-                className="h-full w-full object-cover"
-                priority
-              />
-            ) : (
+          {playground.photos.length > 0 ? (
+            <ImageCarousel
+              images={[...playground.photos]
+                .sort((a, b) => (a.isPrimary ? -1 : b.isPrimary ? 1 : 0))
+                .map((photo) => ({
+                  filename: photo.filename,
+                  caption: photo.caption,
+                  alt: photo.caption || `${playground.name} photo`,
+                }))}
+              className="aspect-square md:aspect-[4/3]"
+            />
+          ) : (
+            <div className="relative aspect-square overflow-hidden rounded-lg bg-zinc-100 md:aspect-[4/3] dark:bg-zinc-800">
               <div className="flex h-full w-full items-center justify-center">
                 <span className="text-muted-foreground">No image</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Right side - Details */}
@@ -176,40 +175,6 @@ export default async function PlaygroundDetail({
           <MapViewSingle playground={playground} />
         </div>
       </div>
-
-      {/* Photos section */}
-      {playground.photos.length > 1 && (
-        <div className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold">Photos</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {playground.photos.map(
-              (
-                photo: { filename: string; caption?: string },
-                index: number,
-              ) => (
-                <div
-                  key={index}
-                  className="relative aspect-square overflow-hidden rounded-lg"
-                >
-                  <Image
-                    src={photo.filename || "/placeholder.svg"}
-                    alt={
-                      photo.caption || `${playground.name} photo ${index + 1}`
-                    }
-                    fill
-                    className="object-cover transition-transform duration-300 hover:scale-105"
-                  />
-                  {photo.caption && (
-                    <div className="absolute right-0 bottom-0 left-0 bg-black/50 p-1 text-xs text-white">
-                      {photo.caption}
-                    </div>
-                  )}
-                </div>
-              ),
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
