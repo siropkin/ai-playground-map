@@ -1,6 +1,10 @@
 # 🛝 Good Playground Map
 
+![Good Playground Map](public/thumbnail.jpg)
+
 A modern web app to discover and share the best playgrounds for kids near you.
+
+> **Note:** Data is still uploading, and not all areas are filled yet. You can check the DMW area as an example: [Good Playground Map - DMW Area](https://www.goodplaygroundmap.com/?south=38.8539&north=39.3606&west=-77.1673&east=-76.199)
 
 ## Features
 
