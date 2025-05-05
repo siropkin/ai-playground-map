@@ -13,9 +13,7 @@ import {
 } from "react";
 import { useFilters } from "@/contexts/filters-context";
 import { getPlaygroundsForBounds } from "@/data/playgrounds";
-import { AGE_GROUPS } from "@/lib/constants";
-
-const MAX_ZOOM_LEVEL_TO_FETCH_DATA = 5;
+import { AGE_GROUPS, MAX_ZOOM_LEVEL_TO_FETCH_DATA } from "@/lib/constants";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -98,12 +96,14 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       // Filter by ages (check if playground's age range overlaps with any selected age group)
       if (ageSet) {
-        const matchesAge = AGE_GROUPS.some((group: { key: string; min: number; max: number }) => {
-          if (!ageSet.has(group.key)) return false;
-          return (
-            playground.ageMin <= group.max && playground.ageMax >= group.min
-          );
-        });
+        const matchesAge = AGE_GROUPS.some(
+          (group: { key: string; min: number; max: number }) => {
+            if (!ageSet.has(group.key)) return false;
+            return (
+              playground.ageMin <= group.max && playground.ageMax >= group.min
+            );
+          },
+        );
         if (!matchesAge) return false;
       }
 
