@@ -15,6 +15,7 @@ export const ACCESS_TYPES: AccessType[] = [
   "public",
   "school",
   "community_center",
+  "park_district",
   "mall_indoor",
 ];
 
