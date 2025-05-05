@@ -113,7 +113,7 @@ export default function ImageCarousel({
 
       {/* Navigation buttons */}
       <Button
-        className="bg-background/50 hover:bg-background/80 absolute top-1/2 left-2 -translate-y-1/2"
+        className="bg-background/80 hover:bg-background/100 absolute top-1/2 left-2 -translate-y-1/2"
         size="icon"
         variant="ghost"
         aria-label="Previous image"
@@ -122,7 +122,7 @@ export default function ImageCarousel({
         <ChevronLeft className="h-4 w-4 text-zinc-500" />
       </Button>
       <Button
-        className="bg-background/50 hover:bg-background/80 absolute top-1/2 right-2 -translate-y-1/2"
+        className="bg-background/80 hover:bg-background/100 absolute top-1/2 right-2 -translate-y-1/2"
         size="icon"
         variant="ghost"
         aria-label="Next image"
