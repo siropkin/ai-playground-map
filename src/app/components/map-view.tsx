@@ -488,7 +488,7 @@ export function MapView() {
         </Button>
       </div>
       {loading && (
-        <div className="text-muted-foreground bg-background/80 absolute top-1 left-1/2 z-10 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
+        <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
           Loading playgrounds...
         </div>
       )}
