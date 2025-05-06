@@ -34,6 +34,7 @@ export const FEATURE_TYPES: FeatureType[] = [
   "benches",
   "restrooms",
   "parking_lot",
+  "dog_friendly",
   "musical_instruments",
   "wheelchair_accessible",
 ];
