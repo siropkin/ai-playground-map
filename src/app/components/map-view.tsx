@@ -229,10 +229,10 @@ export function MapView() {
           layout: {
             "text-field": ["get", "name"],
             "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-            "text-offset": [1.5, 0],
+            "text-offset": [1.3, 0],
             "text-anchor": "left",
             "text-justify": "left",
-            "text-size": 12,
+            "text-size": 11,
             "text-allow-overlap": true,
             "text-optional": false,
           },
@@ -352,6 +352,18 @@ export function MapView() {
       }
     };
 
+    const handleLabelClick = (
+      e: mapboxgl.MapMouseEvent & {
+        features?: mapboxgl.MapboxGeoJSONFeature[];
+      },
+    ) => {
+      e.originalEvent.stopPropagation();
+      const feature = e.features?.[0];
+      if (feature?.properties?.id) {
+        router.push(`/playground/${feature.properties.id}`);
+      }
+    };
+
     const handleClusterClick = (
       e: mapboxgl.MapMouseEvent & {
         features?: mapboxgl.MapboxGeoJSONFeature[];
@@ -407,6 +419,12 @@ export function MapView() {
     map.current.on("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
     map.current.on("mouseenter", UNCLUSTERED_POINT_LAYER_ID, handleMouseEnter);
     map.current.on("mouseleave", UNCLUSTERED_POINT_LAYER_ID, handleMouseLeave);
+
+    // Unclustered Labels
+    map.current.on("click", UNCLUSTERED_LABEL_LAYER_ID, handleLabelClick);
+    map.current.on("mouseenter", UNCLUSTERED_LABEL_LAYER_ID, handleMouseEnter);
+    map.current.on("mouseleave", UNCLUSTERED_LABEL_LAYER_ID, handleMouseLeave);
+
     // Clusters
     map.current.on("click", CLUSTER_LAYER_ID, handleClusterClick);
     map.current.on("mouseenter", CLUSTER_LAYER_ID, handleMouseEnter);
@@ -424,6 +442,18 @@ export function MapView() {
         map.current.off(
           "mouseleave",
           UNCLUSTERED_POINT_LAYER_ID,
+          handleMouseLeave,
+        );
+        // Unclustered Labels
+        map.current.off("click", UNCLUSTERED_LABEL_LAYER_ID, handleLabelClick);
+        map.current.off(
+          "mouseenter",
+          UNCLUSTERED_LABEL_LAYER_ID,
+          handleMouseEnter,
+        );
+        map.current.off(
+          "mouseleave",
+          UNCLUSTERED_LABEL_LAYER_ID,
           handleMouseLeave,
         );
         // Clusters
