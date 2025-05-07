@@ -229,10 +229,10 @@ export function MapView() {
           layout: {
             "text-field": ["get", "name"],
             "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-            "text-offset": [1.5, 0],
+            "text-offset": [1.3, 0],
             "text-anchor": "left",
             "text-justify": "left",
-            "text-size": 12,
+            "text-size": 11,
             "text-allow-overlap": true,
             "text-optional": false,
           },
