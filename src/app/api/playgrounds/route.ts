@@ -5,7 +5,8 @@ import {
   AccessType,
   SurfaceType,
 } from "@/types/playground";
-import { createPlaygroundMetadata } from "@/data/playgrounds";
+import { createPlaygroundMetadata, deletePlayground } from "@/data/playgrounds";
+import { createClient } from "@/lib/supabase/server";
 
 // Parse multipart form data for playground submissions
 async function parseSubmitPlaygroundFormData(
@@ -108,6 +109,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ id: result.id }, { status: 201 });
     } else {
       return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    // Get the playground ID from the URL
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Playground ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Check if user is admin
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+
+    if (!data?.user || data.user.role !== "app_admin") {
+      return NextResponse.json(
+        { error: "Unauthorized. Admin access required." },
+        { status: 403 },
+      );
+    }
+
+    // Delete the playground
+    const result = await deletePlayground(id);
+
+    if (result.success) {
+      return NextResponse.json({ success: true }, { status: 200 });
+    } else {
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
   } catch (error: unknown) {
     return NextResponse.json(

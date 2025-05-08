@@ -13,6 +13,7 @@ import {
   PlaygroundSubmitData,
 } from "@/types/playground";
 import { getFeatures } from "@/data/features";
+import { PHOTOS_BUCKET_NAME } from "@/lib/constants";
 
 const PLAYGROUNDS_TABLE_NAME = "playgrounds";
 const PLAYGROUND_FEATURES_TABLE_NAME = "playground_features";
@@ -338,6 +339,72 @@ export async function createPlaygroundPhotoMetadata({
     }
     return { success: true };
   } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// Delete a playground and all associated data
+export async function deletePlayground(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Delete related data in playground_features
+    const { error: featuresError } = await supabase
+      .from(PLAYGROUND_FEATURES_TABLE_NAME)
+      .delete()
+      .eq("playground_id", id);
+
+    if (featuresError) {
+      throw featuresError;
+    }
+
+    // Delete related data in playground_photos table
+    const { error: photosError } = await supabase
+      .from(PLAYGROUND_PHOTOS_TABLE_NAME)
+      .delete()
+      .eq("playground_id", id);
+
+    if (photosError) {
+      throw photosError;
+    }
+
+    // Delete the playground itself
+    const { error: playgroundError } = await supabase
+      .from(PLAYGROUNDS_TABLE_NAME)
+      .delete()
+      .eq("id", id);
+
+    if (playgroundError) {
+      throw playgroundError;
+    }
+
+    // Finally delete all files in the storage folder for this playground
+    const { data: files, error: listError } = await supabase.storage
+      .from(PHOTOS_BUCKET_NAME)
+      .list(id + "/");
+    if (listError) {
+      console.error(`Error listing files in folder ${id}:`, listError);
+    } else if (files && files.length > 0) {
+      const filePaths = files.map((file) => `${id}/${file.name}`);
+      const { error: storageError } = await supabase.storage
+        .from(PHOTOS_BUCKET_NAME)
+        .remove(filePaths);
+      if (storageError) {
+        console.error(
+          `Error deleting folder ${id} from storage:`,
+          storageError,
+        );
+      }
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error deleting playground:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
