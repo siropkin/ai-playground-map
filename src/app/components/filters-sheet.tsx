@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Filter } from "lucide-react";
 
 import type { AccessType, FeatureType } from "@/types/playground";
-import { ACCESS_TYPES, AGE_GROUPS, FEATURE_TYPES } from "@/lib/constants";
+import {
+  ACCESS_TYPES,
+  AGE_GROUPS,
+  APP_ADMIN_ROLE,
+  FEATURE_TYPES,
+} from "@/lib/constants";
 import { useFilters } from "@/contexts/filters-context";
 import {
   Sheet,
@@ -18,17 +23,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatEnumString } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
 
 const sortedAccessTypes = [...ACCESS_TYPES].sort();
 const sortedFeatureTypes = [...FEATURE_TYPES].sort();
 
 export function FiltersSheet() {
-  const { accesses, setAccesses, ages, setAges, features, setFeatures } =
-    useFilters();
+  const {
+    approved,
+    setApproved,
+    accesses,
+    setAccesses,
+    ages,
+    setAges,
+    features,
+    setFeatures,
+  } = useFilters();
 
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
   // Local state for staged changes (optional: can use context directly for instant apply)
+  const [localApproved, setLocalApproved] = useState<boolean[]>(approved || []);
   const [localAccesses, setLocalAccesses] = useState<AccessType[]>(
     accesses || [],
   );
@@ -41,6 +57,7 @@ export function FiltersSheet() {
   function handleOpenChange(val: boolean) {
     setOpen(val);
     if (val) {
+      setLocalApproved(approved || []);
       setLocalAccesses(accesses || []);
       setLocalAges(ages || []);
       setLocalFeatures(features || []);
@@ -48,6 +65,7 @@ export function FiltersSheet() {
   }
 
   function handleApply() {
+    setApproved(localApproved.length ? localApproved : null);
     setAccesses(localAccesses.length ? localAccesses : null);
     setAges(localAges.length ? localAges : null);
     setFeatures(localFeatures.length ? localFeatures : null);
@@ -55,9 +73,11 @@ export function FiltersSheet() {
   }
 
   function handleClear() {
+    setLocalApproved([]);
     setLocalAccesses([]);
     setLocalAges([]);
     setLocalFeatures([]);
+    setApproved(null);
     setAccesses(null);
     setAges(null);
     setFeatures(null);
@@ -66,9 +86,12 @@ export function FiltersSheet() {
 
   // Determine if any filter is set
   const filtersSet =
+    (approved && approved.length > 0) ||
     (accesses && accesses.length > 0) ||
     (ages && ages.length > 0) ||
     (features && features.length > 0);
+
+  const isAdmin = user?.role === APP_ADMIN_ROLE;
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -93,6 +116,42 @@ export function FiltersSheet() {
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-6 px-4">
+          {/* Approval (for admin only) */}
+          {isAdmin && (
+            <div>
+              <Label className="mb-2 block">Approved</Label>
+              <div className="flex flex-wrap gap-2">
+                <Badge
+                  variant={localApproved.includes(true) ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setLocalApproved((prev) =>
+                      prev.includes(true)
+                        ? prev.filter((a) => !a)
+                        : [...prev, true],
+                    )
+                  }
+                >
+                  Yes
+                </Badge>
+                <Badge
+                  variant={
+                    localApproved.includes(false) ? "default" : "outline"
+                  }
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setLocalApproved((prev) =>
+                      prev.includes(false)
+                        ? prev.filter((a) => a)
+                        : [...prev, false],
+                    )
+                  }
+                >
+                  No
+                </Badge>
+              </div>
+            </div>
+          )}
           {/* Access Types */}
           <div>
             <Label className="mb-2 block">Access</Label>

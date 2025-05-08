@@ -61,6 +61,7 @@ export function getFilterStateFromUrl(): FilterCriteria | null {
   const params = new URLSearchParams(window.location.search);
 
   return {
+    approved: params.getAll("approved").map((value) => value === "true"),
     accesses: params.getAll("access") as AccessType[],
     ages: params.getAll("age"),
     features: params.getAll("feature") as FeatureType[],
@@ -75,10 +76,14 @@ export function updateUrlWithFilters(filters: FilterCriteria) {
   const url = new URL(window.location.href);
   const params = new URLSearchParams(url.search);
 
+  params.delete("approved");
   params.delete("access");
   params.delete("age");
   params.delete("feature");
 
+  filters.approved.forEach((approved) => {
+    params.append("approved", approved ? "true" : "false");
+  });
   filters.accesses.forEach((access) => {
     params.append("access", access);
   });

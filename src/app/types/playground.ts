@@ -15,6 +15,7 @@ export type Playground = {
   surfaceType: SurfaceType;
   features: FeatureType[]; // relationship
   photos: PlaygroundPhoto[]; // relationship
+  isApproved: boolean;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 };

@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
-import { SITE_NAME } from "@/lib/constants";
+import { APP_ADMIN_ROLE, SITE_NAME } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/server";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
+import DeletePlaygroundButton from "./delete-button";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
 import {
@@ -13,6 +15,7 @@ import {
   formatAddress,
   getTodayOpenHours,
 } from "@/lib/utils";
+import { EditPlaygroundDialog } from "@/components/edit-playground-dialog";
 
 type PlaygroundDetailParams = { id: string };
 
@@ -43,13 +46,15 @@ export default async function PlaygroundDetail({
 }) {
   const resolvedParams = await params;
   const playground = await getPlaygroundById(resolvedParams.id);
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
 
   if (!playground) {
     return null;
   }
 
+  const isAdmin = data?.user?.role === APP_ADMIN_ROLE;
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.latitude},${playground.longitude}`;
-
   const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 
   return (
@@ -80,7 +85,16 @@ export default async function PlaygroundDetail({
 
         {/* Right side - Details */}
         <div className="w-full md:w-1/2">
-          <h1 className="mb-2 text-3xl font-bold">{playground.name}</h1>
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <h1 className="text-3xl font-bold">{playground.name}</h1>
+
+            {isAdmin && (
+              <div className="flex gap-2">
+                <EditPlaygroundDialog playground={playground} />
+                <DeletePlaygroundButton id={String(playground.id)} />
+              </div>
+            )}
+          </div>
 
           {/* Categories */}
           <div className="mb-4 flex flex-wrap gap-2">
@@ -96,6 +110,11 @@ export default async function PlaygroundDetail({
             )}
             {ageRange && (
               <Badge className="px-2 py-1 text-xs">{ageRange}</Badge>
+            )}
+            {!playground.isApproved && (
+              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                Not approved
+              </Badge>
             )}
           </div>
 

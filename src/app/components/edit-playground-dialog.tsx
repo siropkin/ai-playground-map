@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, Upload, Plus } from "lucide-react";
+import { Trash2, Upload, Edit } from "lucide-react";
 
-import { AccessType, FeatureType, OpenHours } from "@/types/playground";
+import {
+  AccessType,
+  FeatureType,
+  OpenHours,
+  Playground,
+} from "@/types/playground";
 import {
   AGE_GROUPS,
   ACCESS_TYPES,
@@ -36,79 +42,30 @@ interface PhotoUpload {
   isPrimary: boolean;
 }
 
+interface ExistingPhoto {
+  filename: string;
+  caption: string;
+  isPrimary: boolean;
+  createdAt: string;
+}
+
+interface EditPlaygroundDialogProps {
+  playground: Playground;
+}
+
 const MAX_PHOTOS = 5;
 const sortedAccessTypes = [...ACCESS_TYPES].sort();
 const sortedFeatureTypes = [...FEATURE_TYPES].sort();
 
-// Helper: resolve short URL to real Google Maps URL via backend
-async function resolveGoogleUrl(shortUrl: string): Promise<string> {
-  try {
-    const res = await fetch("/api/resolve-google-url", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: shortUrl }),
-    });
-    if (!res.ok) return shortUrl;
-    const data = await res.json();
-    return data.resolvedUrl || shortUrl;
-  } catch {
-    return shortUrl;
-  }
-}
-
-// Helper: extract lat/lng from Google Maps URL (also supports !3dLAT!4dLNG and /search/LAT,LNG)
-function extractLatLng(url: string): { lat: string; lng: string } | null {
-  // Try to match !3dLAT!4dLNG (most accurate for place pins)
-  const dMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-  if (dMatch) return { lat: dMatch[1], lng: dMatch[2] };
-
-  // Try to match @lat,lng
-  const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (atMatch) return { lat: atMatch[1], lng: atMatch[2] };
-
-  // Try to match /?q=lat,lng
-  const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (qMatch) return { lat: qMatch[1], lng: qMatch[2] };
-
-  // Try to match /search/lat,lng (with optional space or %20 and + or -)
-  const searchMatch = url.match(
-    /\/search\/([+]?-?\d+(?:\.\d+)?),\s*([+]?-?\d+(?:\.\d+)?)/,
-  );
-  if (searchMatch) {
-    return {
-      lat: searchMatch[1].replace(/^\+/, ""), // Remove leading +
-      lng: searchMatch[2].replace(/^\+/, ""), // Remove leading +
-    };
-  }
-
-  return null;
-}
-
-// Helper: reverse geocode using Nominatim
-async function reverseGeocode(lat: string, lng: string) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en`;
-    const res = await fetch(url);
-    if (!res.ok) return {};
-    const data = await res.json();
-    return data;
-  } catch {
-    return {};
-  }
-}
-
-export function AddPlaygroundDialog() {
+export function EditPlaygroundDialog({
+  playground,
+}: EditPlaygroundDialogProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Google
-  const googleInputRef = useRef<HTMLInputElement>(null);
-  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
-  const [showGoogleInput, setShowGoogleInput] = useState(false);
-  const [isGoogleAutofillLoading, setIsGoogleAutofillLoading] = useState(false);
 
   // Form
   const [name, setName] = useState("");
@@ -120,10 +77,13 @@ export function AddPlaygroundDialog() {
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>([]);
+  const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([]);
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureType[]>([]);
   const [openHours, setOpenHours] = useState<OpenHours | null>(null);
   const [accessType, setAccessType] = useState<AccessType | null>(null);
+  const [isApproved, setIsApproved] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,7 +91,7 @@ export function AddPlaygroundDialog() {
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []).slice(
       0,
-      MAX_PHOTOS - photos.length,
+      MAX_PHOTOS - (photos.length + existingPhotos.length),
     );
     setPhotos((prev) => [
       ...prev,
@@ -139,7 +99,7 @@ export function AddPlaygroundDialog() {
         file,
         preview: URL.createObjectURL(file),
         caption: "",
-        isPrimary: prev.length === 0 && i === 0, // First photo is primary if none yet
+        isPrimary: prev.length === 0 && existingPhotos.length === 0 && i === 0, // First photo is primary if none yet
       })),
     ]);
     e.target.value = ""; // Reset input
@@ -148,12 +108,32 @@ export function AddPlaygroundDialog() {
   function removePhoto(index: number) {
     setPhotos((prev) => {
       const newPhotos = prev.filter((_, i) => i !== index);
-      // Ensure at least one is primary
-      if (!newPhotos.some((p) => p.isPrimary) && newPhotos[0]) {
+      // Ensure at least one is primary if no existing photos are primary
+      if (
+        !newPhotos.some((p) => p.isPrimary) &&
+        !existingPhotos.some((p) => p.isPrimary) &&
+        newPhotos[0]
+      ) {
         newPhotos[0].isPrimary = true;
       }
       return newPhotos;
     });
+  }
+
+  function removeExistingPhoto(filename: string) {
+    setExistingPhotos((prev) => {
+      const newPhotos = prev.filter((p) => p.filename !== filename);
+      // Ensure at least one is primary
+      if (
+        !newPhotos.some((p) => p.isPrimary) &&
+        !photos.some((p) => p.isPrimary) &&
+        newPhotos[0]
+      ) {
+        newPhotos[0].isPrimary = true;
+      }
+      return newPhotos;
+    });
+    setPhotosToDelete((prev) => [...prev, filename]);
   }
 
   function updatePhotoCaption(index: number, caption: string) {
@@ -164,58 +144,25 @@ export function AddPlaygroundDialog() {
     });
   }
 
-  function setPrimaryPhoto(index: number) {
-    setPhotos((prev) => prev.map((p, i) => ({ ...p, isPrimary: i === index })));
+  function updateExistingPhotoCaption(filename: string, caption: string) {
+    setExistingPhotos((prev) => {
+      return prev.map((photo) =>
+        photo.filename === filename ? { ...photo, caption } : photo,
+      );
+    });
   }
 
-  // Handler for Google Maps link input
-  const handleGoogleMapsUrl = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const url = e.target.value;
-    setGoogleMapsUrl(url);
+  function setPrimaryPhoto(index: number) {
+    setPhotos((prev) => prev.map((p, i) => ({ ...p, isPrimary: i === index })));
+    setExistingPhotos((prev) => prev.map((p) => ({ ...p, isPrimary: false })));
+  }
 
-    if (!url) {
-      return;
-    }
-
-    setIsGoogleAutofillLoading(true);
-
-    // Step 1: resolve short URL
-    let resolvedUrl = url;
-    if (url.includes("goo.gl")) {
-      resolvedUrl = await resolveGoogleUrl(url);
-    }
-
-    // Step 2: extract latitude/longitude
-    const coords = extractLatLng(resolvedUrl);
-    if (coords) {
-      // Step 3: reverse geocode for address, city, state, zipCode, name
-      const geocodeData = await reverseGeocode(coords.lat, coords.lng);
-
-      setLatitude(coords.lat);
-      setLongitude(coords.lng);
-      setAddress(geocodeData.display_name || "");
-      setCity(
-        geocodeData.address?.city ||
-          geocodeData.address?.town ||
-          geocodeData.address?.village ||
-          geocodeData.address?.hamlet ||
-          geocodeData.address?.suburb ||
-          "",
-      );
-      setState(geocodeData.address?.state || "");
-      setZipCode(geocodeData.address?.postcode || "");
-      setName(
-        geocodeData.address?.amenity ||
-          geocodeData.address?.road ||
-          geocodeData.address?.neighbourhood ||
-          "",
-      );
-    }
-
-    setIsGoogleAutofillLoading(false);
-  };
+  function setExistingPrimaryPhoto(filename: string) {
+    setExistingPhotos((prev) =>
+      prev.map((p) => ({ ...p, isPrimary: p.filename === filename })),
+    );
+    setPhotos((prev) => prev.map((p) => ({ ...p, isPrimary: false })));
+  }
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -229,7 +176,6 @@ export function AddPlaygroundDialog() {
 
       formData.append("features", JSON.stringify(selectedFeatures));
       formData.append("openHours", JSON.stringify(openHours));
-      formData.append("isApproved", "off");
 
       // Transform selectedAgeGroups to ageMin and ageMax
       if (selectedAgeGroups.length > 0) {
@@ -257,26 +203,60 @@ export function AddPlaygroundDialog() {
         }
       });
 
-      // 2. POST metadata to API
-      const response = await fetch("/api/playgrounds", {
-        method: "POST",
-        body: formData,
-      });
+      // 2. PUT metadata to API
+      const response = await fetch(
+        `/api/playgrounds?id=${encodeURIComponent(playground.id)}`,
+        {
+          method: "PUT",
+          body: formData,
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to submit playground");
+        throw new Error(errorData.error || "Failed to update playground");
       }
 
-      const data = await response.json();
-      const playgroundId = data.id;
+      // 3. Delete photos that were marked for deletion
+      for (const filename of photosToDelete) {
+        const deleteRes = await fetch(
+          `/api/playgrounds/photos?playgroundId=${playground.id}&filename=${encodeURIComponent(filename)}`,
+          {
+            method: "DELETE",
+          },
+        );
 
-      // 3. Upload photos directly to Supabase Storage and send metadata
-      for (const photo of photos.values()) {
-        // TODO: Move this to a separate function
+        if (!deleteRes.ok) {
+          console.error(`Failed to delete photo ${filename}`);
+        }
+      }
+
+      // 4. Update existing photos metadata
+      for (const photo of existingPhotos) {
+        const updateRes = await fetch("/api/playgrounds/photos", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            playgroundId: playground.id,
+            filename: photo.filename,
+            caption: photo.caption,
+            isPrimary: photo.isPrimary,
+          }),
+        });
+
+        if (!updateRes.ok) {
+          console.error(
+            `Failed to update photo metadata for ${photo.filename}`,
+          );
+        }
+      }
+
+      // 5. Upload new photos
+      for (const photo of photos) {
+        // Generate a unique filename
         const uuid = crypto.randomUUID();
         const ext = photo.file.name.split(".").pop() || "jpg";
-        const filename = `${playgroundId}/${uuid}.${ext}`;
+        const filename = `${playground.id}/${uuid}.${ext}`;
         const fullFilename = `${PHOTOS_BUCKET_NAME}/${filename}`;
 
         // Upload to Supabase Storage
@@ -297,7 +277,7 @@ export function AddPlaygroundDialog() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            playgroundId,
+            playgroundId: playground.id,
             filename: fullFilename,
             caption: photo.caption,
             isPrimary: photo.isPrimary,
@@ -310,53 +290,68 @@ export function AddPlaygroundDialog() {
         }
       }
 
-      setSuccess(playgroundId);
+      setSuccess(String(playground.id));
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(
-          err.message || "An error occurred while submitting the playground",
+          err.message || "An error occurred while updating the playground",
         );
       } else {
-        setError("An error occurred while submitting the playground");
+        setError("An error occurred while updating the playground");
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Close dialog and redirect
+  const handleClose = () => {
+    setOpen(false);
+    router.push(`/playground/${playground.id}`);
+  };
+
   useEffect(() => {
-    return () => {
-      setSuccess(null);
-      setError(null);
-
-      // Google
-      setGoogleMapsUrl("");
-      setShowGoogleInput(false);
-      setIsGoogleAutofillLoading(false);
-
-      // Form
-      setName("");
-      setDescription("");
-      setLatitude("");
-      setLongitude("");
-      setAddress("");
-      setCity("");
-      setState("");
-      setZipCode("");
-      setPhotos([]);
-      setSelectedAgeGroups([]);
-      setSelectedFeatures([]);
-      setOpenHours(null);
-      setAccessType(null);
-    };
-  }, [open]);
+    setName(playground.name);
+    setDescription(playground.description || "");
+    setLatitude(String(playground.latitude));
+    setLongitude(String(playground.longitude));
+    setAddress(playground.address || "");
+    setCity(playground.city || "");
+    setState(playground.state || "");
+    setZipCode(playground.zipCode || "");
+    setExistingPhotos(
+      playground.photos.map((photo) => ({
+        filename: photo.filename,
+        caption: photo.caption || "",
+        isPrimary: photo.isPrimary,
+        createdAt: photo.createdAt,
+      })),
+    );
+    setPhotos([]);
+    setPhotosToDelete([]);
+    setSelectedAgeGroups(
+      AGE_GROUPS.filter(
+        (group) =>
+          playground.ageMin !== undefined &&
+          playground.ageMax !== undefined &&
+          group.min >= playground.ageMin &&
+          group.max <= playground.ageMax,
+      ).map((group) => group.key),
+    );
+    setSelectedFeatures(playground.features as FeatureType[]);
+    setOpenHours(playground.openHours);
+    setAccessType(playground.accessType);
+    setIsApproved(playground.isApproved);
+    setSuccess(null);
+    setError(null);
+  }, [open, playground]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:block">Add playground</span>
+        <Button variant="outline" onClick={() => setOpen(true)}>
+          <Edit className="h-4 w-4" />
+          <span className="hidden sm:block">Edit</span>
         </Button>
       </DialogTrigger>
 
@@ -366,69 +361,31 @@ export function AddPlaygroundDialog() {
             <DialogHeader className="flex flex-col items-center">
               <DialogTitle>Success!</DialogTitle>
               <DialogDescription>
-                Your playground has been successfully submitted!
+                The playground has been successfully updated!
               </DialogDescription>
             </DialogHeader>
 
             <div className="flex flex-col items-center gap-2 text-center">
               <div className="rounded-md bg-green-100 p-2 text-green-700">
-                Thank you for your submission! We will review your playground
-                soon.
-                <br />
-                While your playground is not yet visible on the map, you can
-                reach it by direct link 👇
+                Your changes have been saved successfully.
               </div>
               <Link href={`/playground/${success}`} className="mt-2">
-                <Button onClick={() => setOpen(false)}>View playground</Button>
+                <Button onClick={handleClose}>View playground</Button>
               </Link>
             </div>
           </>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Add playground</DialogTitle>
+              <DialogTitle>Edit playground</DialogTitle>
               <DialogDescription>
-                If you want to add a playground, please fill out this form. We
-                will review it shortly.
+                Make changes to the playground information below.
               </DialogDescription>
             </DialogHeader>
 
             {error && (
               <div className="rounded-md bg-red-100 p-2 text-red-700">
                 {error}
-              </div>
-            )}
-
-            {!showGoogleInput && (
-              <Button
-                className="my-2"
-                type="button"
-                onClick={() => {
-                  setShowGoogleInput(true);
-                  setTimeout(() => googleInputRef.current?.focus(), 0);
-                }}
-                disabled={isGoogleAutofillLoading || isSubmitting}
-              >
-                Autofill with Google Maps link
-              </Button>
-            )}
-
-            {showGoogleInput && (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="googleMapsUrl" className="text-right">
-                  Google Maps Link
-                </Label>
-                <Input
-                  id="googleMapsUrl"
-                  name="googleMapsUrl"
-                  type="text"
-                  className="col-span-3"
-                  value={googleMapsUrl}
-                  onChange={handleGoogleMapsUrl}
-                  placeholder="Paste Google Maps share link"
-                  ref={googleInputRef}
-                  disabled={isGoogleAutofillLoading || isSubmitting}
-                />
               </div>
             )}
 
@@ -446,7 +403,7 @@ export function AddPlaygroundDialog() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    disabled={isGoogleAutofillLoading || isSubmitting}
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -463,7 +420,7 @@ export function AddPlaygroundDialog() {
                       value={latitude}
                       onChange={(e) => setLatitude(e.target.value)}
                       required
-                      disabled={isGoogleAutofillLoading || isSubmitting}
+                      disabled={isSubmitting}
                     />
                   </div>
 
@@ -479,7 +436,7 @@ export function AddPlaygroundDialog() {
                       value={longitude}
                       onChange={(e) => setLongitude(e.target.value)}
                       required
-                      disabled={isGoogleAutofillLoading || isSubmitting}
+                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
@@ -495,7 +452,7 @@ export function AddPlaygroundDialog() {
                     className="col-span-3"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    disabled={isGoogleAutofillLoading || isSubmitting}
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -511,7 +468,7 @@ export function AddPlaygroundDialog() {
                       className="col-span-3"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      disabled={isGoogleAutofillLoading || isSubmitting}
+                      disabled={isSubmitting}
                     />
                   </div>
 
@@ -526,7 +483,7 @@ export function AddPlaygroundDialog() {
                       className="col-span-3"
                       value={state}
                       onChange={(e) => setState(e.target.value)}
-                      disabled={isGoogleAutofillLoading || isSubmitting}
+                      disabled={isSubmitting}
                     />
                   </div>
 
@@ -541,7 +498,7 @@ export function AddPlaygroundDialog() {
                       className="col-span-3"
                       value={zipCode}
                       onChange={(e) => setZipCode(e.target.value)}
-                      disabled={isGoogleAutofillLoading || isSubmitting}
+                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
@@ -557,7 +514,7 @@ export function AddPlaygroundDialog() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
-                    disabled={isGoogleAutofillLoading || isSubmitting}
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -576,8 +533,7 @@ export function AddPlaygroundDialog() {
                         key={type}
                         variant={accessType === type ? "default" : "outline"}
                         className={cn("cursor-pointer", {
-                          "pointer-events-none opacity-50":
-                            isGoogleAutofillLoading || isSubmitting,
+                          "pointer-events-none opacity-50": isSubmitting,
                         })}
                         onClick={() => setAccessType(type)}
                       >
@@ -600,8 +556,7 @@ export function AddPlaygroundDialog() {
                             : "outline"
                         }
                         className={cn("cursor-pointer", {
-                          "pointer-events-none opacity-50":
-                            isGoogleAutofillLoading || isSubmitting,
+                          "pointer-events-none opacity-50": isSubmitting,
                         })}
                         onClick={() => {
                           setSelectedAgeGroups((prev) =>
@@ -631,8 +586,7 @@ export function AddPlaygroundDialog() {
                             : "outline"
                         }
                         className={cn("cursor-pointer", {
-                          "pointer-events-none opacity-50":
-                            isGoogleAutofillLoading || isSubmitting,
+                          "pointer-events-none opacity-50": isSubmitting,
                         })}
                         onClick={() => {
                           setSelectedFeatures((prev) =>
@@ -648,12 +602,98 @@ export function AddPlaygroundDialog() {
                   </div>
                 </div>
 
+                {/* Approval status */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="isApproved" className="text-right">
+                    Approval Status
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="checkbox"
+                      id="isApproved"
+                      name="isApproved"
+                      checked={isApproved}
+                      onChange={(e) => setIsApproved(e.target.checked)}
+                      className="h-4 w-4"
+                      disabled={isSubmitting}
+                    />
+                    <Label htmlFor="isApproved" className="cursor-pointer">
+                      Approved
+                    </Label>
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="features" className="text-right">
                     Photos (optional, max {MAX_PHOTOS})
                   </Label>
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-4">
+                      {/* Existing photos */}
+                      {existingPhotos.map((photo) => (
+                        <div
+                          key={photo.filename}
+                          className="relative h-34 w-34 overflow-hidden rounded-md border border-gray-300"
+                        >
+                          <Image
+                            src={photo.filename}
+                            alt={photo.caption || "Playground photo"}
+                            className="h-full w-full object-cover"
+                            width={300}
+                            height={300}
+                          />
+                          <div className="absolute inset-0 flex flex-col justify-between bg-black/40 p-2 opacity-0 transition-opacity hover:opacity-100">
+                            <div className="flex justify-end space-x-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeExistingPhoto(photo.filename)
+                                }
+                                className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                disabled={isSubmitting}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                value={photo.caption}
+                                onChange={(e) =>
+                                  updateExistingPhotoCaption(
+                                    photo.filename,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="Caption"
+                                className="w-full rounded border border-gray-300 bg-white/90 px-2 py-1 text-xs"
+                                disabled={isSubmitting}
+                              />
+                              <div className="flex items-center">
+                                <input
+                                  type="radio"
+                                  id={`primary-${photo.filename}`}
+                                  name="primaryPhoto"
+                                  checked={photo.isPrimary}
+                                  onChange={() =>
+                                    setExistingPrimaryPhoto(photo.filename)
+                                  }
+                                  className="text-primary focus:ring-primary h-3 w-3 border-gray-300"
+                                  disabled={isSubmitting}
+                                />
+                                <label
+                                  htmlFor={`primary-${photo.filename}`}
+                                  className="ml-1 text-xs text-white"
+                                >
+                                  Primary
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* New photos */}
                       {photos.map((photo, index) => (
                         <div
                           key={index}
@@ -673,9 +713,7 @@ export function AddPlaygroundDialog() {
                                 type="button"
                                 onClick={() => removePhoto(index)}
                                 className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
-                                disabled={
-                                  isGoogleAutofillLoading || isSubmitting
-                                }
+                                disabled={isSubmitting}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -689,24 +727,20 @@ export function AddPlaygroundDialog() {
                                 }
                                 placeholder="Caption"
                                 className="w-full rounded border border-gray-300 bg-white/90 px-2 py-1 text-xs"
-                                disabled={
-                                  isGoogleAutofillLoading || isSubmitting
-                                }
+                                disabled={isSubmitting}
                               />
                               <div className="flex items-center">
                                 <input
                                   type="radio"
-                                  id={`primary-${index}`}
+                                  id={`primary-new-${index}`}
                                   name="primaryPhoto"
                                   checked={photo.isPrimary}
                                   onChange={() => setPrimaryPhoto(index)}
                                   className="text-primary focus:ring-primary h-3 w-3 border-gray-300"
-                                  disabled={
-                                    isGoogleAutofillLoading || isSubmitting
-                                  }
+                                  disabled={isSubmitting}
                                 />
                                 <label
-                                  htmlFor={`primary-${index}`}
+                                  htmlFor={`primary-new-${index}`}
                                   className="ml-1 text-xs text-white"
                                 >
                                   Primary
@@ -716,7 +750,9 @@ export function AddPlaygroundDialog() {
                           </div>
                         </div>
                       ))}
-                      {photos.length < MAX_PHOTOS && (
+
+                      {/* Upload button */}
+                      {photos.length + existingPhotos.length < MAX_PHOTOS && (
                         <div className="flex h-34 w-34 items-center justify-center rounded-md border border-dashed border-gray-300 hover:border-gray-400">
                           <input
                             type="file"
@@ -725,13 +761,13 @@ export function AddPlaygroundDialog() {
                             accept="image/*"
                             className="hidden"
                             multiple
-                            disabled={isGoogleAutofillLoading || isSubmitting}
+                            disabled={isSubmitting}
                           />
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             className="text-muted-foreground flex h-full w-full cursor-pointer flex-col items-center justify-center space-y-1 outline-none hover:text-gray-700"
-                            disabled={isGoogleAutofillLoading || isSubmitting}
+                            disabled={isSubmitting}
                           >
                             <Upload className="h-4 w-4" />
                             <span className="text-xs">Upload Photo</span>
@@ -749,10 +785,15 @@ export function AddPlaygroundDialog() {
 
               <DialogFooter>
                 <Button
-                  type="submit"
-                  disabled={isGoogleAutofillLoading || isSubmitting}
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit playground"}
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Saving..." : "Save changes"}
                 </Button>
               </DialogFooter>
             </form>

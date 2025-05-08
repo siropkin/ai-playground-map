@@ -1,11 +1,13 @@
 import { cache } from "react";
-import { supabase as supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import { Feature } from "@/types/playground";
 
 const FEATURES_TABLE_NAME = "features";
 
 // Get all features
 export const getFeatures = cache(async (): Promise<Feature[]> => {
+  const supabase = await createClient();
+
   const { data: featuresData, error: featuresError } = await supabase
     .from(FEATURES_TABLE_NAME)
     .select("*")
