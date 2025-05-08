@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { LogIn, LogOut } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
@@ -30,8 +32,9 @@ export function AuthDialog() {
 
   if (user) {
     return (
-      <Button variant="outline" onClick={handleSignOut}>
-        Sign out
+      <Button variant="outline" onClick={handleSignOut} aria-label="Sign out">
+        <LogOut className="h-4 w-4" />
+        <span className="hidden sm:block">Sign out</span>
       </Button>
     );
   }
@@ -39,7 +42,10 @@ export function AuthDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Sign in</Button>
+        <Button variant="outline" aria-label="Sign in">
+          <LogIn className="h-4 w-4" />
+          <span className="hidden sm:block">Sign in</span>
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

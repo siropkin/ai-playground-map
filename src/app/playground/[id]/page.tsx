@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { Clock, Edit } from "lucide-react";
 
 import { APP_ADMIN_ROLE, SITE_NAME } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import DeletePlaygroundButton from "./delete-button";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
@@ -15,6 +16,7 @@ import {
   formatAddress,
   getTodayOpenHours,
 } from "@/lib/utils";
+import { EditPlaygroundDialog } from "@/components/edit-playground-dialog";
 
 type PlaygroundDetailParams = { id: string };
 
@@ -87,7 +89,12 @@ export default async function PlaygroundDetail({
           <div className="mb-2 flex items-start justify-between gap-2">
             <h1 className="text-3xl font-bold">{playground.name}</h1>
 
-            {isAdmin && <DeletePlaygroundButton id={String(playground.id)} />}
+            {isAdmin && (
+              <div className="flex gap-2">
+                <EditPlaygroundDialog playground={playground} />
+                <DeletePlaygroundButton id={String(playground.id)} />
+              </div>
+            )}
           </div>
 
           {/* Categories */}

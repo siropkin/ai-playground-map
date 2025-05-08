@@ -412,3 +412,181 @@ export async function deletePlayground(
     };
   }
 }
+
+// Update playground metadata
+export async function updatePlaygroundMetadata(
+  id: number,
+  playground: PlaygroundSubmitData,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // 1. Update playground basic info
+    const { error: updateError } = await supabase
+      .from(PLAYGROUNDS_TABLE_NAME)
+      .update({
+        name: playground.name,
+        description: playground.description,
+        latitude: playground.latitude,
+        longitude: playground.longitude,
+        address: playground.address,
+        city: playground.city,
+        state: playground.state,
+        zip_code: playground.zipCode,
+        age_min: playground.ageMin,
+        age_max: playground.ageMax,
+        open_hours: playground.openHours,
+        access_type: playground.accessType,
+        surface_type: playground.surfaceType,
+        is_approved: playground.isApproved,
+      })
+      .eq("id", id);
+
+    if (updateError) {
+      console.error("Error updating playground:", updateError);
+      throw updateError;
+    }
+
+    // 2. Update features if provided
+    if (playground.features) {
+      // First delete existing features
+      const { error: deleteError } = await supabase
+        .from(PLAYGROUND_FEATURES_TABLE_NAME)
+        .delete()
+        .eq("playground_id", id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      // Then insert new features
+      if (playground.features.length > 0) {
+        // Get feature IDs from names
+        const { data: featureRows, error: featuresError } = await supabase
+          .from("features")
+          .select("id, name")
+          .in("name", playground.features);
+
+        if (featuresError) {
+          throw featuresError;
+        }
+
+        const featureMap = new Map(featureRows.map((f) => [f.name, f.id]));
+        const featureInserts = playground.features
+          .filter((name) => featureMap.has(name))
+          .map((name) => ({
+            playground_id: id,
+            feature_id: featureMap.get(name),
+          }));
+
+        if (featureInserts.length > 0) {
+          const { error: pfError } = await supabase
+            .from(PLAYGROUND_FEATURES_TABLE_NAME)
+            .insert(featureInserts);
+          if (pfError) {
+            throw pfError;
+          }
+        }
+      }
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error updating playground:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// Update photo metadata
+export async function updatePlaygroundPhotoMetadata({
+  playgroundId,
+  filename,
+  caption,
+  isPrimary,
+}: {
+  playgroundId: number;
+  filename: string;
+  caption: string;
+  isPrimary: boolean;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // If setting as primary, first unset all other photos as primary
+    if (isPrimary) {
+      const { error: updateError } = await supabase
+        .from(PLAYGROUND_PHOTOS_TABLE_NAME)
+        .update({ is_primary: false })
+        .eq("playground_id", playgroundId);
+
+      if (updateError) {
+        throw updateError;
+      }
+    }
+
+    // Update the specific photo
+    const { error } = await supabase
+      .from(PLAYGROUND_PHOTOS_TABLE_NAME)
+      .update({
+        caption,
+        is_primary: isPrimary,
+      })
+      .eq("playground_id", playgroundId)
+      .eq("filename", filename);
+
+    if (error) {
+      throw error;
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// Delete a specific photo
+export async function deletePlaygroundPhoto(
+  playgroundId: number,
+  filename: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Delete from database
+    const { error } = await supabase
+      .from(PLAYGROUND_PHOTOS_TABLE_NAME)
+      .delete()
+      .eq("playground_id", playgroundId)
+      .eq("filename", filename);
+
+    if (error) {
+      throw error;
+    }
+
+    // Extract the path within the bucket
+    const bucketPath = filename.replace(`${PHOTOS_BUCKET_NAME}/`, "");
+
+    // Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from(PHOTOS_BUCKET_NAME)
+      .remove([bucketPath]);
+
+    if (storageError) {
+      console.error(`Error deleting file from storage:`, storageError);
+      // We don't throw here as the database record is already deleted
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}

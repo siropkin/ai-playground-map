@@ -6,7 +6,11 @@ import {
   AccessType,
   SurfaceType,
 } from "@/types/playground";
-import { createPlaygroundMetadata, deletePlayground } from "@/data/playgrounds";
+import {
+  createPlaygroundMetadata,
+  deletePlayground,
+  updatePlaygroundMetadata,
+} from "@/data/playgrounds";
 import { createClient } from "@/lib/supabase/server";
 
 // Parse multipart form data for playground submissions
@@ -80,6 +84,8 @@ async function parseSubmitPlaygroundFormData(
   const openHoursStr = formData.get("openHours") as string;
   const openHours = openHoursStr ? JSON.parse(openHoursStr) : {};
 
+  const isApproved = formData.get("isApproved") === "on";
+
   return {
     name,
     description,
@@ -96,7 +102,7 @@ async function parseSubmitPlaygroundFormData(
     surfaceType,
     features,
     photos: [], // No photos here
-    isApproved: false,
+    isApproved,
   };
 }
 
@@ -109,6 +115,50 @@ export async function POST(req: NextRequest) {
 
     if (result.success) {
       return NextResponse.json({ id: result.id }, { status: 201 });
+    } else {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    // Get the playground ID from the URL
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Playground ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Check if user is admin
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+
+    if (!data?.user || data.user.role !== APP_ADMIN_ROLE) {
+      return NextResponse.json(
+        { error: "Unauthorized. Admin access required." },
+        { status: 403 },
+      );
+    }
+
+    // Parse the rest of the form data
+    const playground: PlaygroundSubmitData =
+      await parseSubmitPlaygroundFormData(req);
+
+    // Update the playground
+    const result = await updatePlaygroundMetadata(Number(id), playground);
+
+    if (result.success) {
+      return NextResponse.json({ success: true }, { status: 200 });
     } else {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
