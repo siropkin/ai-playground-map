@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 
 import { SITE_NAME } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/server";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
@@ -43,13 +44,15 @@ export default async function PlaygroundDetail({
 }) {
   const resolvedParams = await params;
   const playground = await getPlaygroundById(resolvedParams.id);
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
 
   if (!playground) {
     return null;
   }
 
+  const isAdmin = data?.user?.role === "app_admin";
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.latitude},${playground.longitude}`;
-
   const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 
   return (
