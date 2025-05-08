@@ -84,7 +84,7 @@ export default async function PlaygroundDetail({
 
         {/* Right side - Details */}
         <div className="w-full md:w-1/2">
-          <div className="mb-2 flex items-start justify-between">
+          <div className="mb-2 flex items-start justify-between gap-2">
             <h1 className="text-3xl font-bold">{playground.name}</h1>
 
             {isAdmin && <DeletePlaygroundButton id={String(playground.id)} />}
@@ -104,6 +104,11 @@ export default async function PlaygroundDetail({
             )}
             {ageRange && (
               <Badge className="px-2 py-1 text-xs">{ageRange}</Badge>
+            )}
+            {!playground.isApproved && (
+              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                Not approved
+              </Badge>
             )}
           </div>
 

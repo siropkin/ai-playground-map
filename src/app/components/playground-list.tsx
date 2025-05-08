@@ -39,7 +39,11 @@ export function PlaygroundList({
         return (
           <Card
             key={playground.id}
-            className="bg-background/95 flex cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+            className={`bg-background/95 flex cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl ${
+              !playground.isApproved
+                ? "border-2 border-amber-500 dark:border-amber-600"
+                : ""
+            }`}
             onClick={() => {
               requestFlyTo([playground.longitude, playground.latitude]);
             }}
@@ -64,8 +68,13 @@ export function PlaygroundList({
             </CardHeader>
 
             <CardContent className="flex w-2/3 flex-col p-4">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold">{playground.name}</h3>
+                {!playground.isApproved && (
+                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                    Not approved
+                  </Badge>
+                )}
               </div>
 
               {playground.description && (
