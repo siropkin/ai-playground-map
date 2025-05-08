@@ -2,7 +2,7 @@
 
 import { cache } from "react";
 
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import {
   AccessType,
   MapBounds,
@@ -22,6 +22,8 @@ export async function getPlaygroundsForBounds(
   bounds: MapBounds,
 ): Promise<Playground[]> {
   try {
+    const supabase = await createClient();
+
     const { data: playgroundsData, error: playgroundsError } = await supabase
       .from(PLAYGROUNDS_TABLE_NAME)
       .select("*")
@@ -137,6 +139,8 @@ export async function getPlaygroundsForBounds(
 export const getPlaygroundById = cache(
   async (id: string): Promise<Playground | null> => {
     try {
+      const supabase = await createClient();
+
       const { data: playgroundData, error: playgroundError } = await supabase
         .from(PLAYGROUNDS_TABLE_NAME)
         .select("*")
@@ -236,6 +240,8 @@ export async function createPlaygroundMetadata(
   playground: PlaygroundSubmitData,
 ): Promise<{ success: boolean; id?: number; error?: string }> {
   try {
+    const supabase = await createClient();
+
     // 1. Insert playground
     const { data: inserted, error: insertError } = await supabase
       .from(PLAYGROUNDS_TABLE_NAME)
@@ -319,6 +325,8 @@ export async function createPlaygroundPhotoMetadata({
   isPrimary: boolean;
 }): Promise<{ success: boolean; error?: string }> {
   try {
+    const supabase = await createClient();
+
     const { error } = await supabase.from(PLAYGROUND_PHOTOS_TABLE_NAME).insert({
       playground_id: playgroundId,
       filename,

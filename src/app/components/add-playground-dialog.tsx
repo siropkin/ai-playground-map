@@ -27,7 +27,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn, formatEnumString } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 interface PhotoUpload {
   file: File;
@@ -279,6 +279,7 @@ export function AddPlaygroundDialog() {
         const fullFilename = `${PHOTOS_BUCKET_NAME}/${filename}`;
 
         // Upload to Supabase Storage
+        const supabase = createClient();
         const { error: uploadError } = await supabase.storage
           .from(PHOTOS_BUCKET_NAME)
           .upload(filename, photo.file, {
