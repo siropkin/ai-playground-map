@@ -13,7 +13,12 @@ import {
 } from "react";
 import { useFilters } from "@/contexts/filters-context";
 import { getPlaygroundsForBounds } from "@/data/playgrounds";
-import { AGE_GROUPS, MAX_ZOOM_LEVEL_TO_FETCH_DATA } from "@/lib/constants";
+import {
+  AGE_GROUPS,
+  APP_ADMIN_ROLE,
+  MAX_ZOOM_LEVEL_TO_FETCH_DATA,
+} from "@/lib/constants";
+import { useAuth } from "@/contexts/auth-context";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -31,7 +36,8 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
 );
 
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
-  const { mapBounds, accesses, ages, features } = useFilters();
+  const { mapBounds, approved, accesses, ages, features } = useFilters();
+  const { user } = useAuth();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
@@ -84,11 +90,26 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   }, [debouncedFetchPlaygrounds]);
 
   const filteredPlaygrounds = useMemo(() => {
+    const isAdmin = user?.role === APP_ADMIN_ROLE;
     const accessSet = accesses && accesses.length ? new Set(accesses) : null;
     const ageSet = ages && ages.length ? new Set(ages) : null;
     const featureSet = features && features.length ? new Set(features) : null;
 
     return playgrounds.filter((playground) => {
+      // Filter isn't approved if it's not admin
+      if (!isAdmin && !playground.isApproved) {
+        return false;
+      }
+
+      // Filter by approval
+      if (
+        approved &&
+        approved.length &&
+        !approved.includes(playground.isApproved)
+      ) {
+        return false;
+      }
+
       // Filter by access
       if (accessSet && !accessSet.has(playground.accessType)) {
         return false;
@@ -118,7 +139,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       return true;
     });
-  }, [playgrounds, accesses, ages, features]);
+  }, [playgrounds, approved, accesses, ages, features, user]);
 
   const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
     setFlyToCoords(coords);

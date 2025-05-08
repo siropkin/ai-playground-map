@@ -22,6 +22,8 @@ import {
 interface FiltersContextType {
   mapBounds: MapBounds | null;
   setMapBounds: (bounds: MapBounds) => void;
+  approved: boolean[] | null;
+  setApproved: (approved: boolean[] | null) => void;
   accesses: AccessType[] | null;
   setAccesses: (accessTypes: AccessType[] | null) => void;
   ages: string[] | null;
@@ -34,6 +36,7 @@ const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
+  const [approved, setApproved] = useState<boolean[] | null>(null);
   const [accesses, setAccesses] = useState<AccessType[] | null>(null);
   const [ages, setAges] = useState<string[] | null>(null);
   const [features, setFeatures] = useState<FeatureType[] | null>(null);
@@ -65,6 +68,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     }
     const urlFilters = getFilterStateFromUrl();
     if (urlFilters) {
+      setApproved(urlFilters.approved);
       setAccesses(urlFilters.accesses);
       setAges(urlFilters.ages);
       setFeatures(urlFilters.features);
@@ -97,12 +101,13 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isInitialized) {
       updateUrlWithFilters({
+        approved: approved || [],
         accesses: accesses || [],
         ages: ages || [],
         features: features || [],
       });
     }
-  }, [isInitialized, accesses, ages, features]);
+  }, [isInitialized, approved, accesses, ages, features]);
 
   // Update URL when URL parameters change and filters where removed (but only after initialization)
   useEffect(() => {
@@ -113,19 +118,22 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         searchParams.has("feature");
       if (!hasAllFilters) {
         updateUrlWithFilters({
+          approved: approved || [],
           accesses: accesses || [],
           ages: ages || [],
           features: features || [],
         });
       }
     }
-  }, [isInitialized, accesses, ages, features, searchParams]);
+  }, [isInitialized, approved, accesses, ages, features, searchParams]);
 
   return (
     <FiltersContext.Provider
       value={{
         mapBounds,
         setMapBounds: updateMapBounds,
+        approved,
+        setApproved,
         accesses,
         setAccesses,
         ages,

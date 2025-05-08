@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { APP_ADMIN_ROLE } from "@/lib/constants";
 import {
   PlaygroundSubmitData,
   AccessType,
@@ -95,6 +96,7 @@ async function parseSubmitPlaygroundFormData(
     surfaceType,
     features,
     photos: [], // No photos here
+    isApproved: false,
   };
 }
 
@@ -135,7 +137,7 @@ export async function DELETE(req: NextRequest) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getUser();
 
-    if (!data?.user || data.user.role !== "app_admin") {
+    if (!data?.user || data.user.role !== APP_ADMIN_ROLE) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 403 },

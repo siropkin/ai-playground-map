@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
-import { SITE_NAME } from "@/lib/constants";
+import { APP_ADMIN_ROLE, SITE_NAME } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +52,7 @@ export default async function PlaygroundDetail({
     return null;
   }
 
-  const isAdmin = data?.user?.role === "app_admin";
+  const isAdmin = data?.user?.role === APP_ADMIN_ROLE;
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.latitude},${playground.longitude}`;
   const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 

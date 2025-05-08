@@ -6,6 +6,8 @@ export const PHOTOS_BUCKET_NAME = "playground-photos";
 
 export const MAX_ZOOM_LEVEL_TO_FETCH_DATA = 7;
 
+export const APP_ADMIN_ROLE = "app_admin";
+
 export const AGE_GROUPS = [
   { label: "Toddler (0-2)", min: 0, max: 2, key: "toddler" },
   { label: "Preschool (2-5)", min: 2, max: 5, key: "preschool" },

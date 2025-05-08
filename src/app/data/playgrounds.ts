@@ -28,7 +28,6 @@ export async function getPlaygroundsForBounds(
     const { data: playgroundsData, error: playgroundsError } = await supabase
       .from(PLAYGROUNDS_TABLE_NAME)
       .select("*")
-      .eq("is_approved", true)
       .gte("latitude", bounds.south)
       .lte("latitude", bounds.north)
       .gte("longitude", bounds.west)
@@ -62,6 +61,7 @@ export async function getPlaygroundsForBounds(
           surfaceType: p.surface_type as SurfaceType,
           features: [],
           photos: [],
+          isApproved: p.is_approved,
           createdAt: p.created_at,
           updatedAt: p.updated_at,
         } as Playground,
@@ -173,6 +173,7 @@ export const getPlaygroundById = cache(
         surfaceType: playgroundData.surface_type as SurfaceType,
         features: [],
         photos: [],
+        isApproved: playgroundData.is_approved,
         createdAt: playgroundData.created_at,
         updatedAt: playgroundData.updated_at,
       };
