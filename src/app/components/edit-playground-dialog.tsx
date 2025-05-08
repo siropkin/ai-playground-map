@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, Upload, Plus, Save, Edit } from "lucide-react";
+import { Trash2, Upload, Edit } from "lucide-react";
 
 import {
   AccessType,
