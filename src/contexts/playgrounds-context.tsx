@@ -36,7 +36,7 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
 );
 
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
-  const { mapBounds, approved, accesses, ages, features } = useFilters();
+  const { mapBounds, approvals, accesses, ages, features } = useFilters();
   const { user } = useAuth();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
@@ -103,9 +103,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       // Filter by approval
       if (
-        approved &&
-        approved.length &&
-        !approved.includes(playground.isApproved)
+        approvals &&
+        approvals.length &&
+        !approvals.includes(playground.isApproved)
       ) {
         return false;
       }
@@ -139,7 +139,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       return true;
     });
-  }, [playgrounds, approved, accesses, ages, features, user]);
+  }, [playgrounds, approvals, accesses, ages, features, user]);
 
   const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
     setFlyToCoords(coords);

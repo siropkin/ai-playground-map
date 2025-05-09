@@ -8,7 +8,7 @@ import {
   type ReactNode,
   useCallback,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import type { MapBounds, AccessType, FeatureType } from "@/types/playground";
 import {
@@ -22,8 +22,8 @@ import {
 interface FiltersContextType {
   mapBounds: MapBounds | null;
   setMapBounds: (bounds: MapBounds) => void;
-  approved: boolean[] | null;
-  setApproved: (approved: boolean[] | null) => void;
+  approvals: boolean[] | null;
+  setApprovals: (approvals: boolean[] | null) => void;
   accesses: AccessType[] | null;
   setAccesses: (accessTypes: AccessType[] | null) => void;
   ages: string[] | null;
@@ -35,13 +35,14 @@ interface FiltersContextType {
 const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
-  const [approved, setApproved] = useState<boolean[] | null>(null);
+  const [approvals, setApprovals] = useState<boolean[] | null>(null);
   const [accesses, setAccesses] = useState<AccessType[] | null>(null);
   const [ages, setAges] = useState<string[] | null>(null);
   const [features, setFeatures] = useState<FeatureType[] | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const searchParams = useSearchParams();
 
   // Update map bounds only if they have changed
   const updateMapBounds = useCallback((bounds: MapBounds) => {
@@ -49,10 +50,10 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       const roundedBounds = roundMapBounds(bounds);
       if (
         prevState &&
-        prevState.south === roundedBounds.south &&
-        prevState.north === roundedBounds.north &&
-        prevState.west === roundedBounds.west &&
-        prevState.east === roundedBounds.east
+        prevState.south === roundedBounds?.south &&
+        prevState.north === roundedBounds?.north &&
+        prevState.west === roundedBounds?.west &&
+        prevState.east === roundedBounds?.east
       ) {
         return prevState;
       }
@@ -63,77 +64,43 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   // Load filters from URL when the component mounts
   useEffect(() => {
     const urlMapBounds = getMapBoundsStateFromUrl();
-    if (urlMapBounds) {
-      setMapBounds(roundMapBounds(urlMapBounds));
-    }
+    setMapBounds(urlMapBounds ? roundMapBounds(urlMapBounds) : null);
+
     const urlFilters = getFilterStateFromUrl();
-    if (urlFilters) {
-      setApproved(urlFilters.approved);
-      setAccesses(urlFilters.accesses);
-      setAges(urlFilters.ages);
-      setFeatures(urlFilters.features);
-    }
+    setApprovals(urlFilters?.approvals || null);
+    setAccesses(urlFilters?.accesses || null);
+    setAges(urlFilters?.ages || null);
+    setFeatures(urlFilters?.features || null);
+
     setIsInitialized(true);
   }, []);
 
   // Update URL when filters change (but only after initialization)
   useEffect(() => {
-    if (isInitialized && mapBounds) {
+    if (isInitialized && pathname === "/") {
       updateUrlWithMapBounds(roundMapBounds(mapBounds));
     }
-  }, [isInitialized, mapBounds]);
-
-  // Update URL when URL parameters change and map bounds where removed (but only after initialization)
-  useEffect(() => {
-    if (isInitialized && mapBounds && window.location.pathname === "/") {
-      const hasAllBounds =
-        searchParams.has("south") &&
-        searchParams.has("north") &&
-        searchParams.has("west") &&
-        searchParams.has("east");
-      if (!hasAllBounds) {
-        updateUrlWithMapBounds(roundMapBounds(mapBounds));
-      }
-    }
-  }, [isInitialized, mapBounds, searchParams]);
+  }, [isInitialized, pathname, mapBounds]);
 
   // Update URL when filters change (but only after initialization)
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && pathname === "/") {
       updateUrlWithFilters({
-        approved: approved || [],
-        accesses: accesses || [],
-        ages: ages || [],
-        features: features || [],
+        approvals,
+        accesses,
+        ages,
+        features,
       });
     }
-  }, [isInitialized, approved, accesses, ages, features]);
-
-  // Update URL when URL parameters change and filters where removed (but only after initialization)
-  useEffect(() => {
-    if (isInitialized && window.location.pathname === "/") {
-      const hasAllFilters =
-        searchParams.has("access") &&
-        searchParams.has("age") &&
-        searchParams.has("feature");
-      if (!hasAllFilters) {
-        updateUrlWithFilters({
-          approved: approved || [],
-          accesses: accesses || [],
-          ages: ages || [],
-          features: features || [],
-        });
-      }
-    }
-  }, [isInitialized, approved, accesses, ages, features, searchParams]);
+  }, [isInitialized, pathname, approvals, accesses, ages, features]);
 
   return (
     <FiltersContext.Provider
       value={{
         mapBounds,
         setMapBounds: updateMapBounds,
-        approved,
-        setApproved,
+        approvals,
+        setApprovals,
         accesses,
         setAccesses,
         ages,

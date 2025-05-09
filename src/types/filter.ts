@@ -1,8 +1,8 @@
 import type { AccessType, FeatureType } from "./playground";
 
 export interface FilterCriteria {
-  approved: boolean[];
-  accesses: AccessType[];
-  ages: string[];
-  features: FeatureType[];
+  approvals: boolean[] | null;
+  accesses: AccessType[] | null;
+  ages: string[] | null;
+  features: FeatureType[] | null;
 }
