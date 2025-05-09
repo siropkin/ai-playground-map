@@ -43,7 +43,7 @@ const sortedFeatureTypes = [...FEATURE_TYPES].sort();
 // Helper: resolve short URL to real Google Maps URL via backend
 async function resolveGoogleUrl(shortUrl: string): Promise<string> {
   try {
-    const res = await fetch("/api/resolve-google-url", {
+    const res = await fetch("/api/google-maps/resolve-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: shortUrl }),
@@ -56,45 +56,157 @@ async function resolveGoogleUrl(shortUrl: string): Promise<string> {
   }
 }
 
-// Helper: extract lat/lng from Google Maps URL (also supports !3dLAT!4dLNG and /search/LAT,LNG)
-function extractLatLng(url: string): { lat: string; lng: string } | null {
+// Helper: extract data from Google Maps URL (lat/lng, place ID, name)
+function extractInitialDataFromFullUrl(url: string) {
+  const initialData = {
+    placeName: null as string | null,
+    lat: null as string | null,
+    lng: null as string | null,
+    placeId: null as string | null,
+    address: null as string | null,
+  };
+
+  if (!url) return initialData;
+
+  // Extract latitude and longitude
   // Try to match !3dLAT!4dLNG (most accurate for place pins)
   const dMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-  if (dMatch) return { lat: dMatch[1], lng: dMatch[2] };
-
-  // Try to match @lat,lng
-  const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (atMatch) return { lat: atMatch[1], lng: atMatch[2] };
-
-  // Try to match /?q=lat,lng
-  const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (qMatch) return { lat: qMatch[1], lng: qMatch[2] };
-
-  // Try to match /search/lat,lng (with optional space or %20 and + or -)
-  const searchMatch = url.match(
-    /\/search\/([+]?-?\d+(?:\.\d+)?),\s*([+]?-?\d+(?:\.\d+)?)/,
-  );
-  if (searchMatch) {
-    return {
-      lat: searchMatch[1].replace(/^\+/, ""), // Remove leading +
-      lng: searchMatch[2].replace(/^\+/, ""), // Remove leading +
-    };
+  if (dMatch) {
+    initialData.lat = dMatch[1];
+    initialData.lng = dMatch[2];
+  } else {
+    // Try to match @lat,lng
+    const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (atMatch) {
+      initialData.lat = atMatch[1];
+      initialData.lng = atMatch[2];
+    } else {
+      // Try to match /?q=lat,lng
+      const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (qMatch) {
+        initialData.lat = qMatch[1];
+        initialData.lng = qMatch[2];
+      } else {
+        // Try to match /search/lat,lng (with optional space or %20 and + or -)
+        const searchMatch = url.match(
+          /\/search\/([+]?-?\d+(?:\.\d+)?),\s*([+]?-?\d+(?:\.\d+)?)/,
+        );
+        if (searchMatch) {
+          initialData.lat = searchMatch[1].replace(/^\+/, ""); // Remove leading +
+          initialData.lng = searchMatch[2].replace(/^\+/, ""); // Remove leading +
+        }
+      }
+    }
   }
 
-  return null;
+  // Extract place name
+  const placeNamePattern = /\/maps\/place\/([^\/@]+)[\/@]/;
+  const nameMatch = url.match(placeNamePattern);
+  if (nameMatch && nameMatch[1]) {
+    initialData.placeName = decodeURIComponent(
+      nameMatch[1].replace(/\+/g, " "),
+    );
+  }
+
+  // Extract Place ID
+  // Common pattern for Place IDs in data parameter
+  const placeIdInDataPattern = /1s(ChIJ[A-Za-z0-9_-]+|GhIJ[A-Za-z0-9_-]+)/;
+  let pidMatch = url.match(placeIdInDataPattern);
+  if (pidMatch && pidMatch[1]) {
+    initialData.placeId = pidMatch[1];
+  } else {
+    // Alternative pattern for place_id in URL
+    pidMatch = url.match(/place_id\/([A-Za-z0-9_-]+)/);
+    if (pidMatch && pidMatch[1]) {
+      initialData.placeId = pidMatch[1];
+    }
+  }
+
+  return initialData;
 }
 
-// Helper: reverse geocode using Nominatim
-async function reverseGeocode(lat: string, lng: string) {
+// Helper: get place details using Google Places API
+async function getPlaceDetails(placeId: string) {
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en`;
+    const fields =
+      "name,formatted_address,geometry,place_id,address_components";
+    const url = `/api/google-maps/places?placeId=${placeId}&fields=${fields}`;
+
     const res = await fetch(url);
-    if (!res.ok) return {};
+    if (!res.ok) return null;
+
     const data = await res.json();
-    return data;
-  } catch {
-    return {};
+    if (data.status === "OK" && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching from Places API:", error);
+    return null;
   }
+}
+
+// Helper: reverse geocode using Google Geocoding API
+async function getAddressFromCoordinates(latitude: string, longitude: string) {
+  try {
+    const url = `/api/google-maps/geocode?lat=${latitude}&lng=${longitude}`;
+
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (data.status === "OK" && data.results && data.results.length > 0) {
+      return {
+        address: data.results[0].formatted_address,
+        placeId: data.results[0].place_id,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching from Geocoding API:", error);
+    return null;
+  }
+}
+
+// Helper: process Google Maps link to extract all available data
+async function processGoogleMapsLink(url: string) {
+  // Step 1: resolve short URL if needed
+  let resolvedUrl = url;
+  if (url.includes("goo.gl") || url.includes("maps.app.goo.gl")) {
+    resolvedUrl = await resolveGoogleUrl(url);
+  }
+
+  // Step 2: extract initial data from URL
+  const initialData = extractInitialDataFromFullUrl(resolvedUrl);
+  const finalData = { ...initialData };
+
+  // Step 3: Use appropriate API based on available data
+  if (initialData.placeId) {
+    // If we have a Place ID, use Places API for rich details
+    const placeDetails = await getPlaceDetails(initialData.placeId);
+    if (placeDetails) {
+      finalData.placeName = placeDetails.name;
+      finalData.address = placeDetails.formatted_address;
+      if (placeDetails.geometry && placeDetails.geometry.location) {
+        finalData.lat = placeDetails.geometry.location.lat.toString();
+        finalData.lng = placeDetails.geometry.location.lng.toString();
+      }
+    }
+  } else if (initialData.lat && initialData.lng) {
+    // If we only have coordinates, use Geocoding API
+    const geocodingResult = await getAddressFromCoordinates(
+      initialData.lat,
+      initialData.lng,
+    );
+    if (geocodingResult) {
+      finalData.address = geocodingResult.address;
+      if (geocodingResult.placeId && !finalData.placeId) {
+        finalData.placeId = geocodingResult.placeId;
+      }
+    }
+  }
+
+  return finalData;
 }
 
 export function AddPlaygroundDialog() {
@@ -175,46 +287,39 @@ export function AddPlaygroundDialog() {
     const url = e.target.value;
     setGoogleMapsUrl(url);
 
-    if (!url) {
-      return;
-    }
+    if (!url) return;
 
     setIsGoogleAutofillLoading(true);
 
-    // Step 1: resolve short URL
-    let resolvedUrl = url;
-    if (url.includes("goo.gl")) {
-      resolvedUrl = await resolveGoogleUrl(url);
+    try {
+      // Process the Google Maps link to extract all available data
+      const mapData = await processGoogleMapsLink(url);
+
+      if (mapData.placeName) setName(mapData.placeName);
+      if (mapData.lat) setLatitude(mapData.lat);
+      if (mapData.lng) setLongitude(mapData.lng);
+      if (mapData.address) setAddress(mapData.address);
+
+      // Extract city, state, zip from address if available
+      if (mapData.address) {
+        const addressParts = mapData.address
+          .split(",")
+          .map((part) => part.trim());
+        if (addressParts.length >= 3) {
+          // Assuming format like "Street, City, State ZIP"
+          setCity(addressParts[addressParts.length - 3] || "");
+
+          const stateZip = addressParts[addressParts.length - 2] || "";
+          const stateZipParts = stateZip.split(" ");
+          setState(stateZipParts[0] || "");
+          setZipCode(stateZipParts[1] || "");
+        }
+      }
+    } catch (error) {
+      console.error("Error processing Google Maps link:", error);
+    } finally {
+      setIsGoogleAutofillLoading(false);
     }
-
-    // Step 2: extract latitude/longitude
-    const coords = extractLatLng(resolvedUrl);
-    if (coords) {
-      // Step 3: reverse geocode for address, city, state, zipCode, name
-      const geocodeData = await reverseGeocode(coords.lat, coords.lng);
-
-      setLatitude(coords.lat);
-      setLongitude(coords.lng);
-      setAddress(geocodeData.display_name || "");
-      setCity(
-        geocodeData.address?.city ||
-          geocodeData.address?.town ||
-          geocodeData.address?.village ||
-          geocodeData.address?.hamlet ||
-          geocodeData.address?.suburb ||
-          "",
-      );
-      setState(geocodeData.address?.state || "");
-      setZipCode(geocodeData.address?.postcode || "");
-      setName(
-        geocodeData.address?.amenity ||
-          geocodeData.address?.road ||
-          geocodeData.address?.neighbourhood ||
-          "",
-      );
-    }
-
-    setIsGoogleAutofillLoading(false);
   };
 
   // Handle form submission

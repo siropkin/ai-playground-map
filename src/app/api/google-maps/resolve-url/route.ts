@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json();
-    if (!url)
+    if (!url) {
       return NextResponse.json({ error: "No URL provided" }, { status: 400 });
+    }
 
     // Use fetch with redirect: "follow" to resolve the short URL
     const response = await fetch(url, { method: "HEAD", redirect: "follow" });
