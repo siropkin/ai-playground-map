@@ -1,4 +1,4 @@
-import type { AccessType, FeatureType } from "@/types/playground";
+import type { AccessType, FeatureType } from "./playground";
 
 export interface FilterCriteria {
   approved: boolean[];
