@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { User, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,7 +9,7 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (nextUrl?: string | null) => Promise<void>;
+  signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -17,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const [user, setUser] = useState<User | null>(null);
@@ -50,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [supabase.auth]);
 
-  const signIn = async (nextUrl?: string | null) => {
+  const signIn = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           access_type: "offline",
           prompt: "consent",
         },
-        redirectTo: `${location.origin}/auth/callback?next=${nextUrl || ""}`,
+        redirectTo: `${location.origin}/auth/callback?next=${pathname}`,
       },
     });
     if (error) throw error;

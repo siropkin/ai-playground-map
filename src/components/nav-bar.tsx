@@ -55,20 +55,12 @@ export function NavBar() {
         <AddPlaygroundDialog />
         {/*<ThemeToggle />*/}
         {user ? (
-          <Button
-            variant="outline"
-            onClick={() => signOut()}
-            aria-label="Sign out"
-          >
+          <Button variant="outline" onClick={signOut} aria-label="Sign out">
             <LogOut className="h-4 w-4" />
             <span className="hidden sm:block">Log out</span>
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            onClick={() => signIn()}
-            aria-label="Sign in"
-          >
+          <Button variant="outline" onClick={signIn} aria-label="Sign in">
             <LogIn className="h-4 w-4" />
             <span className="hidden sm:block">Log in</span>
           </Button>
