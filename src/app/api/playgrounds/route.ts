@@ -5,7 +5,7 @@ import {
   PlaygroundSubmitData,
   AccessType,
   SurfaceType,
-} from "../@/types/playground";
+} from "@/types/playground";
 import {
   createPlaygroundMetadata,
   deletePlayground,

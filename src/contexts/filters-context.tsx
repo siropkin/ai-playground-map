@@ -34,7 +34,7 @@ interface FiltersContextType {
 
 const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
 
-export function FilterProvider({ children }: { children: ReactNode }) {
+export function FiltersProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
