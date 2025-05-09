@@ -26,6 +26,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const resolvedParams = await params;
   const playground = await getPlaygroundById(resolvedParams.id);
+  
   if (!playground) {
     return {
       title: `Playground Not Found | ${SITE_NAME}`,
@@ -33,9 +34,32 @@ export async function generateMetadata({
         "Looks like this playground took a swing break. Try another one for more fun!",
     };
   }
+  
+  // Get the primary photo URL if available
+  const primaryPhoto = playground.photos.find(photo => photo.isPrimary);
+  // Use the filename directly as it's used in the Image component
+  const photoUrl = primaryPhoto
+    ? primaryPhoto.filename
+    : "/thumbnail.jpg"; // Fallback to default thumbnail
+  
   return {
     title: `${playground.name} | ${SITE_NAME}`,
-    description: playground.description,
+    description: playground.description || `Explore ${playground.name} playground details, features, and location.`,
+    openGraph: {
+      title: `${playground.name} | ${SITE_NAME}`,
+      description: playground.description || `Explore ${playground.name} playground details, features, and location.`,
+      images: [
+        {
+          url: photoUrl,
+          width: 1200,
+          height: 630,
+          alt: `${playground.name} playground`,
+        },
+      ],
+      type: "website",
+      locale: "en_US",
+      url: `https://goodplaygroundmap.com/playground/${resolvedParams.id}`,
+    },
   };
 }
 
