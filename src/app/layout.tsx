@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     description: "Find good playgrounds for kids near you",
     images: [
       {
-        url: "/thumbnail.jpg",
+        url: "/api/og/home",
         width: 1200,
         height: 630,
         alt: "Good Playground Map",

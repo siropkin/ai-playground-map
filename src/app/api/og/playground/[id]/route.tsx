@@ -5,7 +5,10 @@ import { formatEnumString, getAgeRange } from "@/lib/utils";
 
 export const runtime = "edge";
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } },
+) {
   try {
     const playground = await getPlaygroundById(params.id);
 
