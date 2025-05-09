@@ -1,3 +1,4 @@
+import type { NextRequest } from "next/server";
 import { ImageResponse } from "next/og";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { SITE_NAME } from "@/lib/constants";
@@ -6,11 +7,11 @@ import { formatEnumString, getAgeRange } from "@/lib/utils";
 export const runtime = "edge";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  context: { params: { id: string } },
 ) {
   try {
-    const playground = await getPlaygroundById(params.id);
+    const playground = await getPlaygroundById(context.params.id);
 
     if (!playground) {
       return new Response("Playground not found", { status: 404 });
@@ -39,7 +40,7 @@ export async function GET(
             justifyContent: "center",
             width: "100%",
             height: "100%",
-            backgroundColor: "#f4f4f5",
+            backgroundColor: "#f5f5f5",
             padding: 40,
             fontFamily: "sans-serif",
             position: "relative",
@@ -54,7 +55,7 @@ export async function GET(
               right: 0,
               bottom: 0,
               backgroundImage:
-                "radial-gradient(circle at 25px 25px, #e4e4e7 2px, transparent 0)",
+                "radial-gradient(circle at 25px 25px, #d4d4d4 2px, transparent 0)",
               backgroundSize: "50px 50px",
               opacity: 0.3,
             }}
@@ -81,7 +82,7 @@ export async function GET(
               style={{
                 fontSize: 24,
                 fontWeight: "bold",
-                color: "#6366f1",
+                color: "#000000",
                 marginBottom: 8,
               }}
             >
@@ -93,7 +94,7 @@ export async function GET(
               style={{
                 fontSize: 48,
                 fontWeight: "bold",
-                color: "#18181b",
+                color: "#000000",
                 marginBottom: 16,
                 textAlign: "center",
               }}
@@ -114,8 +115,8 @@ export async function GET(
               {accessType && (
                 <div
                   style={{
-                    backgroundColor: "#e0e7ff",
-                    color: "#4f46e5",
+                    backgroundColor: "#e5e5e5",
+                    color: "#000000",
                     padding: "6px 12px",
                     borderRadius: 9999,
                     fontSize: 18,
@@ -125,12 +126,12 @@ export async function GET(
                   {accessType}
                 </div>
               )}
-
+              
               {ageRange && (
                 <div
                   style={{
-                    backgroundColor: "#dcfce7",
-                    color: "#16a34a",
+                    backgroundColor: "#e5e5e5",
+                    color: "#000000",
                     padding: "6px 12px",
                     borderRadius: 9999,
                     fontSize: 18,
@@ -146,7 +147,7 @@ export async function GET(
             <div
               style={{
                 fontSize: 24,
-                color: "#52525b",
+                color: "#333333",
                 textAlign: "center",
                 marginBottom: 32,
                 maxWidth: 800,
@@ -169,8 +170,8 @@ export async function GET(
                 <div
                   key={index}
                   style={{
-                    backgroundColor: "#e0e7ff",
-                    color: "#4f46e5",
+                    backgroundColor: "#e5e5e5",
+                    color: "#000000",
                     padding: "8px 16px",
                     borderRadius: 9999,
                     fontSize: 18,

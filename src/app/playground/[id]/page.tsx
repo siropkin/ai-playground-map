@@ -26,7 +26,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const resolvedParams = await params;
   const playground = await getPlaygroundById(resolvedParams.id);
-  
+
   if (!playground) {
     return {
       title: `Playground Not Found | ${SITE_NAME}`,
@@ -34,19 +34,20 @@ export async function generateMetadata({
         "Looks like this playground took a swing break. Try another one for more fun!",
     };
   }
-  
-  // Use the dynamic OG image generation API
-  const ogImageUrl = `/api/og/playground/${resolvedParams.id}`;
-  
+
   return {
     title: `${playground.name} | ${SITE_NAME}`,
-    description: playground.description || `Explore ${playground.name} playground details, features, and location.`,
+    description:
+      playground.description ||
+      `Explore ${playground.name} playground details, features, and location.`,
     openGraph: {
       title: `${playground.name} | ${SITE_NAME}`,
-      description: playground.description || `Explore ${playground.name} playground details, features, and location.`,
+      description:
+        playground.description ||
+        `Explore ${playground.name} playground details, features, and location.`,
       images: [
         {
-          url: ogImageUrl,
+          url: `/api/og/playground/${resolvedParams.id}`,
           width: 1200,
           height: 630,
           alt: `${playground.name} playground`,
