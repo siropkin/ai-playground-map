@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/constants";
+import { NextResponse } from "next/server";
 
 export const runtime = "edge";
 
@@ -145,8 +146,10 @@ export async function GET() {
         height: 630,
       },
     );
-  } catch (e) {
-    console.error(e);
-    return new Response("Failed to generate image", { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
   }
 }

@@ -1,17 +1,35 @@
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
 import { getPlaygroundById } from "@/data/playgrounds";
 import { SITE_NAME } from "@/lib/constants";
 import { formatEnumString, getAgeRange } from "@/lib/utils";
 
+interface RouteContext {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
 export const runtime = "edge";
 
-export async function GET(_: NextRequest, context: { params: { id: string } }) {
+export async function GET(_: NextRequest, context: RouteContext) {
   try {
-    const playground = await getPlaygroundById(context.params.id);
+    const { id } = await context.params;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Playground ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const playground = await getPlaygroundById(id);
 
     if (!playground) {
-      return new Response("Playground not found", { status: 404 });
+      return NextResponse.json(
+        { error: "Playground not found" },
+        { status: 404 },
+      );
     }
 
     // Get a short description (truncate if too long)
@@ -190,8 +208,10 @@ export async function GET(_: NextRequest, context: { params: { id: string } }) {
         height: 630,
       },
     );
-  } catch (e) {
-    console.error(e);
-    return new Response("Failed to generate image", { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
   }
 }
