@@ -6,10 +6,7 @@ import { formatEnumString, getAgeRange } from "@/lib/utils";
 
 export const runtime = "edge";
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { id: string } },
-) {
+export async function GET(_: NextRequest, context: { params: { id: string } }) {
   try {
     const playground = await getPlaygroundById(context.params.id);
 
@@ -126,7 +123,7 @@ export async function GET(
                   {accessType}
                 </div>
               )}
-              
+
               {ageRange && (
                 <div
                   style={{
