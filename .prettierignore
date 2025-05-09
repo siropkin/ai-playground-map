@@ -1,3 +1,21 @@
-# Ignore artifacts:
+# Ignore build artifacts
+.next
+out
 build
+
+# Ignore environment files
+.env
+.env.local
+
+# Ignore logs
+*.log
+
+# Ignore IDE settings
+.idea
+.vscode
+
+# Ignore TypeScript build info
+*.tsbuildinfo
+
+# Ignore test output
 coverage

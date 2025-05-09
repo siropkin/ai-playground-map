@@ -30,8 +30,8 @@ const sortedFeatureTypes = [...FEATURE_TYPES].sort();
 
 export function FiltersSheet() {
   const {
-    approved,
-    setApproved,
+    approvals,
+    setApprovals,
     accesses,
     setAccesses,
     ages,
@@ -44,7 +44,9 @@ export function FiltersSheet() {
   const [open, setOpen] = useState(false);
 
   // Local state for staged changes (optional: can use context directly for instant apply)
-  const [localApproved, setLocalApproved] = useState<boolean[]>(approved || []);
+  const [localApprovals, setLocalApprovals] = useState<boolean[]>(
+    approvals || [],
+  );
   const [localAccesses, setLocalAccesses] = useState<AccessType[]>(
     accesses || [],
   );
@@ -57,7 +59,7 @@ export function FiltersSheet() {
   function handleOpenChange(val: boolean) {
     setOpen(val);
     if (val) {
-      setLocalApproved(approved || []);
+      setLocalApprovals(approvals || []);
       setLocalAccesses(accesses || []);
       setLocalAges(ages || []);
       setLocalFeatures(features || []);
@@ -65,7 +67,7 @@ export function FiltersSheet() {
   }
 
   function handleApply() {
-    setApproved(localApproved.length ? localApproved : null);
+    setApprovals(localApprovals.length ? localApprovals : null);
     setAccesses(localAccesses.length ? localAccesses : null);
     setAges(localAges.length ? localAges : null);
     setFeatures(localFeatures.length ? localFeatures : null);
@@ -73,11 +75,11 @@ export function FiltersSheet() {
   }
 
   function handleClear() {
-    setLocalApproved([]);
+    setLocalApprovals([]);
     setLocalAccesses([]);
     setLocalAges([]);
     setLocalFeatures([]);
-    setApproved(null);
+    setApprovals(null);
     setAccesses(null);
     setAges(null);
     setFeatures(null);
@@ -86,7 +88,7 @@ export function FiltersSheet() {
 
   // Determine if any filter is set
   const filtersSet =
-    (approved && approved.length > 0) ||
+    (approvals && approvals.length > 0) ||
     (accesses && accesses.length > 0) ||
     (ages && ages.length > 0) ||
     (features && features.length > 0);
@@ -122,10 +124,12 @@ export function FiltersSheet() {
               <Label className="mb-2 block">Approved</Label>
               <div className="flex flex-wrap gap-2">
                 <Badge
-                  variant={localApproved.includes(true) ? "default" : "outline"}
+                  variant={
+                    localApprovals.includes(true) ? "default" : "outline"
+                  }
                   className="cursor-pointer"
                   onClick={() =>
-                    setLocalApproved((prev) =>
+                    setLocalApprovals((prev) =>
                       prev.includes(true)
                         ? prev.filter((a) => !a)
                         : [...prev, true],
@@ -136,11 +140,11 @@ export function FiltersSheet() {
                 </Badge>
                 <Badge
                   variant={
-                    localApproved.includes(false) ? "default" : "outline"
+                    localApprovals.includes(false) ? "default" : "outline"
                   }
                   className="cursor-pointer"
                   onClick={() =>
-                    setLocalApproved((prev) =>
+                    setLocalApprovals((prev) =>
                       prev.includes(false)
                         ? prev.filter((a) => a)
                         : [...prev, false],
