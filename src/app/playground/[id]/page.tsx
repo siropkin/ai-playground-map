@@ -35,12 +35,8 @@ export async function generateMetadata({
     };
   }
   
-  // Get the primary photo URL if available
-  const primaryPhoto = playground.photos.find(photo => photo.isPrimary);
-  // Use the filename directly as it's used in the Image component
-  const photoUrl = primaryPhoto
-    ? primaryPhoto.filename
-    : "/thumbnail.jpg"; // Fallback to default thumbnail
+  // Use the dynamic OG image generation API
+  const ogImageUrl = `/api/og/playground/${resolvedParams.id}`;
   
   return {
     title: `${playground.name} | ${SITE_NAME}`,
@@ -50,7 +46,7 @@ export async function generateMetadata({
       description: playground.description || `Explore ${playground.name} playground details, features, and location.`,
       images: [
         {
-          url: photoUrl,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `${playground.name} playground`,
