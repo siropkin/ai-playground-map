@@ -58,6 +58,7 @@ export function PlaygroundList({
                     width={100}
                     height={300}
                     priority={index < 3}
+                    unoptimized={true}
                   />
                 ) : (
                   <div className="text-muted-foreground flex h-full w-full items-center justify-center text-xs">
