@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { FeatureCollection, Point } from "geojson";
@@ -11,6 +11,15 @@ import type { FeatureCollection, Point } from "geojson";
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { PlaygroundResearch } from "@/components/playground-research";
 import type { Playground } from "@/types/playground";
 
 // Safely set Mapbox access token with proper error handling
@@ -533,13 +542,40 @@ export function MapView() {
         ref={setMapContainer}
         className="absolute top-0 left-0 h-full w-full"
       />
-      <div className="absolute right-4 bottom-10 z-1 flex sm:right-4 sm:bottom-8">
+      <div className="absolute right-4 bottom-10 z-1 flex flex-col gap-2 sm:right-4 sm:bottom-8">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              aria-label="Research playgrounds"
+              className="mb-2"
+            >
+              <Search className="mr-2 h-4 w-4" />
+              <span className="hidden sm:block">Research</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="right"
+            className="w-full overflow-y-auto sm:w-[400px]"
+          >
+            <SheetHeader>
+              <SheetTitle>Playgrounds</SheetTitle>
+              <SheetDescription>
+                List of playgrounds near you. Click on a playground to view it
+                on the map.
+              </SheetDescription>
+            </SheetHeader>
+
+            <PlaygroundResearch />
+          </SheetContent>
+        </Sheet>
+
         <Button
           variant="outline"
           aria-label="Center map on my location"
           onClick={handleNearMeClick}
         >
-          <MapPin className="h-4 w-4" />
+          <MapPin className="mr-2 h-4 w-4" />
           <span className="hidden sm:block">Near me</span>
         </Button>
       </div>
