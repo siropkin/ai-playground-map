@@ -6,12 +6,7 @@ import { SITE_NAME } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
-import {
-  formatEnumString,
-  getAgeRange,
-  formatAddress,
-  getTodayOpenHours,
-} from "@/lib/utils";
+import { formatEnumString, getAgeRange } from "@/lib/utils";
 import { Playground } from "@/types/playground";
 
 type PlaygroundDetailParams = { id: string };
@@ -132,9 +127,7 @@ export default async function PlaygroundDetail({
             <h3 className="text-muted-foreground text-sm font-medium">
               Address
             </h3>
-            <p className="text-sm leading-relaxed">
-              {formatAddress(playground)}
-            </p>
+            <p className="text-sm leading-relaxed">{playground.address}</p>
             <span className="text-muted-foreground text-sm">
               {" "}
               (
@@ -150,17 +143,6 @@ export default async function PlaygroundDetail({
               )
             </span>
           </div>
-
-          {/* Hours */}
-          {playground.openHours && (
-            <div className="mb-6 flex items-start gap-2 text-sm">
-              <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
-              <div>
-                <p className="font-medium">Today&apos;s Hours</p>
-                <p>{getTodayOpenHours(playground.openHours)}</p>
-              </div>
-            </div>
-          )}
 
           {/* Description */}
           <div className="mb-6">

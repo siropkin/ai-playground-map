@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { MapBounds } from "@/types/playground";
 import { getOSMPlaygrounds } from "@/lib/osm";
-import {
-  fetchGooglePlaceDetails,
-  fetchGooglePlacesNearby,
-  resolveGooglePlacePhotoReferences,
-} from "@/lib/google";
-import { findClosestPlace } from "@/lib/utils";
 
 // Get playgrounds for boundaries
 export async function GET(req: NextRequest) {
@@ -84,6 +78,10 @@ export async function GET(req: NextRequest) {
         // Fallback to center of bounds
         lat = (playground.bounds.minlat + playground.bounds.maxlat) / 2;
         lon = (playground.bounds.minlon + playground.bounds.maxlon) / 2;
+      }
+
+      if (!lat || !lon) {
+        continue;
       }
 
       // Add basic playground data from OSM

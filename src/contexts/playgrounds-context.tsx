@@ -12,7 +12,7 @@ import {
 } from "react";
 import { useDebounce } from "@/lib/hooks";
 import { useFilters } from "@/contexts/filters-context";
-import { AGE_GROUPS, APP_ADMIN_ROLE } from "@/lib/constants";
+import { AGE_GROUPS } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]

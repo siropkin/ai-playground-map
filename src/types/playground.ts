@@ -3,17 +3,22 @@ export type Playground = {
   osmId?: number;
   name: string;
   description: string | null;
-  lat: number | undefined;
-  lon: number | undefined;
+  lat: number;
+  lon: number;
   address: string | null;
   osmTags?: Record<string, any>;
   enriched?: boolean;
-  enrichmentSource?: 'google' | 'osm';
+  enrichmentSource?: "google" | "osm";
   googlePlaceId?: string;
-  photos?: Array<{ src: string | null; caption: string | null }>;
+  photos?: Array<{
+    photo_reference: string;
+    width: number;
+    height: number;
+    html_attributions: string[];
+  }>;
   reviews?: any[];
   reviewSummary?: any;
-  
+
   // Filter-related properties
   accessType?: AccessType;
   ageMin?: number;

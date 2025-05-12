@@ -61,32 +61,3 @@ export async function fetchGooglePlaceDetails({
     return null;
   }
 }
-
-export async function resolveGooglePlacePhotoReferences({
-  photoReference,
-  maxWidth,
-}: {
-  photoReference: string;
-  maxWidth: number;
-}) {
-  try {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-    if (!apiKey) {
-      throw new Error("Google Maps API key is not defined");
-    }
-    const endpoint = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photoreference=${photoReference}&key=${apiKey}`;
-    const response = await fetch(endpoint, {
-      method: "HEAD",
-      redirect: "follow",
-    });
-    if (!response.ok) {
-      throw new Error(
-        `Google Maps API error: ${response.status} ${response.statusText}`,
-      );
-    }
-    return response.url;
-  } catch (error) {
-    console.error("Error resolving Google place photo references:", error);
-    return null;
-  }
-}

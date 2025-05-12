@@ -1,11 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { MapPin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import { formatAddress, formatEnumString, getAgeRange } from "@/lib/utils";
 
 export function PlaygroundList({
   showEmptyState,
@@ -33,7 +30,6 @@ export function PlaygroundList({
     <div className="flex flex-col space-y-2">
       {playgrounds.map((playground, index) => {
         const displayPhoto = playground.photos?.[0];
-        // const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 
         return (
           <Card
@@ -48,12 +44,11 @@ export function PlaygroundList({
                 {displayPhoto ? (
                   <Image
                     className="h-full w-full object-cover"
-                    src={displayPhoto.src}
-                    alt={displayPhoto.caption || `Photo of ${playground.name}`}
-                    width={100}
-                    height={300}
+                    src={displayPhoto.photo_reference}
+                    alt={`Photo of ${playground.name}`}
+                    width={Math.min(displayPhoto.width, 300)}
+                    height={Math.min(displayPhoto.height, 300)}
                     priority={index < 3}
-                    unoptimized={true}
                   />
                 ) : (
                   <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />

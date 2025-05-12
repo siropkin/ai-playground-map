@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  fetchGooglePlaceDetails,
-  fetchGooglePlacesNearby,
-  resolveGooglePlacePhotoReferences,
-} from "@/lib/google";
+import { fetchGooglePlaceDetails, fetchGooglePlacesNearby } from "@/lib/google";
 import { findClosestPlace } from "@/lib/utils";
 
 // Enrich playground data with Google Places information
@@ -17,7 +13,7 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(playgrounds) || playgrounds.length === 0) {
       return NextResponse.json(
         { error: "Invalid or empty playgrounds array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,7 +27,6 @@ export async function POST(req: NextRequest) {
 
         let googlePlace = null;
         let googlePlaceDetails = null;
-        let photos = [];
 
         // Search for nearby Google Places
         const types = [
@@ -48,28 +43,16 @@ export async function POST(req: NextRequest) {
           });
 
           if (placesNearby.length) {
-            const closest = findClosestPlace(placesNearby, playground.lat, playground.lon);
+            const closest = findClosestPlace(
+              placesNearby,
+              playground.lat,
+              playground.lon,
+            );
             if (closest.place && closest.distance < type.radius) {
               googlePlace = closest.place;
               break;
             }
           }
-        }
-
-        // Fetch photos if available
-        if (googlePlace?.photos?.length) {
-          photos = await Promise.all(
-            googlePlace.photos.map(async (photo: { photo_reference: string }) => {
-              const photoUrl = await resolveGooglePlacePhotoReferences({
-                photoReference: photo.photo_reference,
-                maxWidth: 640,
-              });
-              return {
-                src: photoUrl,
-                caption: googlePlace?.name,
-              };
-            })
-          );
         }
 
         // Fetch place details if we found a Google Place
@@ -79,8 +62,8 @@ export async function POST(req: NextRequest) {
             fields: [
               "formatted_address",
               "generativeSummary",
-              "reviewSummary",
               "reviews",
+              "reviewSummary",
             ],
           });
         }
@@ -89,27 +72,29 @@ export async function POST(req: NextRequest) {
         return {
           ...playground,
           name: googlePlace?.name || playground.name,
-          description: googlePlaceDetails?.generativeSummary?.overview?.text || playground.description,
+          description:
+            googlePlaceDetails?.generativeSummary?.overview?.text ||
+            playground.description,
           address: googlePlaceDetails?.formattedAddress || playground.address,
-          photos: photos.length ? photos : undefined,
+          photos: googlePlace?.photos || playground.photos || [],
           googlePlaceId: googlePlace?.place_id,
           reviews: googlePlaceDetails?.reviews,
           reviewSummary: googlePlaceDetails?.reviewSummary,
           enriched: true,
-          enrichmentSource: googlePlace ? 'google' : 'osm'
+          enrichmentSource: googlePlace ? "google" : "osm",
         };
-      })
+      }),
     );
 
     return NextResponse.json({ results: enrichedPlaygrounds });
   } catch (error) {
     console.error(
       "Error in playground enrichment API:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

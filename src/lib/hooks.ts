@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from "react";
 
 /**
  * A hook that returns a debounced version of the provided function
@@ -8,7 +8,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
  */
 export function useDebounce<T extends (...args: any[]) => any>(
   fn: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -30,6 +30,6 @@ export function useDebounce<T extends (...args: any[]) => any>(
         fn(...args);
       }, delay);
     },
-    [fn, delay]
+    [fn, delay],
   );
 }
