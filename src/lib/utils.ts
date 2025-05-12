@@ -50,3 +50,37 @@ export function formatAddress(playground: Playground): string {
   ].filter(Boolean);
   return arr.join(", ") || "No address available";
 }
+
+//
+export function findClosestPlace(
+  places: any[],
+  latitude: number,
+  longitude: number,
+) {
+  let closest = null;
+  let minDist = Number.POSITIVE_INFINITY;
+
+  for (const candidate of places) {
+    if (candidate.geometry && candidate.geometry.location) {
+      const dLat =
+        ((candidate.geometry.location.lat - latitude) * Math.PI) / 180;
+      const dLon =
+        ((candidate.geometry.location.lng - longitude) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((latitude * Math.PI) / 180) *
+          Math.cos((candidate.geometry.location.lat * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = 6371000 * c; // Earth radius in meters
+
+      if (distance < minDist) {
+        minDist = distance;
+        closest = candidate;
+      }
+    }
+  }
+
+  return { place: closest, distance: minDist };
+}

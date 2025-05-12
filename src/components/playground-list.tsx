@@ -53,11 +53,12 @@ export function PlaygroundList({
                 {displayPhoto ? (
                   <Image
                     className="h-full w-full object-cover"
-                    src={displayPhoto.filename}
+                    src={displayPhoto.src}
                     alt={displayPhoto.caption || `Photo of ${playground.name}`}
                     width={100}
                     height={300}
                     priority={index < 3}
+                    unoptimized={true}
                   />
                 ) : (
                   <div className="text-muted-foreground flex h-full w-full items-center justify-center text-xs">

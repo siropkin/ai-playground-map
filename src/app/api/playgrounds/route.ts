@@ -13,42 +13,13 @@ import {
   updatePlaygroundMetadata,
 } from "@/data/playgrounds";
 import { createClient } from "@/lib/supabase/server";
-
-// Function to fetch playgrounds from Overpass API
-// https://wiki.openstreetmap.org/wiki/Key:playground
-async function fetchOSMPlaygrounds(bounds: MapBounds) {
-  const box = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
-  const query = `
-    [out:json][timeout:25];
-    nwr["leisure"="playground"](${box});
-    out geom;
-  `;
-
-  try {
-    const response = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: `data=${encodeURIComponent(query)}`,
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Overpass API error: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const data = await response.json();
-    return data.elements || [];
-  } catch (error) {
-    console.error(
-      "Error fetching OSM data:",
-      error instanceof Error ? error.message : String(error),
-    );
-    return [];
-  }
-}
+import { getOSMPlaygrounds } from "@/lib/osm";
+import { findClosestPlace } from "@/lib/utils";
+import {
+  getGooglePlaceDetails,
+  getGooglePlacesNearby,
+  resolveGooglePlacePhotoReferences,
+} from "@/lib/google";
 
 // Get playgrounds for boundaries
 export async function GET(req: NextRequest) {
@@ -85,7 +56,7 @@ export async function GET(req: NextRequest) {
     const bounds: MapBounds = { south, north, west, east };
 
     // Fetch OSM playgrounds
-    const osmPlaygrounds = await fetchOSMPlaygrounds(bounds);
+    const osmPlaygrounds = await getOSMPlaygrounds(bounds, 20);
 
     if (osmPlaygrounds.length === 0) {
       return NextResponse.json({ results: [] });
@@ -123,14 +94,72 @@ export async function GET(req: NextRequest) {
         longitude = (playground.bounds.minlon + playground.bounds.maxlon) / 2;
       }
 
+      const MAX_GOOGLE_PLACE_DISTANCE_METERS = 10;
+      let googlePlace = null;
+      let googlePlaceDetails = null;
+      if (latitude && longitude) {
+        const types = [
+          "playground",
+          "park",
+          // "establishment",
+          // "point_of_interest",
+        ];
+        for (const type of types) {
+          const placesNearby = await getGooglePlacesNearby(
+            { lat: latitude, lng: longitude },
+            MAX_GOOGLE_PLACE_DISTANCE_METERS,
+            type,
+          );
+
+          if (placesNearby.length) {
+            const closest = findClosestPlace(placesNearby, latitude, longitude);
+            if (
+              closest.place &&
+              closest.distance < MAX_GOOGLE_PLACE_DISTANCE_METERS
+            ) {
+              googlePlace = closest.place;
+              break;
+            }
+          }
+        }
+      }
+
+      const photos = await Promise.all(
+        (googlePlace?.photos || []).map(
+          async (photo: { photo_reference: string }) => {
+            const photoUrl = await resolveGooglePlacePhotoReferences(
+              photo.photo_reference,
+            );
+            return {
+              src: photoUrl,
+              caption: googlePlace?.name,
+            };
+          },
+        ),
+      );
+
+      if (googlePlace) {
+        googlePlaceDetails = await getGooglePlaceDetails(googlePlace.place_id, [
+          // "name",
+          "formatted_address",
+          "generativeSummary",
+          "reviewSummary",
+          "reviews",
+        ]);
+      }
+
       // Combine results for this playground
       results.push({
         id: playground.id,
-        name: playground.tags?.name || "Unnamed playground",
-        description: playground.tags?.description || "No description available",
+        name:
+          googlePlace?.name || playground.tags?.name || "Unnamed playground",
+        description:
+          googlePlaceDetails?.generativeSummary?.overview?.text ||
+          playground.tags?.description ||
+          "No description available",
         latitude: latitude,
         longitude: longitude,
-        address: null,
+        address: googlePlaceDetails?.formattedAddress || null,
         city: null,
         state: null,
         zipCode: null,
@@ -140,7 +169,7 @@ export async function GET(req: NextRequest) {
         accessType: null,
         surfaceType: null,
         features: null,
-        photos: null,
+        photos,
         isApproved: true,
         createdAt: null,
         updatedAt: null,
