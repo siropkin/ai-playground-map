@@ -500,9 +500,10 @@ export function MapView() {
 
   useEffect(() => {
     if (map.current && flyToCoords) {
+      const zoom = map.current.getZoom();
       map.current.flyTo({
         center: flyToCoords,
-        zoom: 14,
+        zoom: Math.max(zoom, 16),
         essential: true,
       });
       clearFlyToRequest();
