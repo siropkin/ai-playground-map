@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         url: "/api/og/home",
         width: 1200,
         height: 630,
-        alt: "Good Playground Map",
+        alt: SITE_NAME,
       },
     ],
     type: "website",

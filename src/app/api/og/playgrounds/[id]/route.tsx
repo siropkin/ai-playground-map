@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
-import { getPlaygroundById } from "@/data/playgrounds";
 import { SITE_NAME } from "@/lib/constants";
 import { formatEnumString, getAgeRange } from "@/lib/utils";
+import { Playground } from "@/types/playground";
+
+const getPlaygroundById = (id: string): Promise<Playground> | null => {
+  // TODO: Not implemented
+  return null;
+};
 
 interface RouteContext {
   params: Promise<{

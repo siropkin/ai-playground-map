@@ -32,20 +32,15 @@ export function PlaygroundList({
   return (
     <div className="flex flex-col space-y-2">
       {playgrounds.map((playground, index) => {
-        const primaryPhoto = playground.photos?.find((p) => p.isPrimary);
-        const displayPhoto = primaryPhoto || playground.photos?.[0];
-        const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
+        const displayPhoto = playground.photos?.[0];
+        // const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 
         return (
           <Card
             key={playground.id}
-            className={`bg-background/95 flex cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl ${
-              !playground.isApproved
-                ? "border-2 border-amber-500 dark:border-amber-600"
-                : ""
-            }`}
+            className="bg-background/95 flex min-h-16 cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
             onClick={() => {
-              requestFlyTo([playground.longitude, playground.latitude]);
+              requestFlyTo([playground.lon, playground.lat]);
             }}
           >
             <CardHeader className="flex w-1/3 gap-0 p-0">
@@ -61,9 +56,7 @@ export function PlaygroundList({
                     unoptimized={true}
                   />
                 ) : (
-                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-xs">
-                    No image
-                  </div>
+                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
                 )}
               </div>
             </CardHeader>
@@ -71,55 +64,54 @@ export function PlaygroundList({
             <CardContent className="flex w-2/3 flex-col p-4">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold">{playground.name}</h3>
-                {!playground.isApproved && (
-                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
-                    Not approved
-                  </Badge>
-                )}
               </div>
 
-              {playground.description && (
-                <div className="text-muted-foreground text-xs">
-                  {playground.description}
-                </div>
+              <div className="text-muted-foreground text-xs">
+                {playground.description || "No description available"}
+              </div>
+
+              {playground.address && (
+                <>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {/* Access Type Badge */}
+                    {/*{playground.accessType && (*/}
+                    {/*  <Badge variant="outline">*/}
+                    {/*    {formatEnumString(playground.accessType)}*/}
+                    {/*  </Badge>*/}
+                    {/*)}*/}
+
+                    {/*/!* Age Range Badge *!/*/}
+                    {/*{ageRange && <Badge variant="outline">{ageRange}</Badge>}*/}
+
+                    {/*/!* Surface Type Badge (Optional but useful) *!/*/}
+                    {/*{playground.surfaceType && (*/}
+                    {/*  <Badge variant="outline">*/}
+                    {/*    {formatEnumString(playground.surfaceType)} Surface*/}
+                    {/*  </Badge>*/}
+                    {/*)}*/}
+
+                    {/*/!* Features Badges *!/*/}
+                    {/*{playground.features?.slice(0, 2).map((feature) => (*/}
+                    {/*  <Badge variant="outline" key={feature}>*/}
+                    {/*    {formatEnumString(feature)}*/}
+                    {/*  </Badge>*/}
+                    {/*))}*/}
+
+                    {/*{playground.features?.length > 2 && (*/}
+                    {/*  <Badge variant="outline">*/}
+                    {/*    +{playground.features.length - 2} more*/}
+                    {/*  </Badge>*/}
+                    {/*)}*/}
+                  </div>
+
+                  {playground.address && (
+                    <div className="text-muted-foreground flex items-center text-xs">
+                      📍
+                      <span className="truncate">{playground.address}</span>
+                    </div>
+                  )}
+                </>
               )}
-
-              <div className="mt-2 flex flex-wrap gap-1 empty:hidden">
-                {/* Access Type Badge */}
-                {playground.accessType && (
-                  <Badge variant="outline">
-                    {formatEnumString(playground.accessType)}
-                  </Badge>
-                )}
-
-                {/* Age Range Badge */}
-                {ageRange && <Badge variant="outline">{ageRange}</Badge>}
-
-                {/* Surface Type Badge (Optional but useful) */}
-                {playground.surfaceType && (
-                  <Badge variant="outline">
-                    {formatEnumString(playground.surfaceType)} Surface
-                  </Badge>
-                )}
-
-                {/* Features Badges */}
-                {playground.features?.slice(0, 2).map((feature) => (
-                  <Badge variant="outline" key={feature}>
-                    {formatEnumString(feature)}
-                  </Badge>
-                ))}
-
-                {playground.features?.length > 2 && (
-                  <Badge variant="outline">
-                    +{playground.features.length - 2} more
-                  </Badge>
-                )}
-              </div>
-
-              <div className="text-muted-foreground mt-2 flex items-center text-xs">
-                <MapPin className="mr-1 h-4 w-4 shrink-0" />
-                <span className="truncate">{formatAddress(playground)}</span>
-              </div>
             </CardContent>
           </Card>
         );

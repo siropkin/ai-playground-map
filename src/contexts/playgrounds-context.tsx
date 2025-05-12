@@ -105,20 +105,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     const featureSet = features && features.length ? new Set(features) : null;
 
     return playgrounds.filter((playground) => {
-      // Filter isn't approved if it's not admin
-      if (!isAdmin && !playground.isApproved) {
-        return false;
-      }
-
-      // Filter by approval
-      if (
-        approvals &&
-        approvals.length &&
-        !approvals.includes(playground.isApproved)
-      ) {
-        return false;
-      }
-
       // Filter by access
       if (accessSet && !accessSet.has(playground.accessType)) {
         return false;

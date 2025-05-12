@@ -41,8 +41,6 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        notApprovedPoint: "#f59e0b",
-        notApprovedPointStroke: "#FFFFFF",
         point: "#000000",
         pointStroke: "#FFFFFF",
         label: "#000000",
@@ -51,8 +49,6 @@ const getMapColors = (theme: string | undefined) => {
         labelHalo: "#FFFFFF",
       }
     : {
-        notApprovedPoint: "#f59e0b",
-        notApprovedPointStroke: "#000000",
         point: "#FFFFFF",
         pointStroke: "#000000",
         label: "#FFFFFF",
@@ -80,22 +76,18 @@ const getMapBounds = (map: mapboxgl.Map | null) => {
 
 const createGeoJson = (
   playgrounds: Playground[],
-): FeatureCollection<
-  Point,
-  { id: number; name: string; isApproved: boolean }
-> => {
+): FeatureCollection<Point, { id: number; name: string }> => {
   return {
     type: "FeatureCollection",
     features: playgrounds.map((playground) => ({
       type: "Feature",
       geometry: {
         type: "Point",
-        coordinates: [playground.longitude, playground.latitude],
+        coordinates: [playground.lon, playground.lat],
       },
       properties: {
         id: playground.id,
         name: playground.name,
-        isApproved: playground.isApproved,
       },
     })),
   };
@@ -138,7 +130,7 @@ export function MapView() {
 
   const playgroundsGeoJson = useCallback((): FeatureCollection<
     Point,
-    { id: number; name: string; isApproved: boolean }
+    { id: number; name: string }
   > => {
     return createGeoJson(playgrounds || []);
   }, [playgrounds]);
@@ -160,11 +152,8 @@ export function MapView() {
           type: "geojson",
           data: playgroundsGeoJson(),
           cluster: true,
-          clusterMaxZoom: 9,
+          clusterMaxZoom: 14,
           clusterRadius: 15,
-          clusterProperties: {
-            hasUnapproved: ["any", ["!", ["get", "isApproved"]]],
-          },
         });
       } else {
         (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
@@ -180,12 +169,7 @@ export function MapView() {
           source: SOURCE_ID,
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": [
-              "case",
-              ["==", ["get", "hasUnapproved"], true],
-              mapColors.notApprovedPoint,
-              mapColors.clusterBg,
-            ],
+            "circle-color": mapColors.clusterBg,
             "circle-radius": [
               "step",
               ["get", "point_count"],
@@ -227,20 +211,10 @@ export function MapView() {
           source: SOURCE_ID,
           filter: ["!", ["has", "point_count"]],
           paint: {
-            "circle-color": [
-              "case",
-              ["==", ["get", "isApproved"], false],
-              mapColors.notApprovedPoint,
-              mapColors.point,
-            ],
+            "circle-color": mapColors.point,
             "circle-radius": 10,
             "circle-stroke-width": 1,
-            "circle-stroke-color": [
-              "case",
-              ["==", ["get", "isApproved"], false],
-              mapColors.notApprovedPointStroke,
-              mapColors.pointStroke,
-            ],
+            "circle-stroke-color": mapColors.pointStroke,
           },
         });
       }

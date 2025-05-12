@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
-import { APP_ADMIN_ROLE, SITE_NAME } from "@/lib/constants";
-import { createClient } from "@/lib/supabase/server";
-import { getPlaygroundById } from "@/data/playgrounds";
+import { SITE_NAME } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
-import DeletePlaygroundButton from "@/components/delete-playground-button";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
 import {
@@ -15,9 +12,14 @@ import {
   formatAddress,
   getTodayOpenHours,
 } from "@/lib/utils";
-import { EditPlaygroundDialog } from "@/components/edit-playground-dialog";
+import { Playground } from "@/types/playground";
 
 type PlaygroundDetailParams = { id: string };
+
+const getPlaygroundById = (id: string): Promise<Playground> | null => {
+  // TODO: Not implemented
+  return null;
+};
 
 export async function generateMetadata({
   params,
@@ -35,22 +37,23 @@ export async function generateMetadata({
     };
   }
 
+  const title = `${playground.name} | ${SITE_NAME}`;
+  const description =
+    playground.description ||
+    `Explore ${playground.name} details, features, and location.`;
+
   return {
-    title: `${playground.name} | ${SITE_NAME}`,
-    description:
-      playground.description ||
-      `Explore ${playground.name} playground details, features, and location.`,
+    title,
+    description,
     openGraph: {
-      title: `${playground.name} | ${SITE_NAME}`,
-      description:
-        playground.description ||
-        `Explore ${playground.name} playground details, features, and location.`,
+      title,
+      description,
       images: [
         {
-          url: `/api/og/playground/${resolvedParams.id}`,
+          url: `/api/og/playgrounds/${resolvedParams.id}`,
           width: 1200,
           height: 630,
-          alt: `${playground.name} playground`,
+          alt: playground.name,
         },
       ],
       type: "website",
@@ -67,14 +70,11 @@ export default async function PlaygroundDetail({
 }) {
   const resolvedParams = await params;
   const playground = await getPlaygroundById(resolvedParams.id);
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
 
   if (!playground) {
     return null;
   }
 
-  const isAdmin = data?.user?.role === APP_ADMIN_ROLE;
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.latitude},${playground.longitude}`;
   const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
 
@@ -108,13 +108,6 @@ export default async function PlaygroundDetail({
         <div className="w-full md:w-1/2">
           <div className="mb-2 flex items-start justify-between gap-2">
             <h1 className="text-3xl font-bold">{playground.name}</h1>
-
-            {isAdmin && (
-              <div className="flex gap-2">
-                <EditPlaygroundDialog playground={playground} />
-                <DeletePlaygroundButton id={String(playground.id)} />
-              </div>
-            )}
           </div>
 
           {/* Categories */}
@@ -131,11 +124,6 @@ export default async function PlaygroundDetail({
             )}
             {ageRange && (
               <Badge className="px-2 py-1 text-xs">{ageRange}</Badge>
-            )}
-            {!playground.isApproved && (
-              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
-                Not approved
-              </Badge>
             )}
           </div>
 

@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { AddPlaygroundDialog } from "@/components/add-playground-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, LogOut } from "lucide-react";
 // import { ThemeToggle } from "@/components/theme-toggle";
@@ -52,7 +51,6 @@ export function NavBar() {
             </svg>
           </Button>
         </Link>
-        <AddPlaygroundDialog />
         {/*<ThemeToggle />*/}
         {user ? (
           <Button variant="outline" onClick={signOut} aria-label="Sign out">

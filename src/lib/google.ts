@@ -1,11 +1,11 @@
 export async function fetchGooglePlacesNearby({
-  latitude,
-  longitude,
+  lat,
+  lon,
   radius,
   type,
 }: {
-  latitude: number;
-  longitude: number;
+  lat: number;
+  lon: number;
   radius: number;
   type: string;
 }) {
@@ -14,7 +14,7 @@ export async function fetchGooglePlacesNearby({
     if (!apiKey) {
       throw new Error("Google API key is not defined");
     }
-    const endpoint = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=${apiKey}`;
+    const endpoint = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lon}&radius=${radius}&type=${type}&key=${apiKey}`;
     const response = await fetch(endpoint);
     if (!response.ok) {
       throw new Error(
