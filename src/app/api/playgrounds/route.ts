@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { MapBounds } from "@/types/playground";
-import { getOSMPlaygrounds } from "@/lib/osm";
+import { getOSMData } from "@/lib/osm";
 
 // Get playgrounds for boundaries
 export async function GET(req: NextRequest) {
@@ -38,8 +38,9 @@ export async function GET(req: NextRequest) {
     const bounds: MapBounds = { south, north, west, east };
 
     // Fetch OSM playgrounds
-    const osmPlaygrounds = await getOSMPlaygrounds({
+    const osmPlaygrounds = await getOSMData({
       bounds,
+      type: "playground",
       timeout: 5,
       limit: 25,
     });

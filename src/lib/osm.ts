@@ -2,12 +2,14 @@ import { MapBounds } from "@/types/playground";
 
 // Function to fetch playgrounds from Overpass API
 // https://wiki.openstreetmap.org/wiki/Key:playground
-export async function getOSMPlaygrounds({
+export async function getOSMData({
   bounds,
+  type,
   timeout,
   limit,
 }: {
   bounds: MapBounds;
+  type: string;
   timeout: number;
   limit: number;
 }) {
@@ -15,7 +17,7 @@ export async function getOSMPlaygrounds({
     const box = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
     const query = `
       [out:json][timeout:${timeout}];
-      nwr["leisure"="playground"](${box});
+      nwr["leisure"="${type}"](${box});
       out geom ${limit};
     `;
 

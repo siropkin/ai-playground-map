@@ -34,7 +34,7 @@ export function PlaygroundList({
         return (
           <Card
             key={playground.id}
-            className="bg-background/95 flex min-h-16 cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+            className="bg-background/95 flex min-h-[200px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
             onClick={() => {
               requestFlyTo([playground.lon, playground.lat]);
             }}
@@ -44,7 +44,12 @@ export function PlaygroundList({
                 {displayPhoto ? (
                   <Image
                     className="h-full w-full object-cover"
-                    src={displayPhoto.photo_reference}
+                    // src={displayPhoto.photo_reference}
+                    src={
+                      displayPhoto.streetview_params
+                        ? JSON.stringify(displayPhoto.streetview_params)
+                        : displayPhoto.photo_reference
+                    }
                     alt={`Photo of ${playground.name}`}
                     width={Math.min(displayPhoto.width, 300)}
                     height={Math.min(displayPhoto.height, 300)}

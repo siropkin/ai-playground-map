@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchGooglePlaceDetails, fetchGooglePlacesNearby } from "@/lib/google";
+import {
+  fetchGooglePlaceDetails,
+  fetchGooglePlacesNearby,
+  fetchGooglePlacesForCoordinates,
+  fetchGoogleStreetViewPhotos,
+} from "@/lib/google";
 import { findClosestPlace } from "@/lib/utils";
 
 // Enrich playground data with Google Places information
@@ -27,6 +32,7 @@ export async function POST(req: NextRequest) {
 
         let googlePlace = null;
         let googlePlaceDetails = null;
+        let streetViewPhotos: any[] = [];
 
         // Search for nearby Google Places
         const types = [
@@ -55,6 +61,32 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        if (!googlePlace) {
+          // Get formatted address for the coordinates
+          const placesNearby = await fetchGooglePlacesForCoordinates({
+            lat: playground.lat,
+            lon: playground.lon,
+          });
+
+          if (placesNearby.length) {
+            const closest = findClosestPlace(
+              placesNearby,
+              playground.lat,
+              playground.lon,
+            );
+
+            if (closest.place && closest.distance < 10) {
+              googlePlace = closest.place;
+            }
+          }
+
+          // Get street view photos for the coordinates
+          streetViewPhotos = await fetchGoogleStreetViewPhotos({
+            lat: playground.lat,
+            lon: playground.lon,
+          });
+        }
+
         // Fetch place details if we found a Google Place
         if (googlePlace) {
           googlePlaceDetails = await fetchGooglePlaceDetails({
@@ -76,12 +108,17 @@ export async function POST(req: NextRequest) {
             googlePlaceDetails?.generativeSummary?.overview?.text ||
             playground.description,
           address: googlePlaceDetails?.formattedAddress || playground.address,
-          photos: googlePlace?.photos || playground.photos || [],
+          photos:
+            streetViewPhotos || googlePlace?.photos || playground.photos || [],
           googlePlaceId: googlePlace?.place_id,
           reviews: googlePlaceDetails?.reviews,
           reviewSummary: googlePlaceDetails?.reviewSummary,
           enriched: true,
-          enrichmentSource: googlePlace ? "google" : "osm",
+          enrichmentSource: googlePlace
+            ? "google"
+            : streetViewPhotos.length > 0
+              ? "google_fallback"
+              : "osm",
         };
       }),
     );
