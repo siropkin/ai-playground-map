@@ -5,6 +5,7 @@ import {
   PlaygroundSubmitData,
   AccessType,
   SurfaceType,
+  MapBounds,
 } from "@/types/playground";
 import {
   createPlaygroundMetadata,
@@ -12,6 +13,152 @@ import {
   updatePlaygroundMetadata,
 } from "@/data/playgrounds";
 import { createClient } from "@/lib/supabase/server";
+
+// Function to fetch playgrounds from Overpass API
+// https://wiki.openstreetmap.org/wiki/Key:playground
+async function fetchOSMPlaygrounds(bounds: MapBounds) {
+  const box = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
+  const query = `
+    [out:json][timeout:25];
+    nwr["leisure"="playground"](${box});
+    out geom;
+  `;
+
+  try {
+    const response = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: `data=${encodeURIComponent(query)}`,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Overpass API error: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return data.elements || [];
+  } catch (error) {
+    console.error(
+      "Error fetching OSM data:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return [];
+  }
+}
+
+// Get playgrounds for boundaries
+export async function GET(req: NextRequest) {
+  try {
+    // Extract map bounds from URL parameters
+    const url = new URL(req.url);
+    const south = parseFloat(url.searchParams.get("south") || "0");
+    const north = parseFloat(url.searchParams.get("north") || "0");
+    const west = parseFloat(url.searchParams.get("west") || "0");
+    const east = parseFloat(url.searchParams.get("east") || "0");
+
+    // Validate bounds
+    if (isNaN(south) || isNaN(north) || isNaN(west) || isNaN(east)) {
+      return NextResponse.json(
+        { error: "Invalid map bounds parameters" },
+        { status: 400 },
+      );
+    }
+
+    if (
+      south < -90 ||
+      north > 90 ||
+      west < -180 ||
+      east > 180 ||
+      south >= north ||
+      west >= east
+    ) {
+      return NextResponse.json(
+        { error: "Invalid map bounds values" },
+        { status: 400 },
+      );
+    }
+
+    const bounds: MapBounds = { south, north, west, east };
+
+    // Fetch OSM playgrounds
+    const osmPlaygrounds = await fetchOSMPlaygrounds(bounds);
+
+    if (osmPlaygrounds.length === 0) {
+      return NextResponse.json({ results: [] });
+    }
+
+    // Process playgrounds
+    const results = [];
+
+    for (const playground of osmPlaygrounds) {
+      // Extract coordinates from the playground data
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+
+      if (playground.type === "node" && playground.lat && playground.lon) {
+        // Node type has direct lat/lon
+        latitude = playground.lat;
+        longitude = playground.lon;
+      } else if (playground.geometry && playground.geometry.length > 0) {
+        // Way or relation type has geometry array
+        // Calculate centroid from all geometry points
+        const points = playground.geometry;
+        const sumLat = points.reduce(
+          (sum: number, point: any) => sum + point.lat,
+          0,
+        );
+        const sumLon = points.reduce(
+          (sum: number, point: any) => sum + point.lon,
+          0,
+        );
+        latitude = sumLat / points.length;
+        longitude = sumLon / points.length;
+      } else if (playground.bounds) {
+        // Fallback to center of bounds
+        latitude = (playground.bounds.minlat + playground.bounds.maxlat) / 2;
+        longitude = (playground.bounds.minlon + playground.bounds.maxlon) / 2;
+      }
+
+      // Combine results for this playground
+      results.push({
+        id: playground.id,
+        name: playground.tags?.name || "Unnamed playground",
+        description: playground.tags?.description || "No description available",
+        latitude: latitude,
+        longitude: longitude,
+        address: null,
+        city: null,
+        state: null,
+        zipCode: null,
+        ageMin: null,
+        ageMax: null,
+        openHours: null,
+        accessType: null,
+        surfaceType: null,
+        features: null,
+        photos: null,
+        isApproved: true,
+        createdAt: null,
+        updatedAt: null,
+      });
+    }
+
+    return NextResponse.json({ results });
+  } catch (error) {
+    console.error(
+      "Error in playground get API:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
+  }
+}
 
 // Parse multipart form data for playground submissions
 async function parseSubmitPlaygroundFormData(

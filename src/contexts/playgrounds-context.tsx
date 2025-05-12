@@ -1,6 +1,6 @@
 "use client";
 
-import type { Playground } from "@/types/playground";
+import { MapBounds, Playground } from "@/types/playground";
 import {
   type ReactNode,
   createContext,
@@ -12,7 +12,6 @@ import {
   useState,
 } from "react";
 import { useFilters } from "@/contexts/filters-context";
-import { getPlaygroundsForBounds } from "@/data/playgrounds";
 import {
   AGE_GROUPS,
   APP_ADMIN_ROLE,
@@ -25,6 +24,7 @@ type FlyToCoordinates = [number, number]; // [longitude, latitude]
 interface PlaygroundsContextType {
   playgrounds: Playground[];
   loading: boolean;
+  zoomOutRequired: boolean;
   error: string | null;
   flyToCoords: FlyToCoordinates | null;
   requestFlyTo: (coords: FlyToCoordinates) => void;
@@ -35,12 +35,37 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
   undefined,
 );
 
+export async function getPlaygroundsForBounds(
+  bounds: MapBounds,
+): Promise<Playground[]> {
+  try {
+    const url = new URL("/api/playgrounds", window.location.origin);
+    url.searchParams.append("south", bounds.south.toString());
+    url.searchParams.append("north", bounds.north.toString());
+    url.searchParams.append("west", bounds.west.toString());
+    url.searchParams.append("east", bounds.east.toString());
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.results;
+  } catch (error) {
+    console.error("Error fetching playgrounds from research API:", error);
+    return [];
+  }
+}
+
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const { mapBounds, approvals, accesses, ages, features } = useFilters();
   const { user } = useAuth();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
+  const [zoomOutRequired, setZoomOutRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
 
@@ -66,8 +91,10 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             const playgroundsForBounds =
               await getPlaygroundsForBounds(mapBounds);
             setPlaygrounds(playgroundsForBounds);
+            setZoomOutRequired(false);
           } else {
             setPlaygrounds([]);
+            setZoomOutRequired(true);
           }
         }
       } catch (err) {
@@ -76,7 +103,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 500);
   }, [mapBounds]);
 
   useEffect(() => {
@@ -154,6 +181,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       value={{
         playgrounds: filteredPlaygrounds,
         loading,
+        zoomOutRequired,
         error,
         flyToCoords,
         requestFlyTo,
