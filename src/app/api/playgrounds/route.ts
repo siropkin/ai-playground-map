@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
-    // Process playgrounds
+    // Process playgrounds - extract only basic data from OSM
     const results = [];
 
     for (const playground of osmPlaygrounds) {
@@ -86,68 +86,17 @@ export async function GET(req: NextRequest) {
         lon = (playground.bounds.minlon + playground.bounds.maxlon) / 2;
       }
 
-      let googlePlace = null;
-      let googlePlaceDetails = null;
-      if (&& lat && lon) {
-        const types = [
-          { type: "playground", radius: 10 },
-          { type: "park", radius: 50 },
-        ];
-        for (const type of types) {
-          const placesNearby = await fetchGooglePlacesNearby({
-            lat: lat,
-            lon: lon,
-            radius: type.radius,
-            type: type.type,
-          });
-
-          if (placesNearby.length) {
-            const closest = findClosestPlace(placesNearby, lat, lon);
-            if (closest.place && closest.distance < type.radius) {
-              googlePlace = closest.place;
-              break;
-            }
-          }
-        }
-      }
-
-      const photos = await Promise.all(
-        (googlePlace?.photos || []).map(
-          async (photo: { photo_reference: string }) => {
-            const photoUrl = await resolveGooglePlacePhotoReferences({
-              photoReference: photo.photo_reference,
-              maxWidth: 640,
-            });
-            return {
-              src: photoUrl,
-              caption: googlePlace?.name,
-            };
-          },
-        ),
-      );
-
-      if (googlePlace) {
-        googlePlaceDetails = await fetchGooglePlaceDetails({
-          placeId: googlePlace.place_id,
-          fields: [
-            "formatted_address",
-            "generativeSummary",
-            "reviewSummary",
-            "reviews",
-          ],
-        });
-      }
-
-      // Combine results for this playground
+      // Add basic playground data from OSM
       results.push({
         id: playground.id,
-        name: googlePlace?.name || playground.tags?.name || "Playground",
-        description:
-          googlePlaceDetails?.generativeSummary?.overview?.text ||
-          playground.tags?.description,
+        osmId: playground.id,
+        name: playground.tags?.name || "Playground",
+        description: playground.tags?.description || null,
         lat,
         lon,
-        address: googlePlaceDetails?.formattedAddress || null,
+        address: null,
+        osmTags: playground.tags || {},
+        enriched: false,
       });
     }
 

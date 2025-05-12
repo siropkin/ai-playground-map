@@ -1,10 +1,24 @@
 export type Playground = {
   id: number;
+  osmId?: number;
   name: string;
-  description: string;
-  lat: number;
-  lon: number;
-  address: string;
+  description: string | null;
+  lat: number | undefined;
+  lon: number | undefined;
+  address: string | null;
+  osmTags?: Record<string, any>;
+  enriched?: boolean;
+  enrichmentSource?: 'google' | 'osm';
+  googlePlaceId?: string;
+  photos?: Array<{ src: string | null; caption: string | null }>;
+  reviews?: any[];
+  reviewSummary?: any;
+  
+  // Filter-related properties
+  accessType?: AccessType;
+  ageMin?: number;
+  ageMax?: number;
+  features?: FeatureType[];
 };
 
 export type AccessType =
