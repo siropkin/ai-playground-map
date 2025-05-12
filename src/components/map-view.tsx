@@ -104,13 +104,8 @@ const createGeoJson = (
 export function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const {
-    playgrounds,
-    flyToCoords,
-    clearFlyToRequest,
-    loading,
-    zoomOutRequired,
-  } = usePlaygrounds();
+  const { playgrounds, flyToCoords, clearFlyToRequest, loading } =
+    usePlaygrounds();
   const router = useRouter();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
@@ -552,11 +547,6 @@ export function MapView() {
       {loading && (
         <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
           Loading playgrounds...
-        </div>
-      )}
-      {zoomOutRequired && (
-        <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
-          Zoom out to see playgrounds
         </div>
       )}
     </div>

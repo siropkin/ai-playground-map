@@ -4,8 +4,6 @@ export const SITE_NAME = "Good Playground Map";
 
 export const PHOTOS_BUCKET_NAME = "playground-photos";
 
-export const MAX_ZOOM_LEVEL_TO_FETCH_DATA = 100;
-
 export const APP_ADMIN_ROLE = "app_admin";
 
 export const AGE_GROUPS = [

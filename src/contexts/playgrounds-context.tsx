@@ -12,11 +12,7 @@ import {
   useState,
 } from "react";
 import { useFilters } from "@/contexts/filters-context";
-import {
-  AGE_GROUPS,
-  APP_ADMIN_ROLE,
-  MAX_ZOOM_LEVEL_TO_FETCH_DATA,
-} from "@/lib/constants";
+import { AGE_GROUPS, APP_ADMIN_ROLE } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
@@ -24,7 +20,6 @@ type FlyToCoordinates = [number, number]; // [longitude, latitude]
 interface PlaygroundsContextType {
   playgrounds: Playground[];
   loading: boolean;
-  zoomOutRequired: boolean;
   error: string | null;
   flyToCoords: FlyToCoordinates | null;
   requestFlyTo: (coords: FlyToCoordinates) => void;
@@ -65,7 +60,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
-  const [zoomOutRequired, setZoomOutRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
 
@@ -82,20 +76,8 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       try {
         if (mapBounds) {
-          const zoomLevel = Math.max(
-            Math.abs(mapBounds.north - mapBounds.south),
-            Math.abs(mapBounds.east - mapBounds.west),
-          );
-
-          if (zoomLevel <= MAX_ZOOM_LEVEL_TO_FETCH_DATA) {
-            const playgroundsForBounds =
-              await getPlaygroundsForBounds(mapBounds);
-            setPlaygrounds(playgroundsForBounds);
-            setZoomOutRequired(false);
-          } else {
-            setPlaygrounds([]);
-            setZoomOutRequired(true);
-          }
+          const playgroundsForBounds = await getPlaygroundsForBounds(mapBounds);
+          setPlaygrounds(playgroundsForBounds);
         }
       } catch (err) {
         console.error("Error fetching playgrounds:", err);
@@ -181,7 +163,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       value={{
         playgrounds: filteredPlaygrounds,
         loading,
-        zoomOutRequired,
         error,
         flyToCoords,
         requestFlyTo,

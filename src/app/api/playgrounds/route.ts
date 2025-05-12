@@ -16,8 +16,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getOSMPlaygrounds } from "@/lib/osm";
 import { findClosestPlace } from "@/lib/utils";
 import {
-  getGooglePlaceDetails,
-  getGooglePlacesNearby,
+  fetchGooglePlaceDetails,
+  fetchGooglePlacesNearby,
   resolveGooglePlacePhotoReferences,
 } from "@/lib/google";
 
@@ -56,7 +56,11 @@ export async function GET(req: NextRequest) {
     const bounds: MapBounds = { south, north, west, east };
 
     // Fetch OSM playgrounds
-    const osmPlaygrounds = await getOSMPlaygrounds(bounds, 20);
+    const osmPlaygrounds = await getOSMPlaygrounds({
+      bounds,
+      timeout: 5,
+      limit: 50,
+    });
 
     if (osmPlaygrounds.length === 0) {
       return NextResponse.json({ results: [] });
@@ -94,29 +98,24 @@ export async function GET(req: NextRequest) {
         longitude = (playground.bounds.minlon + playground.bounds.maxlon) / 2;
       }
 
-      const MAX_GOOGLE_PLACE_DISTANCE_METERS = 10;
       let googlePlace = null;
       let googlePlaceDetails = null;
       if (latitude && longitude) {
         const types = [
-          "playground",
-          "park",
-          // "establishment",
-          // "point_of_interest",
+          { type: "playground", radius: 10 },
+          { type: "park", radius: 50 },
         ];
         for (const type of types) {
-          const placesNearby = await getGooglePlacesNearby(
-            { lat: latitude, lng: longitude },
-            MAX_GOOGLE_PLACE_DISTANCE_METERS,
-            type,
-          );
+          const placesNearby = await fetchGooglePlacesNearby({
+            latitude,
+            longitude,
+            radius: type.radius,
+            type: type.type,
+          });
 
           if (placesNearby.length) {
             const closest = findClosestPlace(placesNearby, latitude, longitude);
-            if (
-              closest.place &&
-              closest.distance < MAX_GOOGLE_PLACE_DISTANCE_METERS
-            ) {
+            if (closest.place && closest.distance < type.radius) {
               googlePlace = closest.place;
               break;
             }
@@ -127,9 +126,10 @@ export async function GET(req: NextRequest) {
       const photos = await Promise.all(
         (googlePlace?.photos || []).map(
           async (photo: { photo_reference: string }) => {
-            const photoUrl = await resolveGooglePlacePhotoReferences(
-              photo.photo_reference,
-            );
+            const photoUrl = await resolveGooglePlacePhotoReferences({
+              photoReference: photo.photo_reference,
+              maxWidth: 640,
+            });
             return {
               src: photoUrl,
               caption: googlePlace?.name,
@@ -139,13 +139,15 @@ export async function GET(req: NextRequest) {
       );
 
       if (googlePlace) {
-        googlePlaceDetails = await getGooglePlaceDetails(googlePlace.place_id, [
-          // "name",
-          "formatted_address",
-          "generativeSummary",
-          "reviewSummary",
-          "reviews",
-        ]);
+        googlePlaceDetails = await fetchGooglePlaceDetails({
+          placeId: googlePlace.place_id,
+          fields: [
+            "formatted_address",
+            "generativeSummary",
+            "reviewSummary",
+            "reviews",
+          ],
+        });
       }
 
       // Combine results for this playground
