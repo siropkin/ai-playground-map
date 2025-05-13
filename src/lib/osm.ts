@@ -1,5 +1,9 @@
 import { OSMPlaceDetails, OSMQueryData } from "@/types/osm";
 import { MapBounds } from "@/types/map";
+import {
+  getMultipleOSMDetailsFromCache,
+  saveMultipleOSMDetailsToCache
+} from "./supabase/cache";
 
 // Function to fetch playgrounds from Overpass API
 // https://wiki.openstreetmap.org/wiki/Key:playground
@@ -57,24 +61,6 @@ export async function runOSMQuery({
   }
 }
 
-// Time-based in-memory cache for OSM place details
-const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
-type CachedOSMPlaceDetails = {
-  detail: OSMPlaceDetails;
-  timestamp: number;
-};
-
-const osmPlaceDetailsCache: Record<string, CachedOSMPlaceDetails> = {};
-
-// Helper to generate a cache key for each item
-function getCacheKey(item: { id: string; type: string }) {
-  return `${item.type}:${item.id}`;
-}
-
-function isCacheValid(entry: CachedOSMPlaceDetails) {
-  return Date.now() - entry.timestamp < CACHE_TTL_MS;
-}
 
 export async function fetchOSMPlacesDetails({
   items,
@@ -100,19 +86,8 @@ export async function fetchOSMPlacesDetails({
       relation: "R",
     };
 
-    // Split items into cached (and valid) and uncached
-    const cachedDetails: OSMPlaceDetails[] = [];
-    const uncachedItems: { id: string; type: string }[] = [];
-
-    for (const item of items) {
-      const key = getCacheKey(item);
-      const cacheEntry = osmPlaceDetailsCache[key];
-      if (cacheEntry && isCacheValid(cacheEntry)) {
-        cachedDetails.push(cacheEntry.detail);
-      } else {
-        uncachedItems.push(item);
-      }
-    }
+    // Get cached items from Supabase
+    const { cachedDetails, uncachedItems } = await getMultipleOSMDetailsFromCache(items);
 
     let fetchedDetails: OSMPlaceDetails[] = [];
     if (uncachedItems.length > 0 && !signal?.aborted) {
@@ -133,14 +108,9 @@ export async function fetchOSMPlacesDetails({
 
       fetchedDetails = await response.json();
 
-      // Cache each fetched detail with timestamp
-      for (const detail of fetchedDetails) {
-        // detail.osm_type: "node" | "way" | "relation", detail.osm_id: number
-        const key = `${detail.osm_type}:${detail.osm_id}`;
-        osmPlaceDetailsCache[key] = {
-          detail,
-          timestamp: Date.now(),
-        };
+      // Save fetched details to Supabase cache
+      if (fetchedDetails.length > 0) {
+        await saveMultipleOSMDetailsToCache(fetchedDetails);
       }
     }
 

@@ -1,11 +1,4 @@
-type CacheEntry = {
-  value: string;
-  timestamp: number; // milliseconds since epoch
-};
-type Cache = Map<string, CacheEntry>;
-const cache: Cache = new Map();
-
-const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+import { getDescriptionFromCache, saveDescriptionToCache } from "./supabase/cache";
 
 export async function fetchPlaygroundDescription(
   address: string,
@@ -22,14 +15,10 @@ export async function fetchPlaygroundDescription(
       throw new Error("OpenAI API key is missing");
     }
 
-    const cached = cache.get(address);
-    if (cached) {
-      const now = Date.now();
-      if (now - cached.timestamp < CACHE_TTL_MS) {
-        return cached.value;
-      } else {
-        cache.delete(address); // Remove expired entry
-      }
+    // Try to get from Supabase cache first
+    const cachedDescription = await getDescriptionFromCache(address);
+    if (cachedDescription) {
+      return cachedDescription;
     }
 
     const input = `
@@ -72,7 +61,10 @@ export async function fetchPlaygroundDescription(
         )
         ?.content?.[0]?.text.trim() || null;
 
-    cache.set(address, { value: description, timestamp: Date.now() });
+    // Save to Supabase cache
+    if (description) {
+      await saveDescriptionToCache(address, description);
+    }
     return description;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
