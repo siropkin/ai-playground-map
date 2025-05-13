@@ -1,4 +1,4 @@
-import { AccessType, FeatureType } from "@/types/playground";
+import { AccessType, FeatureType } from "@/types/filter";
 
 export const SITE_NAME = "Good Playground Map";
 

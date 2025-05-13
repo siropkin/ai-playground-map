@@ -1,6 +1,6 @@
 "use client";
 
-import { MapBounds, Playground } from "@/types/playground";
+import { Playground } from "@/types/playground";
 import {
   type ReactNode,
   createContext,
@@ -14,6 +14,8 @@ import { useDebounce } from "@/lib/hooks";
 import { useFilters } from "@/contexts/filters-context";
 import { AGE_GROUPS } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
+import { MapBounds } from "@/types/map";
+import { OSMPlaceDetails } from "@/types/osm";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -57,13 +59,13 @@ export async function getPlaygroundsForBounds(
 }
 
 // Enrich playground data with Google Places information
-export async function enrichPlaygrounds(
+export async function playgroundsDetails(
   playgrounds: Playground[],
-): Promise<Playground[]> {
-  if (!playgrounds.length) return playgrounds;
+): Promise<OSMPlaceDetails[]> {
+  if (!playgrounds.length) return [];
 
   try {
-    const response = await fetch("/api/playgrounds/enrich", {
+    const response = await fetch("/api/playgrounds/details", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -79,13 +81,12 @@ export async function enrichPlaygrounds(
     return data.results;
   } catch (error) {
     console.error("Error enriching playgrounds with Google data:", error);
-    return playgrounds; // Return original playgrounds if enrichment fails
+    return [];
   }
 }
 
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
-  const { mapBounds, approvals, accesses, ages, features } = useFilters();
-  const { user } = useAuth();
+  const { mapBounds } = useFilters();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,7 +122,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   }, [mapBounds]);
 
   // Debounce the fetch to avoid too many requests when panning/zooming
-  const debouncedFetchPlaygrounds = useDebounce(fetchPlaygrounds, 500);
+  const debouncedFetchPlaygrounds = useDebounce(fetchPlaygrounds, 1000);
 
   // Fetch basic playground data when bounds change
   useEffect(() => {
@@ -135,7 +136,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       setEnriching(true);
       try {
-        const enriched = await enrichPlaygrounds(pendingEnrichment);
+        const enriched = await playgroundsDetails(pendingEnrichment);
 
         // Update the playgrounds state with enriched data
         setPlaygrounds((prev) => {
@@ -144,10 +145,23 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           // Replace each enriched playground in the array
           enriched.forEach((enrichedPlayground) => {
             const index = updatedPlaygrounds.findIndex(
-              (p) => p.id === enrichedPlayground.id,
+              (p) => p.id === enrichedPlayground.osm_id,
             );
             if (index !== -1) {
-              updatedPlaygrounds[index] = enrichedPlayground;
+              console.log(enrichedPlayground);
+              // Return enriched playground data
+              const name =
+                enrichedPlayground?.localname ||
+                enrichedPlayground?.names?.name ||
+                updatedPlaygrounds[index].name;
+              const address = enrichedPlayground?.display_name;
+
+              updatedPlaygrounds[index] = {
+                ...updatedPlaygrounds[index],
+                name,
+                address,
+                enriched: true,
+              };
             }
           });
 
@@ -166,51 +180,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     performEnrichment();
   }, [pendingEnrichment]);
 
-  const filteredPlaygrounds = useMemo(() => {
-    const accessSet = accesses && accesses.length ? new Set(accesses) : null;
-    const ageSet = ages && ages.length ? new Set(ages) : null;
-    const featureSet = features && features.length ? new Set(features) : null;
-
-    return playgrounds.filter((playground) => {
-      // Filter by access
-      if (
-        accessSet &&
-        playground.accessType &&
-        !accessSet.has(playground.accessType)
-      ) {
-        return false;
-      }
-
-      // Filter by ages (check if playground's age range overlaps with any selected age group)
-      if (
-        ageSet &&
-        playground.ageMin !== undefined &&
-        playground.ageMax !== undefined
-      ) {
-        const matchesAge = AGE_GROUPS.some(
-          (group: { key: string; min: number; max: number }) => {
-            if (!ageSet.has(group.key)) return false;
-            return (
-              playground.ageMin! <= group.max && playground.ageMax! >= group.min
-            );
-          },
-        );
-        if (!matchesAge) return false;
-      }
-
-      // Filter by features (must include all selected features)
-      if (featureSet && features && playground.features) {
-        if (
-          !features.every((feature) => playground.features!.includes(feature))
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [playgrounds, approvals, accesses, ages, features, user]);
-
   const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
     setFlyToCoords(coords);
   }, []);
@@ -222,7 +191,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   return (
     <PlaygroundsContext.Provider
       value={{
-        playgrounds: filteredPlaygrounds,
+        playgrounds,
         loading,
         enriching,
         error,

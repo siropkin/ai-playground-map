@@ -10,7 +10,6 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 
-import type { MapBounds, AccessType, FeatureType } from "@/types/playground";
 import {
   roundMapBounds,
   getMapBoundsStateFromUrl,
@@ -18,6 +17,8 @@ import {
   getFilterStateFromUrl,
   updateUrlWithFilters,
 } from "@/lib/filters-utils";
+import { AccessType, FeatureType } from "@/types/filter";
+import { MapBounds } from "@/types/map";
 
 interface FiltersContextType {
   mapBounds: MapBounds | null;

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { MapBounds } from "@/types/playground";
-import { getOSMData } from "@/lib/osm";
+import { MapBounds } from "@/types/map";
+import { Playground } from "@/types/playground";
+import { runOSMQuery } from "@/lib/osm";
 
 // Get playgrounds for boundaries
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+): Promise<
+  NextResponse<{ results: Playground[] }> | NextResponse<{ error: string }>
+> {
   try {
     // Extract map bounds from URL parameters
     const url = new URL(req.url);
@@ -38,7 +43,7 @@ export async function GET(req: NextRequest) {
     const bounds: MapBounds = { south, north, west, east };
 
     // Fetch OSM playgrounds
-    const osmPlaygrounds = await getOSMData({
+    const osmPlaygrounds = await runOSMQuery({
       bounds,
       type: "playground",
       timeout: 5,
@@ -50,54 +55,18 @@ export async function GET(req: NextRequest) {
     }
 
     // Process playgrounds - extract only basic data from OSM
-    const results = [];
-
-    for (const playground of osmPlaygrounds) {
-      // Extract coordinates from the playground data
-      let lat: number | undefined;
-      let lon: number | undefined;
-
-      if (playground.type === "node" && playground.lat && playground.lon) {
-        // Node type has direct lat/lon
-        lat = playground.lat;
-        lon = playground.lon;
-      } else if (playground.geometry && playground.geometry.length > 0) {
-        // Way or relation type has geometry array
-        // Calculate centroid from all geometry points
-        const points = playground.geometry;
-        const sumLat = points.reduce(
-          (sum: number, point: any) => sum + point.lat,
-          0,
-        );
-        const sumLon = points.reduce(
-          (sum: number, point: any) => sum + point.lon,
-          0,
-        );
-        lat = sumLat / points.length;
-        lon = sumLon / points.length;
-      } else if (playground.bounds) {
-        // Fallback to center of bounds
-        lat = (playground.bounds.minlat + playground.bounds.maxlat) / 2;
-        lon = (playground.bounds.minlon + playground.bounds.maxlon) / 2;
-      }
-
-      if (!lat || !lon) {
-        continue;
-      }
-
-      // Add basic playground data from OSM
-      results.push({
-        id: playground.id,
-        osmId: playground.id,
-        name: playground.tags?.name || "Playground",
-        description: playground.tags?.description || null,
-        lat,
-        lon,
-        address: null,
-        osmTags: playground.tags || {},
-        enriched: false,
-      });
-    }
+    const results = osmPlaygrounds.map((playground) => ({
+      id: playground.id,
+      name: playground.tags?.name || null,
+      description: playground.tags?.description || null,
+      lat: playground.type === "node" ? playground.lat : playground.center?.lat,
+      lon: playground.type === "node" ? playground.lon : playground.center?.lon,
+      address: null,
+      osmId: playground.id,
+      osmType: playground.type,
+      osmTags: playground.tags,
+      enriched: false,
+    }));
 
     return NextResponse.json({ results });
   } catch (error) {

@@ -1,5 +1,5 @@
-import type { MapBounds } from "@/types/playground";
 import type { FilterCriteria } from "@/types/filter";
+import { MapBounds } from "@/types/map";
 
 export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
   if (!bounds) {

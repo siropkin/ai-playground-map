@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Filter } from "lucide-react";
 
-import type { AccessType, FeatureType } from "@/types/playground";
 import {
   ACCESS_TYPES,
   AGE_GROUPS,
@@ -24,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatEnumString } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { AccessType, FeatureType } from "@/types/filter";
 
 const sortedAccessTypes = [...ACCESS_TYPES].sort();
 const sortedFeatureTypes = [...FEATURE_TYPES].sort();
