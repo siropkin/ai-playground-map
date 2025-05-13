@@ -4,6 +4,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import ReactMarkdown from "react-markdown";
 
 export function PlaygroundList({
@@ -11,7 +12,7 @@ export function PlaygroundList({
 }: {
   showEmptyState?: boolean;
 }) {
-  const { playgrounds, requestFlyTo } = usePlaygrounds();
+  const { playgrounds, requestFlyTo, loading, enriching } = usePlaygrounds();
 
   if (!playgrounds?.length) {
     return showEmptyState ? (
@@ -64,11 +65,13 @@ export function PlaygroundList({
             <CardContent className="flex w-2/3 flex-col gap-2 p-4">
               {name && <h3 className="font-semibold">{name}</h3>}
 
-              {playground.description && (
+              {loading || enriching ? (
+                <Skeleton className="h-16 w-full" />
+              ) : playground.description ? (
                 <div className="text-muted-foreground text-xs">
                   <ReactMarkdown>{playground.description}</ReactMarkdown>
                 </div>
-              )}
+              ) : null}
 
               {playground.osmTags && (
                 <div className="flex flex-wrap gap-1">
@@ -87,7 +90,9 @@ export function PlaygroundList({
                 </div>
               )}
 
-              {playground.address && (
+              {loading || enriching ? (
+                <Skeleton className="h-4 w-full" />
+              ) : playground.address ? (
                 <div
                   className="text-muted-foreground flex cursor-pointer items-center text-xs"
                   onClick={() => {
@@ -97,7 +102,7 @@ export function PlaygroundList({
                   📍
                   <span className="truncate">{playground.address}</span>
                 </div>
-              )}
+              ) : null}
             </CardContent>
           </Card>
         );
