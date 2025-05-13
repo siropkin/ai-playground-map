@@ -3,12 +3,12 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/auth-context";
-import { LogIn, LogOut } from "lucide-react";
+// import { useAuth } from "@/contexts/auth-context";
+// import { LogIn, LogOut } from "lucide-react";
 // import { ThemeToggle } from "@/components/theme-toggle";
 
 export function NavBar() {
-  const { user, signIn, signOut } = useAuth();
+  // const { user, signIn, signOut } = useAuth();
 
   return (
     <nav className="flex items-center justify-between space-x-2 border-b p-4">
@@ -52,17 +52,17 @@ export function NavBar() {
           </Button>
         </Link>
         {/*<ThemeToggle />*/}
-        {user ? (
-          <Button variant="outline" onClick={signOut} aria-label="Sign out">
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:block">Log out</span>
-          </Button>
-        ) : (
-          <Button variant="outline" onClick={signIn} aria-label="Sign in">
-            <LogIn className="h-4 w-4" />
-            <span className="hidden sm:block">Log in</span>
-          </Button>
-        )}
+        {/*{user ? (*/}
+        {/*  <Button variant="outline" onClick={signOut} aria-label="Sign out">*/}
+        {/*    <LogOut className="h-4 w-4" />*/}
+        {/*    <span className="hidden sm:block">Log out</span>*/}
+        {/*  </Button>*/}
+        {/*) : (*/}
+        {/*  <Button variant="outline" onClick={signIn} aria-label="Sign in">*/}
+        {/*    <LogIn className="h-4 w-4" />*/}
+        {/*    <span className="hidden sm:block">Log in</span>*/}
+        {/*  </Button>*/}
+        {/*)}*/}
       </div>
     </nav>
   );

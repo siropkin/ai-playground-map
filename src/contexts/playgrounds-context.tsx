@@ -34,7 +34,7 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
 );
 
 // Fetch basic playground data from OSM
-export async function getPlaygroundsForBounds(
+export async function runPlaygroundsSearch(
   bounds: MapBounds,
 ): Promise<Playground[]> {
   try {
@@ -59,7 +59,7 @@ export async function getPlaygroundsForBounds(
 }
 
 // Enrich playground data with Google Places information
-export async function playgroundsDetails(
+export async function fetcPlaygroundsDetails(
   playgrounds: Playground[],
 ): Promise<OSMPlaceDetails[]> {
   if (!playgrounds.length) return [];
@@ -105,10 +105,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const playgroundsForBounds = await getPlaygroundsForBounds(mapBounds);
+      const playgroundsForBounds = await runPlaygroundsSearch(mapBounds);
       setPlaygrounds(playgroundsForBounds);
 
-      // Queue non-enriched playgrounds for enrichment
       const nonEnriched = playgroundsForBounds.filter((p) => !p.enriched);
       if (nonEnriched.length > 0) {
         setPendingEnrichment(nonEnriched);
@@ -136,26 +135,18 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       setEnriching(true);
       try {
-        const enriched = await playgroundsDetails(pendingEnrichment);
+        const details = await fetcPlaygroundsDetails(pendingEnrichment);
 
-        // Update the playgrounds state with enriched data
         setPlaygrounds((prev) => {
           const updatedPlaygrounds = [...prev];
 
-          // Replace each enriched playground in the array
-          enriched.forEach((enrichedPlayground) => {
+          details.forEach((enrichedPlayground) => {
             const index = updatedPlaygrounds.findIndex(
               (p) => p.id === enrichedPlayground.osm_id,
             );
             if (index !== -1) {
-              console.log(enrichedPlayground);
-              // Return enriched playground data
-              const name =
-                enrichedPlayground?.localname ||
-                enrichedPlayground?.names?.name ||
-                updatedPlaygrounds[index].name;
+              const name = updatedPlaygrounds[index].name;
               const address = enrichedPlayground?.display_name;
-
               updatedPlaygrounds[index] = {
                 ...updatedPlaygrounds[index],
                 name,
@@ -168,7 +159,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           return updatedPlaygrounds;
         });
 
-        // Clear pending enrichment
         setPendingEnrichment([]);
       } catch (err) {
         console.error("Error enriching playgrounds:", err);

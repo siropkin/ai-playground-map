@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Clock } from "lucide-react";
 
 import { SITE_NAME } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +31,11 @@ export async function generateMetadata({
     };
   }
 
-  const title = `${playground.name} | ${SITE_NAME}`;
+  const name = playground.name || "Unnamed Playground";
+  const title = `${name} | ${SITE_NAME}`;
   const description =
     playground.description ||
-    `Explore ${playground.name} details, features, and location.`;
+    `Explore ${name} details, features, and location.`;
 
   return {
     title,
@@ -48,7 +48,7 @@ export async function generateMetadata({
           url: `/api/og/playgrounds/${resolvedParams.id}`,
           width: 1200,
           height: 630,
-          alt: playground.name,
+          alt: name,
         },
       ],
       type: "website",
