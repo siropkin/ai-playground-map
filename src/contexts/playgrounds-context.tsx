@@ -7,15 +7,13 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
 } from "react";
-import { useDebounce } from "@/lib/hooks";
 import { useFilters } from "@/contexts/filters-context";
-import { AGE_GROUPS } from "@/lib/constants";
-import { useAuth } from "@/contexts/auth-context";
 import { MapBounds } from "@/types/map";
 import { OSMPlaceDetails } from "@/types/osm";
+import { useDebounce } from "@/lib/hooks";
+import { runOSMQuery, fetchOSMPlacesDetails } from "@/lib/osm";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -33,54 +31,61 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
   undefined,
 );
 
-// Fetch basic playground data from OSM
+/**
+ * Directly fetch playground data from OSM without going through an API route
+ */
 export async function runPlaygroundsSearch(
   bounds: MapBounds,
 ): Promise<Playground[]> {
   try {
-    const url = new URL("/api/playgrounds", window.location.origin);
-    url.searchParams.append("south", bounds.south.toString());
-    url.searchParams.append("north", bounds.north.toString());
-    url.searchParams.append("west", bounds.west.toString());
-    url.searchParams.append("east", bounds.east.toString());
+    // Fetch OSM playgrounds directly
+    const osmPlaygrounds = await runOSMQuery({
+      bounds,
+      type: "playground",
+      timeout: 5,
+      limit: 25,
+    });
 
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    if (osmPlaygrounds.length === 0) {
+      return [];
     }
 
-    const data = await response.json();
-    return data.results;
+    // Process playgrounds - extract only basic data from OSM
+    return osmPlaygrounds.map((playground) => ({
+      id: playground.id,
+      name: playground.tags?.name || null,
+      description: playground.tags?.description || null,
+      lat: playground.type === "node" ? playground.lat : playground.center?.lat,
+      lon: playground.type === "node" ? playground.lon : playground.center?.lon,
+      address: null,
+      osmId: playground.id,
+      osmType: playground.type,
+      osmTags: playground.tags,
+      enriched: false,
+    }));
   } catch (error) {
-    console.error("Error fetching playgrounds from OSM API:", error);
+    console.error("Error fetching playgrounds from OSM:", error);
     return [];
   }
 }
 
-// Enrich playground data with Google Places information
-export async function fetcPlaygroundsDetails(
+/**
+ * Directly fetch playground details without going through an API route
+ */
+export async function fetchPlaygroundsDetails(
   playgrounds: Playground[],
 ): Promise<OSMPlaceDetails[]> {
   if (!playgrounds.length) return [];
 
   try {
-    const response = await fetch("/api/playgrounds/details", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ playgrounds }),
+    return await fetchOSMPlacesDetails({
+      items: playgrounds.map((playground) => ({
+        id: String(playground.osmId), // Convert number to string
+        type: String(playground.osmType), // Ensure type is string
+      })),
     });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.results;
   } catch (error) {
-    console.error("Error enriching playgrounds with Google data:", error);
+    console.error("Error enriching playgrounds with OSM data:", error);
     return [];
   }
 }
@@ -121,7 +126,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   }, [mapBounds]);
 
   // Debounce the fetch to avoid too many requests when panning/zooming
-  const debouncedFetchPlaygrounds = useDebounce(fetchPlaygrounds, 1000);
+  const debouncedFetchPlaygrounds = useDebounce(fetchPlaygrounds, 1500);
 
   // Fetch basic playground data when bounds change
   useEffect(() => {
@@ -135,7 +140,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
       setEnriching(true);
       try {
-        const details = await fetcPlaygroundsDetails(pendingEnrichment);
+        const details = await fetchPlaygroundsDetails(pendingEnrichment);
 
         setPlaygrounds((prev) => {
           const updatedPlaygrounds = [...prev];

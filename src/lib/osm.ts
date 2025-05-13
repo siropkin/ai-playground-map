@@ -71,7 +71,7 @@ export async function fetchOSMPlacesDetails({
       .map((item) => `${typeMap[item.type] || "N"}${item.id}`)
       .join(",");
 
-    const endpoint = `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmIds}&addressdetails=1&extratags=1&namedetails=1&format=json`;
+    const endpoint = `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmIds}&addressdetails=1&format=json`;
 
     const response = await fetch(endpoint);
 

@@ -45,7 +45,7 @@ export async function generateMetadata({
       description,
       images: [
         {
-          url: `/api/og/playgrounds/${resolvedParams.id}`,
+          url: `/api/og/playground/${resolvedParams.id}`,
           width: 1200,
           height: 630,
           alt: name,

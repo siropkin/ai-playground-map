@@ -47,7 +47,5 @@ export type OSMPlaceDetails = {
     country_code?: string;
     [key: string]: string | undefined;
   };
-  extratags?: Record<string, string>;
-  namedetails?: Record<string, string> | null;
   boundingbox: [string, string, string, string];
 };

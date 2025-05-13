@@ -32,7 +32,7 @@ export function PlaygroundList({
       {playgrounds.map((playground) => {
         // const displayPhoto = playground.photos?.[0];
         const name = playground.name || "Unnamed Playground";
-
+        console.log("playground:", playground);
         return (
           <Card
             key={playground.id}
