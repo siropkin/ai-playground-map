@@ -69,7 +69,20 @@ export function PlaygroundList({
                 <Skeleton className="h-16 w-full" />
               ) : playground.description ? (
                 <div className="text-muted-foreground text-xs">
-                  <ReactMarkdown>{playground.description}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      a: ({ node, ...props }) => (
+                        <a
+                          {...props}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ textDecoration: "underline" }}
+                        />
+                      ),
+                    }}
+                  >
+                    {playground.description}
+                  </ReactMarkdown>
                 </div>
               ) : null}
 
