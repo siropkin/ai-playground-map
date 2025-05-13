@@ -14,6 +14,7 @@ import { MapBounds } from "@/types/map";
 import { OSMPlaceDetails } from "@/types/osm";
 import { useDebounce } from "@/lib/hooks";
 import { runOSMQuery, fetchOSMPlacesDetails } from "@/lib/osm";
+import { fetchPlaygroundDescription } from "@/lib/openai";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -25,6 +26,7 @@ interface PlaygroundsContextType {
   flyToCoords: FlyToCoordinates | null;
   requestFlyTo: (coords: FlyToCoordinates) => void;
   clearFlyToRequest: () => void;
+  getPlaygroundDescription: (address: string) => Promise<string | null>;
 }
 
 const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
@@ -135,34 +137,43 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
   // Enrich playgrounds with Google data when pendingEnrichment changes
   useEffect(() => {
-    const performEnrichment = async () => {
-      if (pendingEnrichment.length === 0) return;
+    if (pendingEnrichment.length === 0) return;
 
+    const performEnrichment = async () => {
       setEnriching(true);
       try {
         const details = await fetchPlaygroundsDetails(pendingEnrichment);
 
-        setPlaygrounds((prev) => {
-          const updatedPlaygrounds = [...prev];
+        // Update address and enriched flag
+        setPlaygrounds((prev) =>
+          prev.map((p) => {
+            const enriched = details.find((d) => d.osm_id === p.id);
+            return enriched
+              ? {
+                  ...p,
+                  address: enriched.display_name,
+                  enriched: true,
+                }
+              : p;
+          }),
+        );
 
-          details.forEach((enrichedPlayground) => {
-            const index = updatedPlaygrounds.findIndex(
-              (p) => p.id === enrichedPlayground.osm_id,
-            );
-            if (index !== -1) {
-              const name = updatedPlaygrounds[index].name;
-              const address = enrichedPlayground?.display_name;
-              updatedPlaygrounds[index] = {
-                ...updatedPlaygrounds[index],
-                name,
-                address,
-                enriched: true,
-              };
+        // Fetch and set playground descriptions using OpenAI
+        const descriptions: Record<string, string | null> = {};
+        await Promise.all(
+          details.map(async (enrichedPlayground) => {
+            const address = enrichedPlayground?.display_name;
+            if (address) {
+              const desc = await fetchPlaygroundDescription(address);
+              descriptions[enrichedPlayground.osm_id] = desc;
             }
-          });
-
-          return updatedPlaygrounds;
-        });
+          }),
+        );
+        setPlaygrounds((prev) =>
+          prev.map((p) =>
+            descriptions[p.id] ? { ...p, description: descriptions[p.id] } : p,
+          ),
+        );
 
         setPendingEnrichment([]);
       } catch (err) {
@@ -193,6 +204,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         flyToCoords,
         requestFlyTo,
         clearFlyToRequest,
+        getPlaygroundDescription: fetchPlaygroundDescription, // Expose in context
       }}
     >
       {children}
