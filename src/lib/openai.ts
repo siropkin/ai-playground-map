@@ -26,7 +26,14 @@ export async function fetchPlaygroundDescription(
       }
     }
 
-    const input = `Using the most relevant and up-to-date search results, write a short 2-sentence description of the playground located at ${address}. Highlight specific features (like slides, swings, splash pads, etc), age suitability, and overall atmosphere. Mention if it's shaded, fenced, busy, or family-friendly. If no information is found, say so clearly. Return only the plain text description.`;
+    const input = `
+      Using the most relevant and up-to-date search results, return a short 2-sentence description of the playground located at ${address}. 
+      Highlight specific features (like slides, swings, splash pads, etc), age suitability, and overall atmosphere. 
+      Mention if it's shaded, fenced, busy, or family-friendly. 
+      If no reliable information is found, return an empty string. 
+      Do not repeating the name or address. 
+      Do not include apologies.
+    `;
 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
