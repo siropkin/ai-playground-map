@@ -1,15 +1,18 @@
-import { getDescriptionFromCache, saveDescriptionToCache } from "./supabase/cache";
+import {
+  getDescriptionFromCache,
+  saveDescriptionToCache,
+} from "./supabase/cache";
 
 export async function fetchPlaygroundDescription(
   address: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<string | null> {
   try {
     // Check if request was aborted
     if (signal?.aborted) {
       return null;
     }
-    
+
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error("OpenAI API key is missing");
@@ -26,7 +29,6 @@ export async function fetchPlaygroundDescription(
       Highlight specific features (like slides, swings, splash pads, etc), age suitability, and overall atmosphere.
       Mention if it's shaded, fenced, busy, or family-friendly.
       If no reliable information is found, return an empty string.
-      Do not repeating the name or address.
       Do not include apologies.
     `;
 
@@ -71,7 +73,7 @@ export async function fetchPlaygroundDescription(
       console.log("OpenAI description fetch was aborted");
       return null;
     }
-    
+
     console.error("Error fetching playground description:", error);
     return null;
   }
