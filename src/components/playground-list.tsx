@@ -4,6 +4,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
+import ReactMarkdown from "react-markdown";
 
 export function PlaygroundList({
   showEmptyState,
@@ -32,14 +33,10 @@ export function PlaygroundList({
       {playgrounds.map((playground) => {
         // const displayPhoto = playground.photos?.[0];
         const name = playground.name || "Unnamed Playground";
-        console.log("playground:", playground);
         return (
           <Card
             key={playground.id}
-            className="bg-background/95 flex min-h-[200px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
-            onClick={() => {
-              requestFlyTo([playground.lon, playground.lat]);
-            }}
+            className="bg-background/95 flex min-h-[200px] flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
           >
             <CardHeader className="flex w-1/3 gap-0 p-0">
               <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
@@ -69,7 +66,7 @@ export function PlaygroundList({
 
               {playground.description && (
                 <div className="text-muted-foreground text-xs">
-                  {playground.description}
+                  <ReactMarkdown>{playground.description}</ReactMarkdown>
                 </div>
               )}
 
@@ -91,7 +88,12 @@ export function PlaygroundList({
               )}
 
               {playground.address && (
-                <div className="text-muted-foreground flex items-center text-xs">
+                <div
+                  className="text-muted-foreground flex cursor-pointer items-center text-xs"
+                  onClick={() => {
+                    requestFlyTo([playground.lon, playground.lat]);
+                  }}
+                >
                   📍
                   <span className="truncate">{playground.address}</span>
                 </div>

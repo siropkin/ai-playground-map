@@ -5,7 +5,10 @@ import { OSMPlaceDetails } from "@/types/osm";
 /**
  * Client-side function to fetch playgrounds from the API
  */
-export async function fetchPlaygrounds(bounds: MapBounds): Promise<Playground[]> {
+export async function fetchPlaygrounds(
+  bounds: MapBounds,
+  signal?: AbortSignal
+): Promise<Playground[]> {
   try {
     const response = await fetch("/api/playgrounds/search", {
       method: "POST",
@@ -13,6 +16,7 @@ export async function fetchPlaygrounds(bounds: MapBounds): Promise<Playground[]>
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ bounds }),
+      signal,
     });
 
     if (!response.ok) {
@@ -21,6 +25,10 @@ export async function fetchPlaygrounds(bounds: MapBounds): Promise<Playground[]>
 
     return await response.json();
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.log("Fetch playgrounds request was aborted");
+      return [];
+    }
     console.error("Error fetching playgrounds:", error);
     return [];
   }
@@ -30,7 +38,8 @@ export async function fetchPlaygrounds(bounds: MapBounds): Promise<Playground[]>
  * Client-side function to fetch playground details from the API
  */
 export async function fetchPlaygroundDetails(
-  playgrounds: Playground[]
+  playgrounds: Playground[],
+  signal?: AbortSignal
 ): Promise<OSMPlaceDetails[]> {
   try {
     if (!playgrounds.length) return [];
@@ -41,6 +50,7 @@ export async function fetchPlaygroundDetails(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ playgrounds }),
+      signal,
     });
 
     if (!response.ok) {
@@ -49,6 +59,10 @@ export async function fetchPlaygroundDetails(
 
     return await response.json();
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.log("Fetch playground details request was aborted");
+      return [];
+    }
     console.error("Error fetching playground details:", error);
     return [];
   }
@@ -58,7 +72,8 @@ export async function fetchPlaygroundDetails(
  * Client-side function to fetch a playground description from the API
  */
 export async function fetchPlaygroundDescription(
-  address: string
+  address: string,
+  signal?: AbortSignal
 ): Promise<string | null> {
   try {
     const response = await fetch("/api/playgrounds/description", {
@@ -67,6 +82,7 @@ export async function fetchPlaygroundDescription(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ address }),
+      signal,
     });
 
     if (!response.ok) {
@@ -76,6 +92,10 @@ export async function fetchPlaygroundDescription(
     const data = await response.json();
     return data.description;
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.log("Fetch playground description request was aborted");
+      return null;
+    }
     console.error("Error fetching playground description:", error);
     return null;
   }

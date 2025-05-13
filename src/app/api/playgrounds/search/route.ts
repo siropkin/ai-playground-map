@@ -4,7 +4,18 @@ import { MapBounds } from "@/types/map";
 import { Playground } from "@/types/playground";
 
 export async function POST(request: NextRequest) {
+  // Get the AbortSignal from the request
+  const signal = request.signal;
+  
   try {
+    // Check if the request has been aborted
+    if (signal?.aborted) {
+      return NextResponse.json(
+        { error: "Request aborted" },
+        { status: 499 } // 499 is a common status code for aborted requests
+      );
+    }
+    
     const body = await request.json();
     const { bounds } = body as { bounds: MapBounds };
 
@@ -15,13 +26,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch OSM playgrounds
+    // Fetch OSM playgrounds with the AbortSignal
     const osmPlaygrounds = await runOSMQuery({
       bounds,
       type: "playground",
       timeout: 5,
       limit: 25,
+      signal,
     });
+
+    // Check if the request has been aborted after the fetch
+    if (signal?.aborted) {
+      return NextResponse.json(
+        { error: "Request aborted" },
+        { status: 499 }
+      );
+    }
 
     if (osmPlaygrounds.length === 0) {
       return NextResponse.json([]);
@@ -43,6 +63,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(playgrounds);
   } catch (error) {
+    // Handle aborted requests
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return NextResponse.json(
+        { error: "Request aborted" },
+        { status: 499 }
+      );
+    }
+    
     console.error("Error fetching playgrounds from OSM:", error);
     return NextResponse.json(
       { error: "Failed to fetch playgrounds" },

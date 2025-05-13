@@ -50,25 +50,35 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const [pendingEnrichment, setPendingEnrichment] = useState<Playground[]>([]);
 
   // Fetch basic playground data when bounds change
-  const fetchPlaygrounds = useCallback(async () => {
+  const fetchPlaygrounds = useCallback(async (signal?: AbortSignal) => {
     if (!mapBounds) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const playgroundsForBounds = await apiGetPlaygrounds(mapBounds);
-      setPlaygrounds(playgroundsForBounds);
+      const playgroundsForBounds = await apiGetPlaygrounds(mapBounds, signal);
+      
+      // Check if the request was aborted before updating state
+      if (!signal?.aborted) {
+        setPlaygrounds(playgroundsForBounds);
 
-      const nonEnriched = playgroundsForBounds.filter((p) => !p.enriched);
-      if (nonEnriched.length > 0) {
-        setPendingEnrichment(nonEnriched);
+        const nonEnriched = playgroundsForBounds.filter((p) => !p.enriched);
+        if (nonEnriched.length > 0) {
+          setPendingEnrichment(nonEnriched);
+        }
       }
     } catch (err) {
-      console.error("Error fetching playgrounds:", err);
-      setError("Failed to load playgrounds. Please try again.");
+      // Only update error state if not aborted
+      if (!(err instanceof DOMException && err.name === "AbortError") && !signal?.aborted) {
+        console.error("Error fetching playgrounds:", err);
+        setError("Failed to load playgrounds. Please try again.");
+      }
     } finally {
-      setLoading(false);
+      // Only update loading state if not aborted
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }, [mapBounds]);
 
@@ -77,17 +87,34 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
   // Fetch basic playground data when bounds change
   useEffect(() => {
-    debouncedFetchPlaygrounds();
+    // Create a controller for this effect instance
+    const controller = new AbortController();
+    
+    const fetchData = async () => {
+      // Call the debounced function which will eventually trigger fetchPlaygrounds
+      debouncedFetchPlaygrounds();
+    };
+    
+    fetchData();
+    
+    // Cleanup function to abort fetch if component unmounts or dependencies change
+    return () => {
+      controller.abort();
+    };
   }, [debouncedFetchPlaygrounds]);
 
   // Enrich playgrounds with Google data when pendingEnrichment changes
   useEffect(() => {
     if (pendingEnrichment.length === 0) return;
 
-    const performEnrichment = async () => {
+    const performEnrichment = async (signal?: AbortSignal) => {
       setEnriching(true);
+      
       try {
-        const details = await apiGetPlaygroundDetails(pendingEnrichment);
+        const details = await apiGetPlaygroundDetails(pendingEnrichment, signal);
+        
+        // Check if request was aborted
+        if (signal?.aborted) return;
 
         // Update address and enriched flag
         setPlaygrounds((prev) =>
@@ -105,30 +132,58 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
         // Fetch and set playground descriptions using OpenAI
         const descriptions: Record<string, string | null> = {};
+        
         await Promise.all(
           details.map(async (enrichedPlayground: OSMPlaceDetails) => {
             const address = enrichedPlayground?.display_name;
             if (address) {
-              const desc = await fetchPlaygroundDescription(address);
-              descriptions[enrichedPlayground.osm_id] = desc;
+              // Use the same signal for all description requests
+              const desc = await fetchPlaygroundDescription(address, signal);
+              
+              // Only update if not aborted
+              if (!signal?.aborted) {
+                descriptions[enrichedPlayground.osm_id] = desc;
+              }
             }
           }),
         );
-        setPlaygrounds((prev) =>
-          prev.map((p) =>
-            descriptions[p.id] ? { ...p, description: descriptions[p.id] } : p,
-          ),
-        );
-
-        setPendingEnrichment([]);
+        
+        // Check if the main request was aborted before updating state
+        if (!signal?.aborted) {
+          setPlaygrounds((prev) =>
+            prev.map((p) =>
+              descriptions[p.id] ? { ...p, description: descriptions[p.id] } : p,
+            ),
+          );
+          
+          setPendingEnrichment([]);
+        }
       } catch (err) {
-        console.error("Error enriching playgrounds:", err);
+        // Only update error state if not aborted
+        if (!(err instanceof DOMException && err.name === "AbortError") && !signal?.aborted) {
+          console.error("Error enriching playgrounds:", err);
+        }
       } finally {
-        setEnriching(false);
+        // Only update loading state if not aborted
+        if (!signal?.aborted) {
+          setEnriching(false);
+        }
       }
     };
 
-    performEnrichment();
+    // Create a controller for this effect instance
+    const controller = new AbortController();
+    
+    const fetchData = async () => {
+      await performEnrichment();
+    };
+    
+    fetchData();
+    
+    // Cleanup function to abort fetch if component unmounts or dependencies change
+    return () => {
+      controller.abort();
+    };
   }, [pendingEnrichment]);
 
   const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
@@ -149,7 +204,11 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         flyToCoords,
         requestFlyTo,
         clearFlyToRequest,
-        getPlaygroundDescription: fetchPlaygroundDescription, // Expose in context
+        getPlaygroundDescription: (address: string) => {
+          // Create a new AbortController for each description request
+          const controller = new AbortController();
+          return fetchPlaygroundDescription(address, controller.signal);
+        }, // Expose in context
       }}
     >
       {children}

@@ -8,11 +8,13 @@ export async function runOSMQuery({
   type,
   timeout,
   limit,
+  signal,
 }: {
   bounds: MapBounds;
   type: string;
   timeout: number;
   limit: number;
+  signal?: AbortSignal;
 }): Promise<OSMQueryData[]> {
   try {
     const box = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
@@ -29,6 +31,7 @@ export async function runOSMQuery({
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: `data=${encodeURIComponent(query)}`,
+      signal,
     });
 
     if (!response.ok) {
@@ -41,6 +44,11 @@ export async function runOSMQuery({
 
     return data.elements || [];
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.log("OSM query was aborted");
+      return [];
+    }
+    
     console.error(
       "Error fetching OSM data:",
       error instanceof Error ? error.message : String(error),
@@ -70,11 +78,18 @@ function isCacheValid(entry: CachedOSMPlaceDetails) {
 
 export async function fetchOSMPlacesDetails({
   items,
+  signal,
 }: {
   items: { id: string; type: string }[];
+  signal?: AbortSignal;
 }): Promise<OSMPlaceDetails[]> {
   try {
     if (!Array.isArray(items) || items.length === 0) {
+      return [];
+    }
+
+    // Check if request was aborted
+    if (signal?.aborted) {
       return [];
     }
 
@@ -100,7 +115,7 @@ export async function fetchOSMPlacesDetails({
     }
 
     let fetchedDetails: OSMPlaceDetails[] = [];
-    if (uncachedItems.length > 0) {
+    if (uncachedItems.length > 0 && !signal?.aborted) {
       // Build osm_ids param: e.g. N123,W456,R789
       const osmIds = uncachedItems
         .map((item) => `${typeMap[item.type] || "N"}${item.id}`)
@@ -108,7 +123,7 @@ export async function fetchOSMPlacesDetails({
 
       const endpoint = `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmIds}&addressdetails=1&format=json`;
 
-      const response = await fetch(endpoint);
+      const response = await fetch(endpoint, { signal });
 
       if (!response.ok) {
         throw new Error(
@@ -131,6 +146,11 @@ export async function fetchOSMPlacesDetails({
 
     return [...cachedDetails, ...fetchedDetails];
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.log("OSM details fetch was aborted");
+      return [];
+    }
+    
     console.error("Error fetching OSM details for ids:", error);
     return [];
   }
