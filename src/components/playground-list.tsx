@@ -31,6 +31,7 @@ export function PlaygroundList({
     <div className="flex flex-col space-y-2">
       {playgrounds.map((playground) => {
         // const displayPhoto = playground.photos?.[0];
+        const name = playground.name || "Unnamed Playground";
 
         return (
           <Card
@@ -63,10 +64,8 @@ export function PlaygroundList({
               </div>
             </CardHeader>
 
-            <CardContent className="flex w-2/3 flex-col p-4">
-              {playground.name && (
-                <h3 className="font-semibold">{playground.name}</h3>
-              )}
+            <CardContent className="flex w-2/3 flex-col gap-2 p-4">
+              {name && <h3 className="font-semibold">{name}</h3>}
 
               {playground.description && (
                 <div className="text-muted-foreground text-xs">
@@ -74,15 +73,22 @@ export function PlaygroundList({
                 </div>
               )}
 
-              <div className="mt-2 flex flex-wrap gap-1">
-                {/* Render osmTags as badges */}
-                {playground.osmTags &&
-                  Object.entries(playground.osmTags).map(([key, value]) => (
-                    <Badge variant="outline" key={key}>
-                      {key}: {value}
+              {playground.osmTags && (
+                <div className="flex flex-wrap gap-1">
+                  {/* Render osmTags as badges */}
+                  {Object.entries(playground.osmTags).map(([key, value]) => (
+                    <Badge
+                      className="max-w-full truncate"
+                      variant="outline"
+                      key={key}
+                    >
+                      <span className="truncate">
+                        {key}: {value}
+                      </span>
                     </Badge>
                   ))}
-              </div>
+                </div>
+              )}
 
               {playground.address && (
                 <div className="text-muted-foreground flex items-center text-xs">
