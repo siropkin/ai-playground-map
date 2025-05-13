@@ -13,8 +13,11 @@ import { useFilters } from "@/contexts/filters-context";
 import { MapBounds } from "@/types/map";
 import { OSMPlaceDetails } from "@/types/osm";
 import { useDebounce } from "@/lib/hooks";
-import { runOSMQuery, fetchOSMPlacesDetails } from "@/lib/osm";
-import { fetchPlaygroundDescription } from "@/lib/openai";
+import {
+  fetchPlaygrounds as apiGetPlaygrounds,
+  fetchPlaygroundDetails as apiGetPlaygroundDetails,
+  fetchPlaygroundDescription
+} from "@/lib/api";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -33,64 +36,6 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
   undefined,
 );
 
-/**
- * Directly fetch playground data from OSM without going through an API route
- */
-export async function runPlaygroundsSearch(
-  bounds: MapBounds,
-): Promise<Playground[]> {
-  try {
-    // Fetch OSM playgrounds directly
-    const osmPlaygrounds = await runOSMQuery({
-      bounds,
-      type: "playground",
-      timeout: 5,
-      limit: 25,
-    });
-
-    if (osmPlaygrounds.length === 0) {
-      return [];
-    }
-
-    // Process playgrounds - extract only basic data from OSM
-    return osmPlaygrounds.map((playground) => ({
-      id: playground.id,
-      name: playground.tags?.name || null,
-      description: playground.tags?.description || null,
-      lat: playground.type === "node" ? playground.lat : playground.center?.lat,
-      lon: playground.type === "node" ? playground.lon : playground.center?.lon,
-      address: null,
-      osmId: playground.id,
-      osmType: playground.type,
-      osmTags: playground.tags,
-      enriched: false,
-    }));
-  } catch (error) {
-    console.error("Error fetching playgrounds from OSM:", error);
-    return [];
-  }
-}
-
-/**
- * Directly fetch playground details without going through an API route
- */
-export async function fetchPlaygroundsDetails(
-  playgrounds: Playground[],
-): Promise<OSMPlaceDetails[]> {
-  if (!playgrounds.length) return [];
-
-  try {
-    return await fetchOSMPlacesDetails({
-      items: playgrounds.map((playground) => ({
-        id: String(playground.osmId), // Convert number to string
-        type: String(playground.osmType), // Ensure type is string
-      })),
-    });
-  } catch (error) {
-    console.error("Error enriching playgrounds with OSM data:", error);
-    return [];
-  }
-}
 
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const { mapBounds } = useFilters();
@@ -112,7 +57,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const playgroundsForBounds = await runPlaygroundsSearch(mapBounds);
+      const playgroundsForBounds = await apiGetPlaygrounds(mapBounds);
       setPlaygrounds(playgroundsForBounds);
 
       const nonEnriched = playgroundsForBounds.filter((p) => !p.enriched);
@@ -142,12 +87,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     const performEnrichment = async () => {
       setEnriching(true);
       try {
-        const details = await fetchPlaygroundsDetails(pendingEnrichment);
+        const details = await apiGetPlaygroundDetails(pendingEnrichment);
 
         // Update address and enriched flag
         setPlaygrounds((prev) =>
           prev.map((p) => {
-            const enriched = details.find((d) => d.osm_id === p.id);
+            const enriched = details.find((d: OSMPlaceDetails) => d.osm_id === p.id);
             return enriched
               ? {
                   ...p,
@@ -161,7 +106,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         // Fetch and set playground descriptions using OpenAI
         const descriptions: Record<string, string | null> = {};
         await Promise.all(
-          details.map(async (enrichedPlayground) => {
+          details.map(async (enrichedPlayground: OSMPlaceDetails) => {
             const address = enrichedPlayground?.display_name;
             if (address) {
               const desc = await fetchPlaygroundDescription(address);
