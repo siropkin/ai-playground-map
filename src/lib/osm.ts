@@ -49,6 +49,25 @@ export async function runOSMQuery({
   }
 }
 
+// Time-based in-memory cache for OSM place details
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+type CachedOSMPlaceDetails = {
+  detail: OSMPlaceDetails;
+  timestamp: number;
+};
+
+const osmPlaceDetailsCache: Record<string, CachedOSMPlaceDetails> = {};
+
+// Helper to generate a cache key for each item
+function getCacheKey(item: { id: string; type: string }) {
+  return `${item.type}:${item.id}`;
+}
+
+function isCacheValid(entry: CachedOSMPlaceDetails) {
+  return Date.now() - entry.timestamp < CACHE_TTL_MS;
+}
+
 export async function fetchOSMPlacesDetails({
   items,
 }: {
@@ -66,22 +85,51 @@ export async function fetchOSMPlacesDetails({
       relation: "R",
     };
 
-    // Build osm_ids param: e.g. N123,W456,R789
-    const osmIds = items
-      .map((item) => `${typeMap[item.type] || "N"}${item.id}`)
-      .join(",");
+    // Split items into cached (and valid) and uncached
+    const cachedDetails: OSMPlaceDetails[] = [];
+    const uncachedItems: { id: string; type: string }[] = [];
 
-    const endpoint = `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmIds}&addressdetails=1&format=json`;
-
-    const response = await fetch(endpoint);
-
-    if (!response.ok) {
-      throw new Error(
-        `Nominatim API error: ${response.status} ${response.statusText}`,
-      );
+    for (const item of items) {
+      const key = getCacheKey(item);
+      const cacheEntry = osmPlaceDetailsCache[key];
+      if (cacheEntry && isCacheValid(cacheEntry)) {
+        cachedDetails.push(cacheEntry.detail);
+      } else {
+        uncachedItems.push(item);
+      }
     }
 
-    return await response.json();
+    let fetchedDetails: OSMPlaceDetails[] = [];
+    if (uncachedItems.length > 0) {
+      // Build osm_ids param: e.g. N123,W456,R789
+      const osmIds = uncachedItems
+        .map((item) => `${typeMap[item.type] || "N"}${item.id}`)
+        .join(",");
+
+      const endpoint = `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmIds}&addressdetails=1&format=json`;
+
+      const response = await fetch(endpoint);
+
+      if (!response.ok) {
+        throw new Error(
+          `Nominatim API error: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      fetchedDetails = await response.json();
+
+      // Cache each fetched detail with timestamp
+      for (const detail of fetchedDetails) {
+        // detail.osm_type: "node" | "way" | "relation", detail.osm_id: number
+        const key = `${detail.osm_type}:${detail.osm_id}`;
+        osmPlaceDetailsCache[key] = {
+          detail,
+          timestamp: Date.now(),
+        };
+      }
+    }
+
+    return [...cachedDetails, ...fetchedDetails];
   } catch (error) {
     console.error("Error fetching OSM details for ids:", error);
     return [];
