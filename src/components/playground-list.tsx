@@ -1,19 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
-import { MapPin } from "lucide-react";
 
 export function PlaygroundList({
   showEmptyState,
 }: {
   showEmptyState?: boolean;
 }) {
-  const { playgrounds, requestFlyTo, loading } = usePlaygrounds();
+  const { playgrounds, requestFlyTo } = usePlaygrounds();
 
   if (!playgrounds?.length) {
     return showEmptyState ? (
@@ -32,7 +30,7 @@ export function PlaygroundList({
 
   return (
     <div className="flex flex-col space-y-2">
-      {playgrounds.map((playground, index) => {
+      {playgrounds.map((playground) => {
         const displayImage = playground.images?.[0];
         const name = playground.name || UNNAMED_PLAYGROUND;
         return (
