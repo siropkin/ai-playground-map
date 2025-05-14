@@ -63,7 +63,24 @@ export function PlaygroundList({
             </CardHeader>
 
             <CardContent className="flex w-2/3 flex-col gap-2 p-4">
-              {name && <h3 className="font-semibold">{name}</h3>}
+              {name && (
+                <h3 className="font-semibold">
+                  <ReactMarkdown
+                    components={{
+                      a: ({ node, ...props }) => (
+                        <a
+                          {...props}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ textDecoration: "underline" }}
+                        />
+                      ),
+                    }}
+                  >
+                    {name}
+                  </ReactMarkdown>
+                </h3>
+              )}
 
               {loading || enriching ? (
                 <Skeleton className="h-16 w-full" />
