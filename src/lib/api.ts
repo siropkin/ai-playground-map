@@ -1,7 +1,7 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
 import { OSMPlaceDetails } from "@/types/osm";
-import { PerplexityAIQueryData } from "@/types/perplexity";
+import { PerplexityInsights } from "@/types/perplexity";
 
 /**
  * Client-side function to fetch playgrounds from the API
@@ -36,9 +36,9 @@ export async function fetchPlaygrounds(
 }
 
 /**
- * Client-side function to fetch playground details from the API
+ * Client-side function to fetch playgrounds details from the API
  */
-export async function fetchPlaygroundDetails(
+export async function fetchMultiplePlaygroundDetails(
   playgrounds: Playground[],
   signal?: AbortSignal,
 ): Promise<OSMPlaceDetails[]> {
@@ -70,14 +70,14 @@ export async function fetchPlaygroundDetails(
 }
 
 /**
- * Client-side function to fetch a playground description from the API
+ * Client-side function to generate a playground description from the API
  */
-export async function fetchPlaygroundDescription(
+export async function generatePlaygroundAiInsights(
   address: string,
   signal?: AbortSignal,
-): Promise<PerplexityAIQueryData | null> {
+): Promise<PerplexityInsights | null> {
   try {
-    const response = await fetch("/api/playgrounds/description", {
+    const response = await fetch("/api/playgrounds/ai-insights", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -91,13 +91,13 @@ export async function fetchPlaygroundDescription(
     }
 
     const data = await response.json();
-    return data.description;
+    return data.insights;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      console.log("Fetch playground description request was aborted");
+      console.log("Generate playground AI insights request was aborted");
       return null;
     }
-    console.error("Error fetching playground description:", error);
+    console.error("Error generating playground AI insights:", error);
     return null;
   }
 }

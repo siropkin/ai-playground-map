@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { MapBounds } from "@/types/map";
+import { OSMPlaceDetails } from "@/types/osm";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -89,4 +90,21 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   } else {
     window.history.pushState({}, "", url.pathname);
   }
+}
+
+export function getOSMKey(id: number, type: string): string {
+  const typeMap: Record<string, string> = {
+    node: "N",
+    way: "W",
+    relation: "R",
+  };
+  return `${typeMap[type] || "N"}${id}`;
+}
+
+export function formatOSMAddress(d: OSMPlaceDetails) {
+  // E Street NE, Washington, DC 20002
+  if (!d.address) {
+    return null;
+  }
+  return `${d.address.road}, ${d.address.city}, ${d.address.state} ${d.address.postcode}`;
 }

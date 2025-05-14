@@ -5,6 +5,9 @@ export type Playground = {
   lat: number;
   lon: number;
   address: string | null;
+  features: string[] | null;
+  parking: string | null;
+  sources: string[] | null;
   osmId: number;
   osmType: "node" | "way" | "relation" | null;
   osmTags: Record<string, string> | null;

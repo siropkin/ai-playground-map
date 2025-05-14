@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
@@ -31,7 +31,7 @@ export async function generateMetadata({
     };
   }
 
-  const name = playground.name || "Unnamed Playground";
+  const name = playground.name || UNNAMED_PLAYGROUND;
   const title = `${name} | ${SITE_NAME}`;
   const description =
     playground.description ||

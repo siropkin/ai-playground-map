@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import ReactMarkdown from "react-markdown";
+import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 export function PlaygroundList({
   showEmptyState,
 }: {
   showEmptyState?: boolean;
 }) {
-  const { playgrounds, requestFlyTo, loading, enriching } = usePlaygrounds();
+  const { playgrounds, requestFlyTo, loading } = usePlaygrounds();
 
   if (!playgrounds?.length) {
     return showEmptyState ? (
@@ -33,7 +33,7 @@ export function PlaygroundList({
     <div className="flex flex-col space-y-2">
       {playgrounds.map((playground) => {
         // const displayPhoto = playground.photos?.[0];
-        const name = playground.name || "Unnamed Playground";
+        const name = playground.name || UNNAMED_PLAYGROUND;
         return (
           <Card
             key={playground.id}
@@ -63,64 +63,37 @@ export function PlaygroundList({
             </CardHeader>
 
             <CardContent className="flex w-2/3 flex-col gap-2 p-4">
-              {name && (
-                <h3 className="font-semibold">
-                  <ReactMarkdown
-                    components={{
-                      a: ({ node, ...props }) => (
-                        <a
-                          {...props}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ textDecoration: "underline" }}
-                        />
-                      ),
-                    }}
-                  >
-                    {name}
-                  </ReactMarkdown>
-                </h3>
-              )}
+              {!playground.enriched ? (
+                <Skeleton className="h-4 w-full" />
+              ) : name ? (
+                <h3 className="font-semibold">{name}</h3>
+              ) : null}
 
-              {loading || enriching ? (
+              {!playground.enriched ? (
                 <Skeleton className="h-16 w-full" />
               ) : playground.description ? (
                 <div className="text-muted-foreground text-xs">
-                  <ReactMarkdown
-                    components={{
-                      a: ({ node, ...props }) => (
-                        <a
-                          {...props}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ textDecoration: "underline" }}
-                        />
-                      ),
-                    }}
-                  >
-                    {playground.description}
-                  </ReactMarkdown>
+                  {playground.description}
                 </div>
               ) : null}
 
-              {playground.osmTags && (
+              {!playground.enriched ? (
+                <Skeleton className="h-4 w-full" />
+              ) : playground.features?.length ? (
                 <div className="flex flex-wrap gap-1">
-                  {/* Render osmTags as badges */}
-                  {Object.entries(playground.osmTags).map(([key, value]) => (
+                  {playground.features.map((value, i) => (
                     <Badge
                       className="max-w-full truncate"
                       variant="outline"
-                      key={key}
+                      key={i}
                     >
-                      <span className="truncate">
-                        {key}: {value}
-                      </span>
+                      <span className="truncate">{value}</span>
                     </Badge>
                   ))}
                 </div>
-              )}
+              ) : null}
 
-              {loading || enriching ? (
+              {!playground.enriched ? (
                 <Skeleton className="h-4 w-full" />
               ) : playground.address ? (
                 <div
@@ -130,7 +103,7 @@ export function PlaygroundList({
                   }}
                 >
                   📍
-                  <span className="truncate">{playground.address}</span>
+                  {playground.address}
                 </div>
               ) : null}
             </CardContent>

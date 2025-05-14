@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchPlaygroundInfo } from "@/lib/perplexity";
+import { PerplexityInsights } from "@/types/perplexity";
+import { fetchPerplexityInsights } from "@/lib/perplexity";
 
-export async function POST(request: NextRequest) {
-  // Get the AbortSignal from the request
+export async function POST(
+  request: NextRequest,
+): Promise<
+  | NextResponse<{ error: string }>
+  | NextResponse<{ insights: PerplexityInsights | null }>
+> {
   const signal = request.signal;
 
   try {
-    // Check if the request has been aborted
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
@@ -21,24 +25,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the description using OpenAI with the AbortSignal
-    const description = await fetchPlaygroundInfo(address, signal);
+    const insights = await fetchPerplexityInsights(address, signal);
 
-    // Check if the request has been aborted after the fetch
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    return NextResponse.json({ description });
+    return NextResponse.json({ insights });
   } catch (error) {
-    // Handle aborted requests
     if (error instanceof DOMException && error.name === "AbortError") {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error generating playground description:", error);
+    console.error("Error generating playground AI insights:", error);
     return NextResponse.json(
-      { error: "Failed to generate playground description" },
+      { error: "Failed to generate playground AI insights" },
       { status: 500 },
     );
   }

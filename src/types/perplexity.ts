@@ -1,4 +1,4 @@
-export type PerplexityAIQueryData = {
+export type PerplexityInsights = {
   name: string;
   description: string;
   features: string[];
