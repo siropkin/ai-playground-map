@@ -132,6 +132,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                       features: aiInsight?.features || p.features,
                       parking: aiInsight?.parking || p.parking,
                       sources: aiInsight?.sources || p.sources,
+                      images: aiInsight?.images || p.images,
                       enriched: true,
                     }
                   : p,

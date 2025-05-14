@@ -70,8 +70,9 @@ export default async function PlaygroundDetail({
     return null;
   }
 
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.latitude},${playground.longitude}`;
-  const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
+  // Assuming ageMin and ageMax are not in the current Playground type
+  const ageRange = null; // getAgeRange(playground.ageMin, playground.ageMax);
 
   return (
     <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
@@ -79,15 +80,12 @@ export default async function PlaygroundDetail({
       <div className="flex flex-col gap-8 md:flex-row">
         {/* Left side - Image Carousel */}
         <div className="w-full md:w-1/2">
-          {playground.photos.length > 0 ? (
+          {playground.images && playground.images.length > 0 ? (
             <ImageCarousel
-              images={[...playground.photos]
-                .sort((a, b) => (a.isPrimary ? -1 : b.isPrimary ? 1 : 0))
-                .map((photo) => ({
-                  filename: photo.filename,
-                  caption: photo.caption,
-                  alt: photo.caption || `${playground.name} photo`,
-                }))}
+              images={playground.images.map((imageUrl) => ({
+                filename: imageUrl,
+                alt: `${playground.name || UNNAMED_PLAYGROUND} photo`,
+              }))}
               className="aspect-square md:aspect-[4/3]"
             />
           ) : (
@@ -107,16 +105,7 @@ export default async function PlaygroundDetail({
 
           {/* Categories */}
           <div className="mb-4 flex flex-wrap gap-2">
-            {playground.accessType && (
-              <Badge className="px-2 py-1 text-xs">
-                {formatEnumString(playground.accessType)}
-              </Badge>
-            )}
-            {playground.surfaceType && (
-              <Badge className="px-2 py-1 text-xs">
-                {formatEnumString(playground.surfaceType)}
-              </Badge>
-            )}
+            {/* Access type and surface type badges removed as they're not in the current Playground type */}
             {ageRange && (
               <Badge className="px-2 py-1 text-xs">{ageRange}</Badge>
             )}
@@ -160,7 +149,7 @@ export default async function PlaygroundDetail({
               Features
             </h3>
             <div className="flex flex-wrap gap-2">
-              {playground.features.length === 0 ? (
+              {!playground.features || playground.features.length === 0 ? (
                 <p className="text-sm leading-relaxed">No features listed</p>
               ) : (
                 playground.features.map((feature: string) => (

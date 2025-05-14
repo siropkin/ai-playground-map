@@ -1,11 +1,12 @@
 "use client";
 
-// import Image from "next/image";
+import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
+import { MapPin } from "lucide-react";
 
 export function PlaygroundList({
   showEmptyState,
@@ -31,8 +32,8 @@ export function PlaygroundList({
 
   return (
     <div className="flex flex-col space-y-2">
-      {playgrounds.map((playground) => {
-        // const displayPhoto = playground.photos?.[0];
+      {playgrounds.map((playground, index) => {
+        const displayImage = playground.images?.[0];
         const name = playground.name || UNNAMED_PLAYGROUND;
         return (
           <Card
@@ -41,24 +42,19 @@ export function PlaygroundList({
           >
             <CardHeader className="flex w-1/3 gap-0 p-0">
               <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
-                {/*{displayPhoto ? (*/}
-                {/*  <Image*/}
-                {/*    className="h-full w-full object-cover"*/}
-                {/*    // src={displayPhoto.photo_reference}*/}
-                {/*    src={*/}
-                {/*      displayPhoto.streetview_params*/}
-                {/*        ? JSON.stringify(displayPhoto.streetview_params)*/}
-                {/*        : displayPhoto.photo_reference*/}
-                {/*    }*/}
-                {/*    alt={`Photo of ${playground.name}`}*/}
-                {/*    width={Math.min(displayPhoto.width, 300)}*/}
-                {/*    height={Math.min(displayPhoto.height, 300)}*/}
-                {/*    priority={index < 3}*/}
-                {/*  />*/}
-                {/*) : (*/}
-                {/*  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />*/}
-                {/*)}*/}
-                <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
+                {!playground.enriched ? (
+                  <Skeleton className="h-full w-full rounded-r-none" />
+                ) : displayImage ? (
+                  <img
+                    className="h-full w-full object-cover"
+                    src={displayImage.image_url}
+                    alt={`Photo of ${name}`}
+                    width={displayImage.width}
+                    height={displayImage.height}
+                  />
+                ) : (
+                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
+                )}
               </div>
             </CardHeader>
 
