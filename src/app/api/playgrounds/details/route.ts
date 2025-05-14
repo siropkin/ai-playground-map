@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OSMPlaceDetails } from "@/types/osm";
-import { getMultipleOSMPlaceDetails } from "@/lib/osm";
+import { getMultipleGoogleMapsPlaceDetails } from "@/lib/google-maps";
+import { Playground } from "@/types/playground";
+import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 
 export async function POST(
   request: NextRequest,
-): Promise<NextResponse<{ error: string }> | NextResponse<OSMPlaceDetails[]>> {
+): Promise<
+  NextResponse<{ error: string }> | NextResponse<GoogleMapsPlaceDetails[]>
+> {
   const signal = request.signal;
 
   try {
@@ -14,7 +18,7 @@ export async function POST(
 
     const body = await request.json();
     const { playgrounds } = body as {
-      playgrounds: { osmId: number; osmType: string }[];
+      playgrounds: Playground[];
     };
 
     if (
@@ -30,13 +34,17 @@ export async function POST(
 
     const items = playgrounds.map((playground) => ({
       id: playground.osmId,
-      type: playground.osmType,
+      type: (playground.osmType || "").toString(),
+      lat: playground.lat,
+      lon: playground.lon,
     }));
 
-    const details: OSMPlaceDetails[] = await getMultipleOSMPlaceDetails({
-      items,
-      signal,
-    });
+    // Use Google Maps for reverse geocoding instead of OSM
+    const details: GoogleMapsPlaceDetails[] =
+      await getMultipleGoogleMapsPlaceDetails({
+        items,
+        signal,
+      });
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
@@ -48,9 +56,12 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error fetching playgrounds details from OSM:", error);
+    console.error(
+      "Error fetching playgrounds details from Google Maps:",
+      error,
+    );
     return NextResponse.json(
-      { error: "Failed to fetch playgrounds details" },
+      { error: "Failed to fetch playgrounds details from Google Maps" },
       { status: 500 },
     );
   }

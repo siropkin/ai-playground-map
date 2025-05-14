@@ -20,7 +20,7 @@ async function fetchPerplexityInsights(
   }
 
   const prompt = `
-You are tasked with finding information about a children's playground at the following address: "${address}".
+You are tasked with finding information about a children's playground at the following address: ${address}
 
 Respond with a JSON object containing the following fields:
 {
@@ -40,6 +40,8 @@ If no playground is found at the address, return:
 
 Only respond with the JSON object. Do not include any additional text or formatting.
 `;
+
+  console.debug("Fetching AI insights from Perplexity...", prompt);
 
   const response = await fetch("https://api.perplexity.ai/chat/completions", {
     method: "POST",

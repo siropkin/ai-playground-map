@@ -1,7 +1,7 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
-import { OSMPlaceDetails } from "@/types/osm";
 import { PerplexityInsights } from "@/types/perplexity";
+import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 
 /**
  * Client-side function to fetch playgrounds from the API
@@ -41,7 +41,7 @@ export async function fetchPlaygrounds(
 export async function fetchMultiplePlaygroundDetails(
   playgrounds: Playground[],
   signal?: AbortSignal,
-): Promise<OSMPlaceDetails[]> {
+): Promise<GoogleMapsPlaceDetails[]> {
   try {
     if (!playgrounds.length) return [];
 

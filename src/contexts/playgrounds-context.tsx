@@ -17,7 +17,6 @@ import {
   generatePlaygroundAiInsights as apiGeneratePlaygroundAiInsight,
 } from "@/lib/api";
 import { useDebounce } from "@/lib/hooks";
-import { formatOSMAddress } from "@/lib/utils";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -107,13 +106,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
         await Promise.all(
           details.map(async (d) => {
-            const address = formatOSMAddress(d);
-            if (!address) {
+            if (!d.formatted_address) {
               return;
             }
 
             const aiInsight = await apiGeneratePlaygroundAiInsight(
-              address,
+              d.formatted_address,
               signal,
             );
 
@@ -128,7 +126,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                       ...p,
                       name: aiInsight?.name || p.name,
                       description: aiInsight?.description || p.description,
-                      address,
+                      address: d.formatted_address,
                       features: aiInsight?.features || p.features,
                       parking: aiInsight?.parking || p.parking,
                       sources: aiInsight?.sources || p.sources,
