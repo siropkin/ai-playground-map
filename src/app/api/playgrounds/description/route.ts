@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchPlaygroundInfo } from "@/lib/perplexityai";
+import { fetchPlaygroundInfo } from "@/lib/perplexity";
 
 export async function POST(request: NextRequest) {
   // Get the AbortSignal from the request

@@ -1,5 +1,5 @@
 import { getDescriptionFromCache, saveDescriptionToCache } from "@/lib/cache";
-import { PerplexityAIQueryData } from "@/types/perplexityai";
+import { PerplexityAIQueryData } from "@/types/perplexity";
 
 async function fetchPlaygroundInfo(
   address: string,

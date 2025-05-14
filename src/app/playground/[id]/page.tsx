@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
@@ -53,7 +53,7 @@ export async function generateMetadata({
       ],
       type: "website",
       locale: "en_US",
-      url: `https://goodplaygroundmap.com/playground/${resolvedParams.id}`,
+      url: `${SITE_URL}/playground/${resolvedParams.id}`,
     },
   };
 }

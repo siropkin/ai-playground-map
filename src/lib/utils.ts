@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Playground } from "@/types/playground";
+import { MapBounds } from "@/types/map";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -20,36 +20,73 @@ export function getAgeRange(ageMin: number | null, ageMax: number | null) {
   return `Ages ${ageMin}-${ageMax}`;
 }
 
-//
-export function findClosestPlace(
-  places: any[],
-  latitude: number,
-  longitude: number,
-) {
-  let closest = null;
-  let minDist = Number.POSITIVE_INFINITY;
-
-  for (const candidate of places) {
-    if (candidate.geometry && candidate.geometry.location) {
-      const dLat =
-        ((candidate.geometry.location.lat - latitude) * Math.PI) / 180;
-      const dLon =
-        ((candidate.geometry.location.lng - longitude) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((latitude * Math.PI) / 180) *
-          Math.cos((candidate.geometry.location.lat * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = 6371000 * c; // Earth radius in meters
-
-      if (distance < minDist) {
-        minDist = distance;
-        closest = candidate;
-      }
-    }
+export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
+  if (!bounds) {
+    return null;
   }
 
-  return { place: closest, distance: minDist };
+  return {
+    south: parseFloat(bounds.south.toFixed(4)),
+    north: parseFloat(bounds.north.toFixed(4)),
+    west: parseFloat(bounds.west.toFixed(4)),
+    east: parseFloat(bounds.east.toFixed(4)),
+  };
+}
+
+export function getMapBoundsStateFromUrl(): MapBounds | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+
+  const south = params.get("south");
+  const north = params.get("north");
+  const west = params.get("west");
+  const east = params.get("east");
+
+  const bounds = {
+    south: parseFloat(south || ""),
+    north: parseFloat(north || ""),
+    west: parseFloat(west || ""),
+    east: parseFloat(east || ""),
+  };
+
+  if (
+    isNaN(bounds.south) ||
+    isNaN(bounds.north) ||
+    isNaN(bounds.west) ||
+    isNaN(bounds.east)
+  ) {
+    return null;
+  }
+
+  return bounds;
+}
+
+export function updateUrlWithMapBounds(bounds: MapBounds | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+
+  if (bounds) {
+    params.set("south", String(bounds.south));
+    params.set("north", String(bounds.north));
+    params.set("west", String(bounds.west));
+    params.set("east", String(bounds.east));
+  } else {
+    params.delete("south");
+    params.delete("north");
+    params.delete("west");
+    params.delete("east");
+  }
+
+  if (params.toString()) {
+    window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
+  } else {
+    window.history.pushState({}, "", url.pathname);
+  }
 }

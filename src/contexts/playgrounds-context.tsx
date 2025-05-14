@@ -17,7 +17,7 @@ import {
   fetchPlaygroundDetails as apiGetPlaygroundDetails,
   fetchPlaygroundDescription,
 } from "@/lib/api";
-import { PerplexityAIQueryData } from "@/types/perplexityai";
+import { PerplexityAIQueryData } from "@/types/perplexity";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 

@@ -1,7 +1,7 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
 import { OSMPlaceDetails } from "@/types/osm";
-import { PerplexityAIQueryData } from "@/types/perplexityai";
+import { PerplexityAIQueryData } from "@/types/perplexity";
 
 /**
  * Client-side function to fetch playgrounds from the API
