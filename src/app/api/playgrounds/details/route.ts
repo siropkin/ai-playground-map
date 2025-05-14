@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { OSMPlaceDetails } from "@/types/osm";
 import { getMultipleGoogleMapsPlaceDetails } from "@/lib/google-maps";
 import { Playground } from "@/types/playground";
 import { GoogleMapsPlaceDetails } from "@/types/google-maps";
