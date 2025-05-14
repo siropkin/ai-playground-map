@@ -2,8 +2,8 @@ import { OSMPlaceDetails, OSMQueryData } from "@/types/osm";
 import { MapBounds } from "@/types/map";
 import {
   getMultipleOSMDetailsFromCache,
-  saveMultipleOSMDetailsToCache
-} from "./supabase/cache";
+  saveMultipleOSMDetailsToCache,
+} from "@/lib/cache";
 
 // Function to fetch playgrounds from Overpass API
 // https://wiki.openstreetmap.org/wiki/Key:playground
@@ -52,7 +52,7 @@ export async function runOSMQuery({
       console.log("OSM query was aborted");
       return [];
     }
-    
+
     console.error(
       "Error fetching OSM data:",
       error instanceof Error ? error.message : String(error),
@@ -60,7 +60,6 @@ export async function runOSMQuery({
     return [];
   }
 }
-
 
 export async function fetchOSMPlacesDetails({
   items,
@@ -87,7 +86,8 @@ export async function fetchOSMPlacesDetails({
     };
 
     // Get cached items from Supabase
-    const { cachedDetails, uncachedItems } = await getMultipleOSMDetailsFromCache(items);
+    const { cachedDetails, uncachedItems } =
+      await getMultipleOSMDetailsFromCache(items);
 
     let fetchedDetails: OSMPlaceDetails[] = [];
     if (uncachedItems.length > 0 && !signal?.aborted) {
@@ -120,7 +120,7 @@ export async function fetchOSMPlacesDetails({
       console.log("OSM details fetch was aborted");
       return [];
     }
-    
+
     console.error("Error fetching OSM details for ids:", error);
     return [];
   }

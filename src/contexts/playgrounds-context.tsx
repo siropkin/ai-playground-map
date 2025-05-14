@@ -17,6 +17,7 @@ import {
   fetchPlaygroundDetails as apiGetPlaygroundDetails,
   fetchPlaygroundDescription,
 } from "@/lib/api";
+import { PerplexityAIQueryData } from "@/types/perplexityai";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -29,6 +30,14 @@ interface PlaygroundsContextType {
   requestFlyTo: (coords: FlyToCoordinates) => void;
   clearFlyToRequest: () => void;
 }
+
+const formatAddress = (d: OSMPlaceDetails) => {
+  // E Street NE, Washington, DC 20002
+  if (!d.address) {
+    return null;
+  }
+  return `${d.address.road}, ${d.address.city}, ${d.address.state} ${d.address.postcode}`;
+};
 
 const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
   undefined,
@@ -131,7 +140,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             return enriched
               ? {
                   ...p,
-                  address: enriched.display_name,
+                  address: formatAddress(enriched),
                   enriched: true,
                 }
               : p;
@@ -139,11 +148,11 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         );
 
         // Fetch and set playground descriptions using OpenAI
-        const descriptions: Record<string, string | null> = {};
+        const descriptions: Record<string, PerplexityAIQueryData | null> = {};
 
         await Promise.all(
           details.map(async (enrichedPlayground: OSMPlaceDetails) => {
-            const address = enrichedPlayground?.display_name;
+            const address = formatAddress(enrichedPlayground);
             if (address) {
               // Use the same signal for all description requests
               const desc = await fetchPlaygroundDescription(address, signal);
@@ -161,24 +170,13 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           setPlaygrounds((prev) =>
             prev.map((p) => {
               const desc = descriptions[p.id];
-              if (desc) {
-                // Extract a Markdown heading (e.g., "# Title" or "## Title") at the start
-                const headingMatch = desc.match(/^#{1,6}\s+(.+?)(?:\r?\n|$)/);
-                if (headingMatch) {
-                  const [, extractedName] = headingMatch;
-                  // Remove the heading from the description
-                  const cleanedDescription = desc
-                    .replace(/^#{1,6}\s+.+?(?:\r?\n|$)/, "")
-                    .trim();
-                  return {
+              return desc
+                ? {
                     ...p,
-                    name: extractedName,
-                    description: cleanedDescription,
-                  };
-                }
-                return { ...p, description: desc };
-              }
-              return p;
+                    name: desc.name || p.name,
+                    description: desc.description || p.description,
+                  }
+                : p;
             }),
           );
 

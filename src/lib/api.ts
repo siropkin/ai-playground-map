@@ -1,13 +1,14 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
 import { OSMPlaceDetails } from "@/types/osm";
+import { PerplexityAIQueryData } from "@/types/perplexityai";
 
 /**
  * Client-side function to fetch playgrounds from the API
  */
 export async function fetchPlaygrounds(
   bounds: MapBounds,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<Playground[]> {
   try {
     const response = await fetch("/api/playgrounds/search", {
@@ -39,7 +40,7 @@ export async function fetchPlaygrounds(
  */
 export async function fetchPlaygroundDetails(
   playgrounds: Playground[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<OSMPlaceDetails[]> {
   try {
     if (!playgrounds.length) return [];
@@ -73,8 +74,8 @@ export async function fetchPlaygroundDetails(
  */
 export async function fetchPlaygroundDescription(
   address: string,
-  signal?: AbortSignal
-): Promise<string | null> {
+  signal?: AbortSignal,
+): Promise<PerplexityAIQueryData | null> {
   try {
     const response = await fetch("/api/playgrounds/description", {
       method: "POST",

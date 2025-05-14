@@ -1,9 +1,6 @@
-import {
-  getDescriptionFromCache,
-  saveDescriptionToCache,
-} from "./supabase/cache";
+import { getDescriptionFromCache, saveDescriptionToCache } from "@/lib/cache";
 
-export async function fetchPlaygroundDescription(
+export async function fetchPlaygroundInfo(
   address: string,
   signal?: AbortSignal,
 ): Promise<string | null> {
