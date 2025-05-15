@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { Playground } from "@/types/playground";
-import { getMultipleOSMPlaceDetails } from "@/lib/osm";
+import { fetchMultipleOSMPlaceDetails } from "@/lib/osm";
 import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 import { getMultipleGoogleMapsPlaceDetails } from "@/lib/google-maps";
 import {
@@ -10,7 +10,7 @@ import {
 
 async function _fetchPlaygroundById(id: string): Promise<Playground | null> {
   try {
-    const [osmPlaceDetails] = await getMultipleOSMPlaceDetails({
+    const [osmPlaceDetails] = await fetchMultipleOSMPlaceDetails({
       osmIds: [id],
     });
 

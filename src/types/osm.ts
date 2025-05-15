@@ -1,4 +1,4 @@
-export type OSMQueryResponse =
+export type OSMQueryResults =
   | {
       type: "node";
       id: number;

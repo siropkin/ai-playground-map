@@ -1,4 +1,4 @@
-import { OSMPlaceDetails, OSMQueryResponse } from "@/types/osm";
+import { OSMPlaceDetails, OSMQueryResults } from "@/types/osm";
 import { MapBounds } from "@/types/map";
 
 // Function run OSM query via Overpass API
@@ -14,7 +14,7 @@ export async function runOSMQuery({
   timeout: number;
   limit: number;
   signal?: AbortSignal;
-}): Promise<OSMQueryResponse[]> {
+}): Promise<OSMQueryResults[]> {
   if (signal?.aborted) {
     return [];
   }
@@ -46,8 +46,8 @@ export async function runOSMQuery({
   return data.elements;
 }
 
-// Function to get multiple places details from OSM
-export async function getMultipleOSMPlaceDetails({
+// Function to fetch multiple places details from OSM
+export async function fetchMultipleOSMPlaceDetails({
   osmIds,
   signal,
 }: {
