@@ -9,12 +9,14 @@ import { formatEnumString } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
 
-type PlaygroundDetailParams = { id: string };
+function formatExternalUrl(url: string) {
+  return url.replace(/^https?:\/\//, "");
+}
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<PlaygroundDetailParams>;
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const resolvedParams = await params;
   const playground = await fetchPlaygroundByIdWithCache(resolvedParams.id);
@@ -57,7 +59,7 @@ export async function generateMetadata({
 export default async function PlaygroundDetail({
   params,
 }: {
-  params: Promise<PlaygroundDetailParams>;
+  params: Promise<{ id: string }>;
 }) {
   const resolvedParams = await params;
   const playground = await fetchPlaygroundByIdWithCache(resolvedParams.id);
@@ -202,7 +204,7 @@ export default async function PlaygroundDetail({
                       className="hover:bg-primary/10 max-w-full overflow-hidden transition-colors"
                     >
                       <span className="truncate">
-                        {source.replace(/^https?:\/\//, "")}
+                        {formatExternalUrl(source)}
                       </span>
                     </Badge>
                   </a>
