@@ -500,6 +500,29 @@ export function MapView() {
     };
   }, []);
 
+  // Add effect to disable/enable map interactions based on enriching state
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) {
+      return;
+    }
+
+    if (enriching) {
+      // Disable map interactions when enriching
+      map.current.dragPan.disable();
+      map.current.scrollZoom.disable();
+      map.current.doubleClickZoom.disable();
+      map.current.touchZoomRotate.disable();
+      map.current.keyboard.disable();
+    } else {
+      // Re-enable map interactions when not enriching
+      map.current.dragPan.enable();
+      map.current.scrollZoom.enable();
+      map.current.doubleClickZoom.enable();
+      map.current.touchZoomRotate.enable();
+      map.current.keyboard.enable();
+    }
+  }, [enriching, isMapLoaded]);
+
   if (error) {
     return (
       <div className="flex h-full w-full items-center justify-center">
