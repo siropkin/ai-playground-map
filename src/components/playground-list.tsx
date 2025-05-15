@@ -65,14 +65,21 @@ export function PlaygroundList({
               {!playground.enriched ? (
                 <Skeleton className="h-4 w-full" />
               ) : name ? (
-                <Link
-                  href="/playgrounds/[id]"
-                  as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
-                  className="underline"
-                  aria-label={`View details about ${name}`}
-                >
-                  <h3 className="font-semibold">{name}</h3>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/playgrounds/[id]"
+                    as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
+                    className="underline"
+                    aria-label={`View details about ${name}`}
+                  >
+                    <h3 className="font-semibold">{name}</h3>
+                  </Link>
+                  {playground.enriched && (
+                    <span className="text-amber-600 bg-amber-50 text-[10px] px-1.5 py-0.5 rounded-sm border border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900" title="AI-generated content may contain errors">
+                      AI
+                    </span>
+                  )}
+                </div>
               ) : null}
 
               {!playground.enriched ? (
