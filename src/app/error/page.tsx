@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SITE_NAME } from "@/lib/constants";
 
 export default function ErrorPage() {
   return (
@@ -9,7 +10,7 @@ export default function ErrorPage() {
         Oops! Something went wrong... Maybe try turning it off and on again?
       </p>
       <Link href="/">
-        <Button>Go Back to the Playground</Button>
+        <Button>Go Back to the {SITE_NAME}</Button>
       </Link>
     </div>
   );

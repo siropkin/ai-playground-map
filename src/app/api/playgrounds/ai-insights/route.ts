@@ -25,13 +25,13 @@ export async function POST(
       );
     }
 
-    const insights = await fetchPerplexityInsights(address, signal);
+    const aiInsight = await fetchPerplexityInsights(address, signal);
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    return NextResponse.json({ insights });
+    return NextResponse.json({ insights: aiInsight });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });

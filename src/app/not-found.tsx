@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SITE_NAME } from "@/lib/constants";
 
 export default function NotFound() {
   return (
@@ -10,7 +11,7 @@ export default function NotFound() {
         to the playground!
       </p>
       <Link href="/">
-        <Button>Go Back to the Playground</Button>
+        <Button>Go Back to the {SITE_NAME}</Button>
       </Link>
     </div>
   );

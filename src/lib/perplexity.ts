@@ -41,8 +41,6 @@ If no playground is found at the address, return:
 Only respond with the JSON object. Do not include any additional text or formatting.
 `;
 
-  console.debug("Fetching AI insights from Perplexity...", prompt);
-
   const response = await fetch("https://api.perplexity.ai/chat/completions", {
     method: "POST",
     headers: {

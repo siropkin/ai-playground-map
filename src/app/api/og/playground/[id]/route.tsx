@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
-import { SITE_NAME } from "@/lib/constants";
-import { formatEnumString, getAgeRange } from "@/lib/utils";
-import { Playground } from "@/types/playground";
-
-const getPlaygroundById = (id: string): Promise<Playground> | null => {
-  // TODO: Not implemented
-  return null;
-};
+import { SITE_NAME, UNNAMED_PLAYGROUND } from "@/lib/constants";
+import { formatEnumString } from "@/lib/utils";
+import { fetchPlaygroundById } from "@/lib/api/server";
 
 interface RouteContext {
   params: Promise<{
@@ -28,7 +23,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
       );
     }
 
-    const playground = await getPlaygroundById(id);
+    const playground = await fetchPlaygroundById(id);
 
     if (!playground) {
       return NextResponse.json(
@@ -37,173 +32,168 @@ export async function GET(_: NextRequest, context: RouteContext) {
       );
     }
 
-    // Get a short description (truncate if too long)
-    const description = playground.description
-      ? playground.description.length > 100
+    // Use the same fallback values as the playground detail page
+    const name = playground.name || UNNAMED_PLAYGROUND;
+    const description =
+      playground.description && playground.description.length > 100
         ? playground.description.substring(0, 100) + "..."
-        : playground.description
-      : `Explore this playground's features and location`;
+        : playground.description || "No description available";
+    const parking = playground.parking || "No parking information available";
+    const features =
+      playground.features && playground.features.length > 0
+        ? playground.features.map(formatEnumString)
+        : [];
+    const address = playground.address || "Address not available";
 
-    // Get access type and age range
-    const accessType = playground.accessType
-      ? formatEnumString(playground.accessType)
-      : null;
-    const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
-    // Create a simple but attractive OG image
+    // Use the first image if available
+    const imageUrl =
+      playground.images && playground.images.length > 0
+        ? playground.images[0].image_url
+        : null;
+
     return new ImageResponse(
       (
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
+            flexDirection: "row",
             width: "100%",
             height: "100%",
-            backgroundColor: "#f5f5f5",
-            padding: 40,
+            background: "#f5f5f5",
             fontFamily: "sans-serif",
-            position: "relative",
           }}
         >
-          {/* Background pattern */}
+          {/* Left: Image */}
           <div
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundImage:
-                "radial-gradient(circle at 25px 25px, #d4d4d4 2px, transparent 0)",
-              backgroundSize: "50px 50px",
-              opacity: 0.3,
-            }}
-          />
-
-          {/* Content container */}
-          <div
-            style={{
+              width: "45%",
+              height: "100%",
+              background: "#e5e5e5",
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "white",
-              borderRadius: 16,
-              padding: 40,
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-              width: "90%",
-              maxWidth: 1000,
-              zIndex: 10,
+              borderTopLeftRadius: 24,
+              borderBottomLeftRadius: 24,
+              overflow: "hidden",
             }}
           >
-            {/* Site name */}
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageUrl}
+                alt={`${name} photo`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  color: "#888",
+                  fontSize: 32,
+                  textAlign: "center",
+                  width: "100%",
+                }}
+              >
+                No image
+              </span>
+            )}
+          </div>
+          {/* Right: Details */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              padding: "48px 40px",
+              background: "#fff",
+              borderTopRightRadius: 24,
+              borderBottomRightRadius: 24,
+              height: "100%",
+              boxSizing: "border-box",
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
-                fontSize: 24,
-                fontWeight: "bold",
-                color: "#000000",
+                fontSize: 28,
+                fontWeight: 700,
+                color: "#222",
                 marginBottom: 8,
               }}
             >
               {SITE_NAME}
             </div>
-
-            {/* Playground name */}
             <div
               style={{
-                fontSize: 48,
-                fontWeight: "bold",
-                color: "#000000",
-                marginBottom: 16,
-                textAlign: "center",
+                fontSize: 44,
+                fontWeight: 800,
+                color: "#111",
+                marginBottom: 18,
+                lineHeight: 1.1,
+                maxWidth: 600,
               }}
+              title={name}
             >
-              {playground.name}
+              {name}
             </div>
-
-            {/* Access type and age range */}
             <div
               style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 16,
-                marginBottom: 24,
-              }}
-            >
-              {accessType && (
-                <div
-                  style={{
-                    backgroundColor: "#e5e5e5",
-                    color: "#000000",
-                    padding: "6px 12px",
-                    borderRadius: 9999,
-                    fontSize: 18,
-                    fontWeight: 500,
-                  }}
-                >
-                  {accessType}
-                </div>
-              )}
-
-              {ageRange && (
-                <div
-                  style={{
-                    backgroundColor: "#e5e5e5",
-                    color: "#000000",
-                    padding: "6px 12px",
-                    borderRadius: 9999,
-                    fontSize: 18,
-                    fontWeight: 500,
-                  }}
-                >
-                  {ageRange}
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            <div
-              style={{
-                fontSize: 24,
-                color: "#333333",
-                textAlign: "center",
-                marginBottom: 32,
-                maxWidth: 800,
+                fontSize: 22,
+                color: "#444",
+                marginBottom: 18,
+                maxWidth: 600,
               }}
             >
               {description}
             </div>
-
-            {/* Features */}
             <div
               style={{
                 display: "flex",
                 flexWrap: "wrap",
-                justifyContent: "center",
-                gap: 12,
-                maxWidth: 800,
+                gap: 10,
+                marginBottom: 18,
               }}
             >
-              {playground.features.slice(0, 5).map((feature, index) => (
-                <div
-                  key={index}
+              {features.length > 0 ? (
+                features.slice(0, 5).map((feature, idx) => (
+                  <span
+                    key={feature}
+                    style={{
+                      background: "#f1f5f9",
+                      color: "#2563eb",
+                      border: "1px solid #dbeafe",
+                      borderRadius: 9999,
+                      padding: "6px 18px",
+                      fontSize: 16,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {feature}
+                  </span>
+                ))
+              ) : (
+                <span
                   style={{
-                    backgroundColor: "#e5e5e5",
-                    color: "#000000",
-                    padding: "8px 16px",
-                    borderRadius: 9999,
-                    fontSize: 18,
-                    fontWeight: 500,
+                    color: "#888",
+                    fontSize: 16,
                   }}
                 >
-                  {feature
-                    .replace(/_/g, " ")
-                    .toLowerCase()
-                    .replace(/\b\w/g, (l) => l.toUpperCase())}
-                </div>
-              ))}
+                  No features listed
+                </span>
+              )}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 16,
+                color: "#666",
+              }}
+            >
+              <b>Address:</b> {address}
             </div>
           </div>
         </div>

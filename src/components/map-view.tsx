@@ -14,6 +14,7 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
+import { formatOsmIdentifier } from "@/lib/utils";
 
 // Safely set Mapbox access token with proper error handling
 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -88,7 +89,8 @@ const createGeoJson = (
         coordinates: [playground.lon, playground.lat],
       },
       properties: {
-        id: playground.id,
+        id: playground.osmId,
+        type: (playground.osmType || "").toString(),
         name: playground.enriched ? playground.name || UNNAMED_PLAYGROUND : "",
       },
     })),
@@ -350,7 +352,9 @@ export function MapView() {
       e.originalEvent.stopPropagation();
       const feature = e.features?.[0];
       if (feature?.properties?.id) {
-        router.push(`/playground/${feature.properties.id}`);
+        router.push(
+          `/playground/${formatOsmIdentifier(feature.properties.id, feature.properties.type)}`,
+        );
       }
     };
 

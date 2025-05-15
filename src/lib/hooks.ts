@@ -16,6 +16,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, []);

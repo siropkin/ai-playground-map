@@ -27,7 +27,6 @@ export async function fetchPlaygrounds(
     return await response.json();
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      console.log("Fetch playgrounds request was aborted");
       return [];
     }
     console.error("Error fetching playgrounds:", error);
@@ -61,7 +60,6 @@ export async function fetchMultiplePlaygroundDetails(
     return await response.json();
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      console.log("Fetch playground details request was aborted");
       return [];
     }
     console.error("Error fetching playground details:", error);
@@ -94,7 +92,6 @@ export async function generatePlaygroundAiInsights(
     return data.insights;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      console.log("Generate playground AI insights request was aborted");
       return null;
     }
     console.error("Error generating playground AI insights:", error);

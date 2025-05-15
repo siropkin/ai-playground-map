@@ -13,11 +13,13 @@ interface ImageCarouselProps {
     alt: string;
   }[];
   className?: string;
+  unoptimized?: boolean;
 }
 
 export default function ImageCarousel({
   images,
   className,
+  unoptimized,
 }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -76,6 +78,7 @@ export default function ImageCarousel({
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 50vw"
+            unoptimized={unoptimized}
           />
           {images[0].caption && (
             <div className="absolute right-0 bottom-0 left-0 bg-black/50 p-2 text-sm text-white">
@@ -103,6 +106,7 @@ export default function ImageCarousel({
           className="object-cover transition-opacity duration-300"
           sizes="(max-width: 768px) 100vw, 50vw"
           priority={currentIndex === 0}
+          unoptimized={unoptimized}
         />
         {images[currentIndex].caption && (
           <div className="bg-background/80 absolute right-0 bottom-0 left-0 p-2 text-sm">

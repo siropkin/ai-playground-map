@@ -43,7 +43,7 @@ export default function MapViewSingle({ playground }: MapViewSingleProps) {
     map.current = new mapboxgl.Map({
       container: mapContainer,
       style: getMapStyle(theme),
-      center: [playground.longitude, playground.latitude],
+      center: [playground.lon, playground.lat],
       zoom: 15,
     });
 
@@ -59,7 +59,7 @@ export default function MapViewSingle({ playground }: MapViewSingleProps) {
               type: "Feature",
               geometry: {
                 type: "Point",
-                coordinates: [playground.longitude, playground.latitude],
+                coordinates: [playground.lon, playground.lat],
               },
               properties: {
                 name: playground.name,

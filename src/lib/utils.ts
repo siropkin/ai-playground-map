@@ -6,18 +6,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Helper function to format enum-like strings (e.g., 'park_district' -> 'Park District')
+// Helper function to format enum-like strings (e.g., 'surface:synthetic_rubberized' -> 'Surface: Synthetic Rubberized')
 export function formatEnumString(str: string | undefined | null): string {
   if (!str) return "";
-  return str.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-// Helper function to format age range
-export function getAgeRange(ageMin: number | null, ageMax: number | null) {
-  if (!ageMin && !ageMax) return null;
-  if (!ageMin) return `Ages 0-${ageMax}`;
-  if (!ageMax) return `Ages ${ageMin}+`;
-  return `Ages ${ageMin}-${ageMax}`;
+  return str
+    .replace(/_/g, " ")
+    .replace(/:/g, ": ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
@@ -26,10 +21,10 @@ export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
   }
 
   return {
-    south: parseFloat(bounds.south.toFixed(4)),
-    north: parseFloat(bounds.north.toFixed(4)),
-    west: parseFloat(bounds.west.toFixed(4)),
-    east: parseFloat(bounds.east.toFixed(4)),
+    south: parseFloat(bounds.south.toFixed(6)),
+    north: parseFloat(bounds.north.toFixed(6)),
+    west: parseFloat(bounds.west.toFixed(6)),
+    east: parseFloat(bounds.east.toFixed(6)),
   };
 }
 
@@ -91,11 +86,11 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   }
 }
 
-export function getOSMKey(id: number, type: string): string {
+export function formatOsmIdentifier(id: number, type: string | null): string {
   const typeMap: Record<string, string> = {
     node: "N",
     way: "W",
     relation: "R",
   };
-  return `${typeMap[type] || "N"}${id}`;
+  return `${typeMap[type || "node"] || "N"}${id}`;
 }

@@ -1,16 +1,16 @@
-import { OSMQueryResponse } from "@/types/osm";
+import { OSMPlaceDetails, OSMQueryResponse } from "@/types/osm";
 import { MapBounds } from "@/types/map";
 
 // Function run OSM query via Overpass API
 export async function runOSMQuery({
   bounds,
-  type,
+  leisure,
   timeout,
   limit,
   signal,
 }: {
   bounds: MapBounds;
-  type: string;
+  leisure: string;
   timeout: number;
   limit: number;
   signal?: AbortSignal;
@@ -22,7 +22,7 @@ export async function runOSMQuery({
   const box = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
   const query = `
       [out:json][timeout:${timeout}];
-      nwr["leisure"="${type}"](${box});
+      nwr["leisure"="${leisure}"](${box});
       out body center ${limit};
     `;
 
@@ -44,4 +44,34 @@ export async function runOSMQuery({
   const data = await response.json();
 
   return data.elements;
+}
+
+// Function to get multiple places details from OSM
+export async function getMultipleOSMPlaceDetails({
+  osmIds,
+  signal,
+}: {
+  osmIds: string[];
+  signal?: AbortSignal;
+}): Promise<OSMPlaceDetails[]> {
+  if (signal?.aborted) {
+    return [];
+  }
+
+  if (!Array.isArray(osmIds) || osmIds.length === 0) {
+    return [];
+  }
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmIds}&addressdetails=1&format=json`,
+    { signal },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Nominatim API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return await response.json();
 }

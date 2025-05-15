@@ -1,20 +1,23 @@
 "use client";
 
+import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
+import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
+import Link from "next/link";
 
 export function PlaygroundList({
-  showEmptyState,
+  displayEmptyState,
 }: {
-  showEmptyState?: boolean;
+  displayEmptyState?: boolean;
 }) {
   const { playgrounds, requestFlyTo } = usePlaygrounds();
 
   if (!playgrounds?.length) {
-    return showEmptyState ? (
+    return displayEmptyState ? (
       <Card className="bg-background/95 flex w-[100%] flex-col items-center justify-center gap-0 overflow-hidden p-8 shadow-lg backdrop-blur-sm transition-shadow">
         <CardContent className="flex flex-col items-center p-0">
           <div className="text-muted-foreground mb-2 text-5xl">🔍</div>
@@ -43,12 +46,13 @@ export function PlaygroundList({
                 {!playground.enriched ? (
                   <Skeleton className="h-full w-full rounded-r-none" />
                 ) : displayImage ? (
-                  <img
+                  <Image
                     className="h-full w-full object-cover"
                     src={displayImage.image_url}
                     alt={`Photo of ${name}`}
                     width={displayImage.width}
                     height={displayImage.height}
+                    unoptimized={true}
                   />
                 ) : (
                   <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
@@ -60,7 +64,13 @@ export function PlaygroundList({
               {!playground.enriched ? (
                 <Skeleton className="h-4 w-full" />
               ) : name ? (
-                <h3 className="font-semibold">{name}</h3>
+                <Link
+                  href="/playground/[id]"
+                  as={`/playground/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
+                  className="underline"
+                >
+                  <h3 className="font-semibold">{name}</h3>
+                </Link>
               ) : null}
 
               {!playground.enriched ? (
@@ -81,7 +91,9 @@ export function PlaygroundList({
                       variant="outline"
                       key={i}
                     >
-                      <span className="truncate">{value}</span>
+                      <span className="truncate">
+                        {formatEnumString(value)}
+                      </span>
                     </Badge>
                   ))}
                 </div>

@@ -47,7 +47,7 @@ export function PlaygroundListSheet() {
             the map.
           </SheetDescription>
         </SheetHeader>
-        <PlaygroundList showEmptyState />
+        <PlaygroundList displayEmptyState />
       </SheetContent>
     </Sheet>
   );

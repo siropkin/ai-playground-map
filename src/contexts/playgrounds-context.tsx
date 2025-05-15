@@ -15,7 +15,7 @@ import {
   fetchPlaygrounds as apiFetchPlaygrounds,
   fetchMultiplePlaygroundDetails as apiFetchMultiplePlaygroundDetails,
   generatePlaygroundAiInsights as apiGeneratePlaygroundAiInsight,
-} from "@/lib/api";
+} from "@/lib/api/client";
 import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]

@@ -32,7 +32,7 @@ export async function POST(
 
     const osmPlaygrounds = await runOSMQuery({
       bounds,
-      type: "playground",
+      leisure: "playground",
       timeout: 5,
       limit: 10,
       signal,
@@ -59,6 +59,7 @@ export async function POST(
         parking: null,
         sources: null,
         address: null,
+        images: null,
         osmId: playground.id,
         osmType: playground.type,
         osmTags: playground.tags,
