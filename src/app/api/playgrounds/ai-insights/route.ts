@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PerplexityInsights } from "@/types/perplexity";
-import { fetchPerplexityInsights } from "@/lib/perplexity";
+import {
+  fetchPerplexityInsights,
+  fetchPerplexityInsightsWithCache,
+} from "@/lib/perplexity";
 
 export async function POST(
   request: NextRequest,
@@ -25,7 +28,7 @@ export async function POST(
       );
     }
 
-    const aiInsight = await fetchPerplexityInsights(address, signal);
+    const aiInsight = await fetchPerplexityInsightsWithCache(address, signal);
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });

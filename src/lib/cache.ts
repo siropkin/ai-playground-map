@@ -1,19 +1,23 @@
 import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 import { createClient } from "@/lib/supabase/server";
+import { PerplexityInsights } from "@/types/perplexity";
 
-const CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000; // Cache TTL (1 year in milliseconds)
+// TODO: Move to env params?
+const PERPLEXITY_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000; // Cache TTL (1 year in milliseconds)
+const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME = "perplexity_insights_cache";
 const PLACE_DETAILS_CACHE_TABLE_NAME = "place_details_cache";
-const AI_INSIGHTS_CACHE_TABLE_NAME = "playground_details_cache";
 
-export async function getAiInsightsFromCache(
+export async function fetchPerplexityInsightsFromCache(
   address: string,
-): Promise<string | null> {
+): Promise<PerplexityInsights | null> {
   try {
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from(AI_INSIGHTS_CACHE_TABLE_NAME)
-      .select("description, created_at")
+      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .select(
+        "name, description, features, parking, sources, images, created_at",
+      )
       .eq("address", address)
       .single();
 
@@ -23,38 +27,56 @@ export async function getAiInsightsFromCache(
 
     const createdAt = new Date(data.created_at).getTime();
     const now = Date.now();
-    const json = JSON.parse(data.description);
-    if (now - createdAt > CACHE_TTL_MS || json.name === null) {
+
+    if (
+      now - createdAt > PERPLEXITY_CACHE_TTL_MS ||
+      data.name === null ||
+      data.description === null
+    ) {
       await supabase
-        .from(AI_INSIGHTS_CACHE_TABLE_NAME)
+        .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
         .delete()
         .eq("address", address);
 
       return null;
     }
 
-    return data.description;
+    return {
+      name: data.name,
+      description: data.description,
+      features: data.features,
+      parking: data.parking,
+      sources: data.sources,
+      images: data.images,
+    };
   } catch (error) {
     console.error("Error getting AI insights from cache:", error);
     return null;
   }
 }
 
-export async function saveAiInsightsToCache(
+export async function savePerplexityInsightsToCache(
   address: string,
-  description: string,
+  insights: PerplexityInsights,
 ): Promise<void> {
   try {
     const supabase = await createClient();
 
-    const { error } = await supabase.from(AI_INSIGHTS_CACHE_TABLE_NAME).upsert(
-      {
-        address,
-        description,
-        created_at: new Date().toISOString(),
-      },
-      { onConflict: "address" },
-    );
+    const { error } = await supabase
+      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .upsert(
+        {
+          address,
+          name: insights.name,
+          description: insights.description,
+          features: insights.features,
+          parking: insights.parking,
+          sources: insights.sources,
+          images: insights.images,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: "address" },
+      );
 
     if (error) {
       console.error("Error saving AI insights to cache:", error);
@@ -113,7 +135,7 @@ export async function getMultipleGoogleMapsPlaceDetailsFromCache(
         if (cacheEntry) {
           const createdAt = new Date(cacheEntry.created_at).getTime();
 
-          if (now - createdAt < CACHE_TTL_MS) {
+          if (now - createdAt < PERPLEXITY_CACHE_TTL_MS) {
             // Convert Google Maps details to OSM format for compatibility
             const googleDetails = cacheEntry.details as GoogleMapsPlaceDetails;
             cachedDetails.push(googleDetails);

@@ -1,7 +1,11 @@
-import { getAiInsightsFromCache, saveAiInsightsToCache } from "@/lib/cache";
+import {
+  fetchPerplexityInsightsFromCache,
+  savePerplexityInsightsToCache,
+} from "@/lib/cache";
 import { PerplexityInsights } from "@/types/perplexity";
 
-async function fetchPerplexityInsights(
+// Function to fetch AI insights from Perplexity
+export async function fetchPerplexityInsights(
   address: string,
   signal?: AbortSignal,
 ): Promise<PerplexityInsights | null> {
@@ -12,11 +16,6 @@ async function fetchPerplexityInsights(
   const apiKey = process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
     throw new Error("Perplexity API key is missing");
-  }
-
-  const cachedInfo = await getAiInsightsFromCache(address);
-  if (cachedInfo) {
-    return JSON.parse(cachedInfo);
   }
 
   const prompt = `
@@ -55,7 +54,7 @@ Return only the valid JSON object without any other text.
       model: "sonar",
       messages: [{ role: "user", content: prompt }],
       return_images: true,
-      temperature: 0.15,
+      temperature: 0.17,
     }),
     signal,
   });
@@ -70,13 +69,34 @@ Return only the valid JSON object without any other text.
     .replace("```json", "")
     .replace("```", "");
 
-  const parsedContent = JSON.parse(content);
-  parsedContent.sources = data.citations;
-  parsedContent.images = data.images;
-
-  await saveAiInsightsToCache(address, JSON.stringify(parsedContent));
-
-  return parsedContent;
+  return {
+    ...JSON.parse(content),
+    sources: data.citations,
+    images: data.images,
+  };
 }
 
-export { fetchPerplexityInsights };
+// Function to fetch AI insights from Perplexity with caching
+export async function fetchPerplexityInsightsWithCache(
+  address: string,
+  signal?: AbortSignal,
+): Promise<PerplexityInsights | null> {
+  if (signal?.aborted) {
+    return null;
+  }
+
+  const cachedInsights = await fetchPerplexityInsightsFromCache(address);
+  if (cachedInsights) {
+    return cachedInsights;
+  }
+
+  const freshInsights = await fetchPerplexityInsights(address, signal);
+
+  if (signal?.aborted || !freshInsights) {
+    return null;
+  }
+
+  await savePerplexityInsightsToCache(address, freshInsights);
+
+  return freshInsights;
+}

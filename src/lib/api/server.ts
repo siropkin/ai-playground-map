@@ -3,7 +3,10 @@ import { Playground } from "@/types/playground";
 import { getMultipleOSMPlaceDetails } from "@/lib/osm";
 import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 import { getMultipleGoogleMapsPlaceDetails } from "@/lib/google-maps";
-import { fetchPerplexityInsights } from "@/lib/perplexity";
+import {
+  fetchPerplexityInsights,
+  fetchPerplexityInsightsWithCache,
+} from "@/lib/perplexity";
 
 async function _fetchPlaygroundById(id: string): Promise<Playground | null> {
   try {
@@ -56,7 +59,9 @@ async function _fetchPlaygroundById(id: string): Promise<Playground | null> {
     if (details.length > 0 && details[0].formatted_address) {
       playground.address = details[0].formatted_address;
 
-      const aiInsight = await fetchPerplexityInsights(playground.address);
+      const aiInsight = await fetchPerplexityInsightsWithCache(
+        playground.address,
+      );
 
       if (aiInsight) {
         playground.name = aiInsight.name || playground.name;
