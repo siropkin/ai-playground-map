@@ -38,7 +38,6 @@ export async function GET(_: NextRequest, context: RouteContext) {
       playground.description && playground.description.length > 100
         ? playground.description.substring(0, 100) + "..."
         : playground.description || "No description available";
-    const parking = playground.parking || "No parking information available";
     const features =
       playground.features && playground.features.length > 0
         ? playground.features.map(formatEnumString)
@@ -159,7 +158,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
               }}
             >
               {features.length > 0 ? (
-                features.slice(0, 5).map((feature, idx) => (
+                features.slice(0, 5).map((feature) => (
                   <span
                     key={feature}
                     style={{

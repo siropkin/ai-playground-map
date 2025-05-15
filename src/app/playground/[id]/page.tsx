@@ -67,7 +67,7 @@ export default async function PlaygroundDetail({
       <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
         <h1 className="text-4xl font-bold">404 Playground Not Found</h1>
         <p className="text-muted-foreground max-w-md text-center">
-          The playground you're looking for could not be found.
+          The playground you&apos;re looking for could not be found.
         </p>
         <Link href="/">
           <Button>Go Back to the {SITE_NAME}</Button>
