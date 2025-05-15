@@ -74,7 +74,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     [mapBounds],
   );
 
-  const debouncedFetchPlaygrounds = useDebounce(localFetchPlaygrounds, 1500);
+  const debouncedFetchPlaygrounds = useDebounce(localFetchPlaygrounds, 1000);
 
   useEffect(() => {
     const controller = new AbortController();
