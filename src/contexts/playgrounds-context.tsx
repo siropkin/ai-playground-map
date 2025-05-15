@@ -110,8 +110,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             const insight = await generatePlaygroundAiInsights({
               address: details.formatted_address,
-              lat: pe.lat,
-              lon: pe.lon,
               signal,
             });
 

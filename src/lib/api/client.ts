@@ -72,13 +72,9 @@ export async function fetchPlaygroundDetails(
  */
 export async function generatePlaygroundAiInsights({
   address,
-  lat,
-  lon,
   signal,
 }: {
   address: string;
-  lat?: number;
-  lon?: number;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
   try {
@@ -87,7 +83,7 @@ export async function generatePlaygroundAiInsights({
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ address, lat, lon }),
+      body: JSON.stringify({ address }),
       signal,
     });
 

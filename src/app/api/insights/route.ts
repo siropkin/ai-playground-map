@@ -17,10 +17,8 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { address, lat, lon } = body as {
+    const { address } = body as {
       address: string;
-      lat?: number;
-      lon?: number;
     };
 
     if (!address) {
