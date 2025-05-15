@@ -75,7 +75,10 @@ export function PlaygroundList({
                     <h3 className="font-semibold">{name}</h3>
                   </Link>
                   {playground.enriched && (
-                    <span className="text-amber-600 bg-amber-50 text-[10px] px-1.5 py-0.5 rounded-sm border border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900" title="AI-generated content may contain errors">
+                    <span
+                      className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
+                      title="AI-generated content may contain errors"
+                    >
                       AI
                     </span>
                   )}
@@ -112,14 +115,14 @@ export function PlaygroundList({
                 <Skeleton className="h-4 w-full" />
               ) : playground.address ? (
                 <div
-                  className="text-muted-foreground flex cursor-pointer text-xs underline"
+                  className="text-muted-foreground mr-1 flex cursor-pointer items-center text-xs underline"
                   onClick={() => {
                     requestFlyTo([playground.lon, playground.lat]);
                   }}
                   aria-label={`See ${name} on the map`}
                 >
-                  <MapPin className="mr-1 h-4 w-4 shrink-0" />
                   <span>{playground.address}</span>
+                  <MapPin className="ml-2 h-4 w-4 shrink-0" />
                 </div>
               ) : null}
             </CardContent>
