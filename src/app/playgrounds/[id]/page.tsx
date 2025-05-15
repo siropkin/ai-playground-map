@@ -2,16 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SITE_NAME, SITE_URL, UNNAMED_PLAYGROUND } from "@/lib/constants";
-import { Badge } from "@/components/ui/badge";
+import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
+import { Button } from "@/components/ui/button";
+import SourceCard from "@/components/source-card";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
 import { formatEnumString } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
-
-function formatExternalUrl(url: string) {
-  return url.replace(/^https?:\/\//, "");
-}
 
 export async function generateMetadata({
   params,
@@ -88,7 +84,7 @@ export default async function PlaygroundDetail({
   return (
     <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden px-6 py-10">
       {/* Main details */}
-      <div className="flex flex-col gap-8 md:flex-row">
+      <div className="flex flex-col gap-6 md:flex-row">
         {/* Left side - Image Carousel */}
         <div className="w-full md:w-1/2">
           {playground.images && playground.images.length > 0 ? (
@@ -110,15 +106,14 @@ export default async function PlaygroundDetail({
         </div>
 
         {/* Right side - Details */}
-        <div className="w-full md:w-1/2">
-          <div className="mb-2 flex items-start justify-between gap-2">
-            <h1 className="text-3xl font-bold">
-              {playground.name || UNNAMED_PLAYGROUND}
-            </h1>
-          </div>
+        <div className="flex w-full flex-col gap-4 md:w-1/2">
+          {/* Name */}
+          <h1 className="text-3xl font-bold">
+            {playground.name || UNNAMED_PLAYGROUND}
+          </h1>
 
           {/* Description */}
-          <div className="mb-6">
+          <div>
             <h3 className="text-muted-foreground text-sm font-medium">
               Description
             </h3>
@@ -128,7 +123,7 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Parking */}
-          <div className="mb-6">
+          <div>
             <h3 className="text-muted-foreground mb-1 text-sm font-medium">
               Parking
             </h3>
@@ -138,7 +133,7 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Features */}
-          <div className="mb-6">
+          <div>
             <h3 className="text-muted-foreground mb-1 text-sm font-medium">
               Features
             </h3>
@@ -159,69 +154,52 @@ export default async function PlaygroundDetail({
           </div>
 
           {/* Address */}
-          <div className="mb-6">
+          <div>
             <h3 className="text-muted-foreground text-sm font-medium">
               Address
             </h3>
             <p className="text-sm leading-relaxed">
-              {playground.address || "Address not available"}
-            </p>
-            {playground.address && (
-              <span className="text-muted-foreground text-sm">
-                {" "}
-                (
-                <Link
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Get directions to this playground"
-                  className="underline"
-                >
-                  get directions
-                </Link>
-                )
-              </span>
-            )}
-          </div>
-
-          {/* Sources section */}
-          {playground.sources && playground.sources.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-muted-foreground mb-1 text-sm font-medium">
-                Sources
-              </h3>
-              <div className="flex flex-wrap gap-2 overflow-hidden">
-                {playground.sources.map((source, index) => (
-                  <a
-                    key={index}
-                    href={source}
+              {playground.address || "Address not available"}{" "}
+              {playground.address && (
+                <span className="text-muted-foreground text-sm">
+                  {" "}
+                  (
+                  <Link
+                    href={googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block max-w-full overflow-hidden"
+                    aria-label="Get directions to this playground"
+                    className="underline"
                   >
-                    <Badge
-                      variant="outline"
-                      className="hover:bg-primary/10 max-w-full overflow-hidden transition-colors"
-                    >
-                      <span className="truncate">
-                        {formatExternalUrl(source)}
-                      </span>
-                    </Badge>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+                    Show on Google Maps
+                  </Link>
+                  )
+                </span>
+              )}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Location section */}
       <div>
-        <h2 className="mb-4 text-xl font-semibold">Location</h2>
+        <h2 className="text-xl font-semibold">Location</h2>
         <div className="h-64 w-full overflow-hidden rounded-lg">
           <MapViewSingle playground={playground} />
         </div>
       </div>
+
+      {/* Sources Section */}
+      {playground.sources && playground.sources.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-xl font-semibold">Sources</h2>
+          <div className="flex flex-wrap gap-2">
+            {playground.sources.map((source, index) => (
+              <SourceCard key={index} url={source} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

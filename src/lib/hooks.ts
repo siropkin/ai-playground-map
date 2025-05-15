@@ -6,11 +6,9 @@ import { useEffect, useRef, useCallback } from "react";
  * @param delay The delay in milliseconds
  * @returns A debounced version of the function
  */
-// @ts-ignore
-export function useDebounce<T extends (...args: any[]) => any>(
-  fn: T,
-  delay: number,
-): (...args: Parameters<T>) => void {
+export function useDebounce<
+  T extends (...args: Parameters<T>) => ReturnType<T>,
+>(fn: T, delay: number): (...args: Parameters<T>) => void {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
