@@ -68,7 +68,7 @@ Return only the valid JSON object without any additional text or markdown.
       model: "sonar",
       messages: [{ role: "user", content: prompt }],
       return_images: true,
-      temperature: 0.1, // Lowered temperature for more precise responses
+      temperature: 0.17,
     }),
     signal,
   });
