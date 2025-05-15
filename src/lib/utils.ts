@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function formatOsmIdentifier(id: number, type: string | null): string {
+  const typeMap: Record<string, string> = {
+    node: "N",
+    way: "W",
+    relation: "R",
+  };
+  return `${typeMap[type || "node"] || "N"}${id}`;
+}
+
 // Helper function to format enum-like strings (e.g., 'surface:synthetic_rubberized' -> 'Surface: Synthetic Rubberized')
 export function formatEnumString(str: string | undefined | null): string {
   if (!str) return "";
@@ -84,13 +93,4 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   } else {
     window.history.pushState({}, "", url.pathname);
   }
-}
-
-export function formatOsmIdentifier(id: number, type: string | null): string {
-  const typeMap: Record<string, string> = {
-    node: "N",
-    way: "W",
-    relation: "R",
-  };
-  return `${typeMap[type || "node"] || "N"}${id}`;
 }

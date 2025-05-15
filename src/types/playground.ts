@@ -17,7 +17,7 @@ export type Playground = {
       }[]
     | null;
   osmId: number;
-  osmType: "node" | "way" | "relation" | null;
+  osmType: "node" | "way" | "relation";
   osmTags: Record<string, string> | null;
   enriched: boolean | null;
 };

@@ -1,7 +1,5 @@
 export interface GoogleMapsPlaceDetails {
   place_id: string;
-  osm_id?: number;
-  osm_type?: string;
   lat: string;
   lng: string;
   formatted_address: string;
