@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/constants";
 import { FiltersProvider } from "@/contexts/filters-context";
 import { PlaygroundsProvider } from "@/contexts/playgrounds-context";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -17,10 +17,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_NAME,
-  description: "Find good playgrounds for kids near you",
+  description: SITE_DESCRIPTION,
   openGraph: {
     title: SITE_NAME,
-    description: "Find good playgrounds for kids near you",
+    description: SITE_DESCRIPTION,
     images: [
       {
         url: "/api/og/home",

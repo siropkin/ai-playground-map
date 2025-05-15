@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/constants";
 import { NextResponse } from "next/server";
 
 export const runtime = "edge";
@@ -88,7 +88,7 @@ export async function GET() {
                   lineHeight: 1.3,
                 }}
               >
-                Find good playgrounds for kids near you
+                {SITE_DESCRIPTION}
               </div>
             </div>
 

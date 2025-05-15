@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, LogOut } from "lucide-react";
+import { SITE_DESCRIPTION } from "@/lib/constants";
 // import { ThemeToggle } from "@/components/theme-toggle";
 
 export function NavBar() {
@@ -22,7 +23,7 @@ export function NavBar() {
                 Good Playground Map
               </h1>
               <h4 className="text-muted-foreground text-xs whitespace-nowrap">
-                Find good playgrounds for kids near you
+                {SITE_DESCRIPTION}
               </h4>
             </div>
           </div>
