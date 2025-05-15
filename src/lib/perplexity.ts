@@ -20,9 +20,13 @@ async function fetchPerplexityInsights(
   }
 
   const prompt = `
-You are tasked with finding information about a children's playground at the following address: ${address}
+Task: Find information about a children's playground.
 
-Respond with a JSON object containing the following fields:
+Location: The playground must be located *at* the following address, or *within a park or public space located precisely at* this address: ${address}
+
+Strictness: Focus strictly on finding a children's playground that meets the location criteria. If you cannot confidently find a playground meeting this criteria, return the 'not found' structure described below.
+
+Desired Output Format: Respond with a JSON object containing the following fields:
 {
   "name": "string", // The name of the playground
   "description": "string", // A short 2-sentence description highlighting features like equipment, age range, safety, shade, or atmosphere
@@ -30,7 +34,7 @@ Respond with a JSON object containing the following fields:
   "parking": "string" // A short information about nearby parking options
 }
 
-If no playground is found at the address, return:
+If no playground is found at the specified location with high confidence, return:
 {
   "name": null,
   "description": null,
@@ -38,7 +42,7 @@ If no playground is found at the address, return:
   "parking": null
 }
 
-Only respond with the JSON object. Do not include any additional text or formatting.
+Return only the valid JSON object without any other text.
 `;
 
   const response = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -51,6 +55,7 @@ Only respond with the JSON object. Do not include any additional text or formatt
       model: "sonar",
       messages: [{ role: "user", content: prompt }],
       return_images: true,
+      temperature: 0.15,
     }),
     signal,
   });
