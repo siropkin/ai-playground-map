@@ -100,7 +100,7 @@ const createGeoJson = (
 export function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading } =
+  const { playgrounds, flyToCoords, clearFlyToRequest, loading, enriching } =
     usePlaygrounds();
   const router = useRouter();
 
@@ -524,9 +524,9 @@ export function MapView() {
           <span className="hidden sm:block">Near me</span>
         </Button>
       </div>
-      {loading && (
+      {(loading || enriching) && (
         <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
-          Loading playgrounds...
+          {loading ? "Loading playgrounds..." : "Enriching playgrounds..."}
         </div>
       )}
     </div>
