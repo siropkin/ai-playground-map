@@ -32,167 +32,208 @@ export async function GET(_: NextRequest, context: RouteContext) {
       );
     }
 
-    // Use the same fallback values as the playground detail page
     const name = playground.name || UNNAMED_PLAYGROUND;
-    const description =
-      playground.description && playground.description.length > 100
-        ? playground.description.substring(0, 100) + "..."
-        : playground.description || "No description available";
-    const features =
-      playground.features && playground.features.length > 0
-        ? playground.features.map(formatEnumString)
-        : [];
+    const description = playground.description
+      ? playground.description.length > 120
+        ? playground.description.substring(0, 120) + "..."
+        : playground.description
+      : "No description available";
+    const features = playground.features?.map(formatEnumString) || [];
     const address = playground.address || "Address not available";
 
-    // Use the first image if available
-    const imageUrl =
-      playground.images && playground.images.length > 0
-        ? playground.images[0].image_url
-        : null;
+    const imageUrl = playground.images?.[0]?.image_url || null;
 
     return new ImageResponse(
       (
         <div
           style={{
             display: "flex",
-            flexDirection: "row",
             width: "100%",
             height: "100%",
-            background: "#f5f5f5",
+            background: "linear-gradient(to bottom right, #f8fafc, #e2e8f0)",
             fontFamily: "sans-serif",
+            overflow: "hidden",
           }}
         >
-          {/* Left: Image */}
+          {/* Background pattern for visual interest */}
           <div
             style={{
-              width: "45%",
-              height: "100%",
-              background: "#e5e5e5",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundSize: "30px 30px",
+              backgroundImage:
+                "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
+              opacity: 0.4,
+            }}
+          />
+
+          {/* Main content container */}
+          <div
+            style={{
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderTopLeftRadius: 24,
-              borderBottomLeftRadius: 24,
-              overflow: "hidden",
+              width: "100%",
+              height: "100%",
+              padding: "40px",
+              boxSizing: "border-box",
             }}
           >
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageUrl}
-                alt={`${name} photo`}
+            {/* Left: Details */}
+            <div
+              style={{
+                flex: "1",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                padding: "20px 40px 20px 20px",
+              }}
+            >
+              <div
                 style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              <span
-                style={{
-                  color: "#888",
-                  fontSize: 32,
-                  textAlign: "center",
-                  width: "100%",
+                  display: "flex",
+                  fontSize: 24,
+                  fontWeight: 600,
+                  color: "#3b82f6",
+                  marginBottom: 16,
+                  alignItems: "center",
+                  gap: "8px",
                 }}
               >
-                No image
-              </span>
-            )}
-          </div>
-          {/* Right: Details */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              padding: "48px 40px",
-              background: "#fff",
-              borderTopRightRadius: 24,
-              borderBottomRightRadius: 24,
-              height: "100%",
-              boxSizing: "border-box",
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 28,
-                fontWeight: 700,
-                color: "#222",
-                marginBottom: 8,
-              }}
-            >
-              {SITE_NAME}
+                🛝 {SITE_NAME}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 56,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: 20,
+                  lineHeight: 1.1,
+                  maxWidth: 600,
+                }}
+              >
+                {name}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 24,
+                  color: "#334155",
+                  marginBottom: 24,
+                  lineHeight: 1.4,
+                  maxWidth: 600,
+                }}
+              >
+                {description}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  marginBottom: 24,
+                }}
+              >
+                {features.length > 0 ? (
+                  features.slice(0, 5).map((feature) => (
+                    <span
+                      key={feature}
+                      style={{
+                        background: "rgba(59, 130, 246, 0.1)",
+                        color: "#2563eb",
+                        border: "1px solid rgba(59, 130, 246, 0.3)",
+                        borderRadius: 9999,
+                        padding: "8px 16px",
+                        fontSize: 18,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {feature}
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ color: "#64748b", fontSize: 18 }}>
+                    No features listed
+                  </span>
+                )}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 18,
+                  color: "#475569",
+                  padding: "12px 20px",
+                  background: "rgba(255, 255, 255, 0.7)",
+                  borderRadius: 12,
+                  width: "auto",
+                }}
+              >
+                📍 {address}
+              </div>
             </div>
-            <div
-              style={{
-                fontSize: 44,
-                fontWeight: 800,
-                color: "#111",
-                marginBottom: 18,
-                lineHeight: 1.1,
-                maxWidth: 600,
-              }}
-              title={name}
-            >
-              {name}
-            </div>
-            <div
-              style={{
-                fontSize: 22,
-                color: "#444",
-                marginBottom: 18,
-                maxWidth: 600,
-              }}
-            >
-              {description}
-            </div>
+
+            {/* Right: Image with overlay frame */}
             <div
               style={{
                 display: "flex",
-                flexWrap: "wrap",
-                gap: 10,
-                marginBottom: 18,
+                width: "45%",
+                position: "relative",
+                borderRadius: 24,
+                overflow: "hidden",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
               }}
             >
-              {features.length > 0 ? (
-                features.slice(0, 5).map((feature) => (
-                  <span
-                    key={feature}
-                    style={{
-                      background: "#f1f5f9",
-                      color: "#2563eb",
-                      border: "1px solid #dbeafe",
-                      borderRadius: 9999,
-                      padding: "6px 18px",
-                      fontSize: 16,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {feature}
-                  </span>
-                ))
-              ) : (
-                <span
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl}
+                  alt={`${name} photo`}
                   style={{
-                    color: "#888",
-                    fontSize: 16,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#e2e8f0",
                   }}
                 >
-                  No features listed
-                </span>
+                  <span
+                    style={{
+                      color: "#64748b",
+                      fontSize: 32,
+                      textAlign: "center",
+                      width: "100%",
+                    }}
+                  >
+                    No image available
+                  </span>
+                </div>
               )}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                fontSize: 16,
-                color: "#666",
-              }}
-            >
-              <b>Address:</b> {address}
+
+              {/* Gradient overlay */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "30%",
+                  background:
+                    "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
+                }}
+              />
             </div>
           </div>
         </div>
