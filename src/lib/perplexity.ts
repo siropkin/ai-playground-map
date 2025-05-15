@@ -21,13 +21,16 @@ export async function fetchPerplexityInsights(
   const prompt = `
 Task: Find information about a children's playground.
 
-Location: The playground must be located *at* the following address, or *within a park or public space located precisely at* this address: ${address}
+Location: The playground must be located at one of the following:
+- Directly at the following address: ${address}
+- Within a park, recreation center, community center, school grounds, or other public space located precisely at this address
+- Part of a sports complex or facility at this address
 
-Strictness: Focus strictly on finding a children's playground that meets the location criteria. If you cannot confidently find a playground meeting this criteria, return the 'not found' structure described below.
+Strictness: Focus strictly on finding a playground that meets the location criteria. If you cannot confidently find a playground meeting this criteria, return the 'not found' structure described below.
 
 Desired Output Format: Respond with a JSON object containing the following fields:
 {
-  "name": "string", // The name of the playground
+  "name": "string", // The name of the playground or facility containing the playground
   "description": "string", // A short 2-sentence description highlighting features like equipment, age range, safety, shade, or atmosphere
   "features": ["string"], // A list of features present at the playground, aligned with OpenStreetMap playground features (https://wiki.openstreetmap.org/wiki/Key:playground)
   "parking": "string" // A short information about nearby parking options
