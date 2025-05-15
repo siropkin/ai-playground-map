@@ -36,7 +36,7 @@ export default function ClearCacheButton({
       } else {
         alert(`Error: ${result.message}`);
       }
-    } catch (error) {
+    } catch {
       alert("Error: Failed to clear AI insights cache");
     } finally {
       setIsLoading(false);
