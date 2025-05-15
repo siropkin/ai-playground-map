@@ -5,10 +5,13 @@ import {
 import { PerplexityInsights } from "@/types/perplexity";
 
 // Function to fetch AI insights from Perplexity
-export async function fetchPerplexityInsights(
-  address: string,
-  signal?: AbortSignal,
-): Promise<PerplexityInsights | null> {
+export async function fetchPerplexityInsights({
+  address,
+  signal,
+}: {
+  address: string;
+  signal?: AbortSignal;
+}): Promise<PerplexityInsights | null> {
   if (signal?.aborted) {
     return null;
   }
@@ -58,18 +61,23 @@ If no playground is found with high confidence, return:
 Return only the valid JSON object without any additional text or markdown.
 `;
 
+  const reqBody = {
+    model: (process.env.PERPLEXITY_MODEL || "sonar").toLowerCase(),
+    temperature: parseFloat(process.env.PERPLEXITY_TEMPERATURE || "0.17"),
+    return_images: true,
+    web_search_options: {
+      search_context_size: process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE || "low",
+    },
+    messages: [{ role: "user", content: prompt }],
+  };
+
   const response = await fetch("https://api.perplexity.ai/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: (process.env.PERPLEXITY_MODEL || "sonar").toLowerCase(),
-      messages: [{ role: "user", content: prompt }],
-      return_images: true,
-      temperature: parseFloat(process.env.PERPLEXITY_TEMPERATURE || "0.17"),
-    }),
+    body: JSON.stringify(reqBody),
     signal,
   });
 
@@ -79,9 +87,11 @@ Return only the valid JSON object without any additional text or markdown.
 
   const data = await response.json();
 
-  const content = data.choices[0].message.content
-    .replace("```json", "")
-    .replace("```", "");
+  const contentBlock = data.choices[0].message.content;
+  const jsonMatch =
+    contentBlock.match(/```json\s*([\s\S]*?)\s*```/i) ||
+    contentBlock.match(/({[\s\S]*})/);
+  const content = jsonMatch ? jsonMatch[1] : "";
 
   return {
     ...JSON.parse(content),
@@ -91,10 +101,13 @@ Return only the valid JSON object without any additional text or markdown.
 }
 
 // Function to fetch AI insights from Perplexity with caching
-export async function fetchPerplexityInsightsWithCache(
-  address: string,
-  signal?: AbortSignal,
-): Promise<PerplexityInsights | null> {
+export async function fetchPerplexityInsightsWithCache({
+  address,
+  signal,
+}: {
+  address: string;
+  signal?: AbortSignal;
+}): Promise<PerplexityInsights | null> {
   if (signal?.aborted) {
     return null;
   }
@@ -104,7 +117,10 @@ export async function fetchPerplexityInsightsWithCache(
     return cachedInsights;
   }
 
-  const freshInsights = await fetchPerplexityInsights(address, signal);
+  const freshInsights = await fetchPerplexityInsights({
+    address,
+    signal,
+  });
 
   if (signal?.aborted || !freshInsights) {
     return null;

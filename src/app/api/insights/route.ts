@@ -17,7 +17,11 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { address } = body as { address: string };
+    const { address, lat, lon } = body as {
+      address: string;
+      lat?: number;
+      lon?: number;
+    };
 
     if (!address) {
       return NextResponse.json(
@@ -26,7 +30,10 @@ export async function POST(
       );
     }
 
-    const insight = await fetchPerplexityInsightsWithCache(address, signal);
+    const insight = await fetchPerplexityInsightsWithCache({
+      address,
+      signal,
+    });
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });

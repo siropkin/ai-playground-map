@@ -6,6 +6,8 @@ import { fetchGoogleMapsDetailsWithCache } from "@/lib/google-maps";
 import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
 
 async function fetchPlaygroundById(id: string): Promise<Playground | null> {
+  let playground: Playground | null = null;
+
   try {
     const [osmPlaceDetails] = await fetchMultipleOSMPlaceDetails({
       osmIds: [id],
@@ -15,7 +17,7 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
       return null;
     }
 
-    const playground: Playground = {
+    playground = {
       id: osmPlaceDetails.osm_id,
       name: null,
       description: null,
@@ -40,9 +42,9 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
     if (details) {
       playground.address = details.formatted_address;
 
-      const insight = await fetchPerplexityInsightsWithCache(
-        playground.address,
-      );
+      const insight = await fetchPerplexityInsightsWithCache({
+        address: playground.address,
+      });
 
       if (insight) {
         playground.name = insight.name || playground.name;
@@ -58,7 +60,7 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
     return playground;
   } catch (error) {
     console.error("Error fetching playground details:", error);
-    return null;
+    return playground;
   }
 }
 

@@ -70,17 +70,24 @@ export async function fetchPlaygroundDetails(
 /**
  * Client-side function to generate a playground description from the API
  */
-export async function generatePlaygroundAiInsights(
-  address: string,
-  signal?: AbortSignal,
-): Promise<PerplexityInsights | null> {
+export async function generatePlaygroundAiInsights({
+  address,
+  lat,
+  lon,
+  signal,
+}: {
+  address: string;
+  lat?: number;
+  lon?: number;
+  signal?: AbortSignal;
+}): Promise<PerplexityInsights | null> {
   try {
     const response = await fetch("/api/insights", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ address }),
+      body: JSON.stringify({ address, lat, lon }),
       signal,
     });
 

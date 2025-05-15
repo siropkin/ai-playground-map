@@ -108,10 +108,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             if (!details) return;
 
-            const insight = await generatePlaygroundAiInsights(
-              details.formatted_address,
+            const insight = await generatePlaygroundAiInsights({
+              address: details.formatted_address,
+              lat: pe.lat,
+              lon: pe.lon,
               signal,
-            );
+            });
 
             if (signal?.aborted) return;
 
