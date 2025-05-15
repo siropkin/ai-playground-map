@@ -2,12 +2,17 @@ import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 import { createClient } from "@/lib/supabase/server";
 import { PerplexityInsights } from "@/types/perplexity";
 
-// TODO: Move to env params?
-const PERPLEXITY_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000; // Cache TTL (1 year in milliseconds)
-const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME = "perplexity_insights_cache";
-
-const GOOGLE_MAPS_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // Cache TTL (30 days in milliseconds)
+const PERPLEXITY_CACHE_TTL_MS = parseInt(
+  process.env.PERPLEXITY_CACHE_TTL_MS || "31536000000",
+); // Cache TTL (1 year in milliseconds)
+const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME =
+  process.env.PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME ||
+  "perplexity_insights_cache";
+const GOOGLE_MAPS_CACHE_TTL_MS = parseInt(
+  process.env.PERPLEXITY_CACHE_TTL_MS || "2592000000",
+); // Cache TTL (30 days in milliseconds)
 const GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME =
+  process.env.GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME ||
   "google_maps_place_details_cache";
 
 // Function to get AI insights from cache

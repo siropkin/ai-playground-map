@@ -65,10 +65,10 @@ Return only the valid JSON object without any additional text or markdown.
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "sonar",
+      model: (process.env.PERPLEXITY_MODEL || "sonar").toLowerCase(),
       messages: [{ role: "user", content: prompt }],
       return_images: true,
-      temperature: 0.17,
+      temperature: parseFloat(process.env.PERPLEXITY_TEMPERATURE || "0.17"),
     }),
     signal,
   });

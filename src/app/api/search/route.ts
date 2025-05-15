@@ -32,8 +32,8 @@ export async function POST(
     const osmResults = await runOSMQuery({
       bounds,
       leisure: "playground",
-      timeout: 5,
-      limit: 10,
+      timeout: parseInt(process.env.OSM_QUERY_TIMEOUT || "5"),
+      limit: parseInt(process.env.OSM_QUERY_LIMIT || "10"),
       signal,
     });
 
