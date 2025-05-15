@@ -6,7 +6,7 @@ import { PerplexityInsights } from "@/types/perplexity";
 const PERPLEXITY_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000; // Cache TTL (1 year in milliseconds)
 const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME = "perplexity_insights_cache";
 
-const GOOGLE_MAPS_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000; // Cache TTL (1 year in milliseconds)
+const GOOGLE_MAPS_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // Cache TTL (30 days in milliseconds)
 const GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME =
   "google_maps_place_details_cache";
 
