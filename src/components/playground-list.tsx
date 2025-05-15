@@ -70,7 +70,7 @@ export function PlaygroundList({
                     href="/playgrounds/[id]"
                     as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
                     className="underline"
-                    aria-label={`View details about ${name}`}
+                    aria-label={`Go to ${name} page`}
                   >
                     <h3 className="font-semibold">{name}</h3>
                   </Link>

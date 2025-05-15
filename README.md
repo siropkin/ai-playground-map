@@ -85,3 +85,16 @@ Follow these steps to set up the project locally:
 
 Feel free to reach out if you want to contribute or have ideas:
 **ivan.seredkin@gmail.com**
+
+## 💰 Project Costs & Support
+
+To run this project,
+I use the Perplexity AI API and Google Maps Geocoding API which cost me some money
+(~$0.02 for one playground research) which I pay out of my own pocket.
+If you like the project and want it to keep running and improving, please consider supporting me with a coffee!
+
+## ☕ Buy Me A Coffee
+
+<a href="https://buymeacoffee.com/ivan.seredkin" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+
+Your support helps cover API costs and enables continued development of this free resource. Thank you!
