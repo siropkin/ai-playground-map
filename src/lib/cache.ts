@@ -11,9 +11,11 @@ const GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME =
   "google_maps_place_details_cache";
 
 // Function to get AI insights from cache
-export async function fetchPerplexityInsightsFromCache(
-  address: string,
-): Promise<PerplexityInsights | null> {
+export async function fetchPerplexityInsightsFromCache({
+  address,
+}: {
+  address: string;
+}): Promise<PerplexityInsights | null> {
   try {
     const supabase = await createClient();
 
@@ -60,10 +62,13 @@ export async function fetchPerplexityInsightsFromCache(
 }
 
 // Function to save AI insights to cache
-export async function savePerplexityInsightsToCache(
-  address: string,
-  insights: PerplexityInsights,
-): Promise<void> {
+export async function savePerplexityInsightsToCache({
+  address,
+  insights,
+}: {
+  address: string;
+  insights: PerplexityInsights;
+}): Promise<void> {
   try {
     const supabase = await createClient();
 
@@ -88,6 +93,27 @@ export async function savePerplexityInsightsToCache(
     }
   } catch (error) {
     console.error("Error saving AI insights to cache:", error);
+  }
+}
+
+// Function to clear Perplexity insights cache
+export async function clearPerplexityInsightsCache({
+  address,
+}: {
+  address: string;
+}): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .delete()
+      .eq("address", address);
+
+    if (error) {
+      console.error("Error clearing Perplexity insights cache:", error);
+    }
+  } catch (error) {
+    console.error("Error clearing Perplexity insights cache:", error);
   }
 }
 
@@ -161,5 +187,29 @@ export async function saveGoogleMapsPlaceDetailsToCache({
     }
   } catch (error) {
     console.error("Error saving Google Maps details to cache:", error);
+  }
+}
+
+// Function to clear Google Maps place details cache
+export async function clearGoogleMapsPlaceDetailsCache({
+  lat,
+  lon,
+}: {
+  lat: number;
+  lon: number;
+}): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
+      .delete()
+      .eq("lat", lat)
+      .eq("lon", lon);
+
+    if (error) {
+      console.error("Error clearing Google Maps place details cache:", error);
+    }
+  } catch (error) {
+    console.error("Error clearing Google Maps place details cache:", error);
   }
 }

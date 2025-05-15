@@ -99,7 +99,7 @@ export async function fetchPerplexityInsightsWithCache(
     return null;
   }
 
-  const cachedInsights = await fetchPerplexityInsightsFromCache(address);
+  const cachedInsights = await fetchPerplexityInsightsFromCache({ address });
   if (cachedInsights) {
     return cachedInsights;
   }
@@ -110,7 +110,7 @@ export async function fetchPerplexityInsightsWithCache(
     return null;
   }
 
-  await savePerplexityInsightsToCache(address, freshInsights);
+  await savePerplexityInsightsToCache({ address, insights: freshInsights });
 
   return freshInsights;
 }
