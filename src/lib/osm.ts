@@ -21,10 +21,10 @@ export async function runOSMQuery({
 
   const box = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
   const query = `
-      [out:json][timeout:${timeout}];
-      nwr["leisure"="${leisure}"](${box});
-      out body center ${limit};
-    `;
+    [out:json][timeout:${timeout}];
+    nwr["leisure"="${leisure}"](${box});
+    out body center ${limit};
+  `;
 
   const response = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",

@@ -7,7 +7,7 @@ import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
 import { formatEnumString } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { fetchPlaygroundById } from "@/lib/api/server";
+import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
 
 type PlaygroundDetailParams = { id: string };
 
@@ -17,7 +17,7 @@ export async function generateMetadata({
   params: Promise<PlaygroundDetailParams>;
 }): Promise<Metadata> {
   const resolvedParams = await params;
-  const playground = await fetchPlaygroundById(resolvedParams.id);
+  const playground = await fetchPlaygroundByIdWithCache(resolvedParams.id);
 
   if (!playground) {
     return {
@@ -41,7 +41,7 @@ export async function generateMetadata({
       description,
       images: [
         {
-          url: `/api/og/playground/${resolvedParams.id}`,
+          url: `/api/og/playgrounds/${resolvedParams.id}`,
           width: 1200,
           height: 630,
           alt: name,
@@ -49,7 +49,7 @@ export async function generateMetadata({
       ],
       type: "website",
       locale: "en_US",
-      url: `${SITE_URL}/playground/${resolvedParams.id}`,
+      url: `${SITE_URL}/playgrounds/${resolvedParams.id}`,
     },
   };
 }
@@ -60,17 +60,20 @@ export default async function PlaygroundDetail({
   params: Promise<PlaygroundDetailParams>;
 }) {
   const resolvedParams = await params;
-  const playground = await fetchPlaygroundById(resolvedParams.id);
+  const playground = await fetchPlaygroundByIdWithCache(resolvedParams.id);
 
   if (!playground) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-        <h1 className="text-4xl font-bold">404 Playground Not Found</h1>
+        <h1 className="text-center text-4xl font-bold">
+          404 Playground Not Found
+        </h1>
         <p className="text-muted-foreground max-w-md text-center">
-          The playground you&apos;re looking for could not be found.
+          Uh-oh! This playground is really good at hiding. Let&apos;s find our
+          way back home!
         </p>
         <Link href="/">
-          <Button>Go Back to the {SITE_NAME}</Button>
+          <Button>Go back home</Button>
         </Link>
       </div>
     );

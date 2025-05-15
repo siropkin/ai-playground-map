@@ -1,11 +1,11 @@
 import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 import {
-  getMultipleGoogleMapsPlaceDetailsFromCache,
-  saveMultipleGoogleMapsPlaceDetailsToCache,
+  fetchGoogleMapsPlaceDetailsFromCache,
+  saveGoogleMapsPlaceDetailsToCache,
 } from "@/lib/cache";
 
-// Function to get address from Google Maps API using reverse geocoding
-export async function getGoogleMapsReverseGeocoding({
+// Function to fetch address from Google Maps API using reverse geocoding
+export async function fetchGoogleMapsDetails({
   lat,
   lon,
   signal,
@@ -44,55 +44,35 @@ export async function getGoogleMapsReverseGeocoding({
   return data.results[0];
 }
 
-// Function to get multiple place details from Google Maps
-export async function getMultipleGoogleMapsPlaceDetails({
-  items,
+// Function to fetch address from Google Maps API with caching
+export async function fetchGoogleMapsDetailsWithCache({
+  lat,
+  lon,
   signal,
 }: {
-  items: { id: number; type: string; lat: number; lon: number }[];
+  lat: number;
+  lon: number;
   signal?: AbortSignal;
-}): Promise<GoogleMapsPlaceDetails[]> {
+}): Promise<GoogleMapsPlaceDetails | null> {
   if (signal?.aborted) {
-    return [];
+    return null;
   }
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return [];
+  const cachedDetails = await fetchGoogleMapsPlaceDetailsFromCache({
+    lat,
+    lon,
+  });
+  if (cachedDetails) {
+    return cachedDetails;
   }
 
-  // Try to get cached details first
-  const { cachedDetails, uncachedItems } =
-    await getMultipleGoogleMapsPlaceDetailsFromCache(items);
+  const freshDetails = await fetchGoogleMapsDetails({ lat, lon, signal });
 
-  let fetchedDetails: GoogleMapsPlaceDetails[] = [];
-  if (uncachedItems.length > 0 && !signal?.aborted) {
-    // Fetch details for uncached items
-    const promises = uncachedItems.map(
-      async (item: { id: number; type: string; lat: number; lon: number }) => {
-        const googleDetails = await getGoogleMapsReverseGeocoding({
-          lat: item.lat,
-          lon: item.lon,
-          signal,
-        });
-
-        if (!googleDetails) return null;
-
-        // Add OSM ID and type to the Google Maps details
-        googleDetails.osm_id = item.id;
-        googleDetails.osm_type = item.type;
-
-        // Save to cache
-        await saveMultipleGoogleMapsPlaceDetailsToCache([googleDetails]);
-
-        return googleDetails;
-      },
-    );
-
-    const results = await Promise.all(promises);
-    fetchedDetails = results.filter(
-      (result: unknown): result is GoogleMapsPlaceDetails => result !== null,
-    );
+  if (signal?.aborted || !freshDetails) {
+    return null;
   }
 
-  return [...cachedDetails, ...fetchedDetails];
+  await saveGoogleMapsPlaceDetailsToCache({ lat, lon, details: freshDetails });
+
+  return freshDetails;
 }

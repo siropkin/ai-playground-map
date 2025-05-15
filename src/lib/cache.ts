@@ -5,8 +5,12 @@ import { PerplexityInsights } from "@/types/perplexity";
 // TODO: Move to env params?
 const PERPLEXITY_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000; // Cache TTL (1 year in milliseconds)
 const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME = "perplexity_insights_cache";
-const PLACE_DETAILS_CACHE_TABLE_NAME = "place_details_cache";
 
+const GOOGLE_MAPS_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000; // Cache TTL (1 year in milliseconds)
+const GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME =
+  "google_maps_place_details_cache";
+
+// Function to get AI insights from cache
 export async function fetchPerplexityInsightsFromCache(
   address: string,
 ): Promise<PerplexityInsights | null> {
@@ -55,6 +59,7 @@ export async function fetchPerplexityInsightsFromCache(
   }
 }
 
+// Function to save AI insights to cache
 export async function savePerplexityInsightsToCache(
   address: string,
   insights: PerplexityInsights,
@@ -86,108 +91,73 @@ export async function savePerplexityInsightsToCache(
   }
 }
 
-// Google Maps cache functions
-export async function getMultipleGoogleMapsPlaceDetailsFromCache(
-  items: { id: number; type: string; lat: number; lon: number }[],
-): Promise<{
-  cachedDetails: GoogleMapsPlaceDetails[];
-  uncachedItems: { id: number; type: string; lat: number; lon: number }[];
-}> {
+// Function to get Google Maps details from cache
+export async function fetchGoogleMapsPlaceDetailsFromCache({
+  lat,
+  lon,
+}: {
+  lat: number;
+  lon: number;
+}): Promise<GoogleMapsPlaceDetails | null> {
   try {
-    if (!items.length) return { cachedDetails: [], uncachedItems: [] };
-
     const supabase = await createClient();
     const now = Date.now();
 
-    const cachedDetails: GoogleMapsPlaceDetails[] = [];
-    const uncachedItems: {
-      id: number;
-      type: string;
-      lat: number;
-      lon: number;
-    }[] = [];
+    const { data, error } = await supabase
+      .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
+      .select("details, created_at")
+      .eq("lat", lat)
+      .eq("lon", lon)
+      .single();
 
-    const batchSize = 10;
-    for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize);
-
-      const filterConditions = batch
-        .map((item) => {
-          return `(osm_type.eq.${item.type},osm_id.eq.${item.id})`;
-        })
-        .join(",");
-
-      const { data, error } = await supabase
-        .from(PLACE_DETAILS_CACHE_TABLE_NAME)
-        .select("osm_type, osm_id, details, created_at")
-        .or(filterConditions);
-
-      if (error || !data) {
-        uncachedItems.push(...batch);
-        continue;
-      }
-
-      for (const item of batch) {
-        const cacheEntry = data.find(
-          (entry) => entry.osm_type === item.type && entry.osm_id === item.id,
-        );
-
-        if (cacheEntry) {
-          const createdAt = new Date(cacheEntry.created_at).getTime();
-
-          if (now - createdAt < PERPLEXITY_CACHE_TTL_MS) {
-            // Convert Google Maps details to OSM format for compatibility
-            const googleDetails = cacheEntry.details as GoogleMapsPlaceDetails;
-            cachedDetails.push(googleDetails);
-          } else {
-            uncachedItems.push(item);
-
-            await supabase
-              .from(PLACE_DETAILS_CACHE_TABLE_NAME)
-              .delete()
-              .eq("osm_type", item.type)
-              .eq("osm_id", item.id);
-          }
-        } else {
-          uncachedItems.push(item);
-        }
-      }
+    if (error || !data) {
+      return null;
     }
 
-    return { cachedDetails, uncachedItems };
+    const createdAt = new Date(data.created_at).getTime();
+    if (now - createdAt < GOOGLE_MAPS_CACHE_TTL_MS) {
+      return data.details as GoogleMapsPlaceDetails;
+    } else {
+      await supabase
+        .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
+        .delete()
+        .eq("lat", lat)
+        .eq("lon", lon);
+      return null;
+    }
   } catch (error) {
     console.error("Error getting Google Maps details from cache:", error);
-    return { cachedDetails: [], uncachedItems: items };
+    return null;
   }
 }
 
-export async function saveMultipleGoogleMapsPlaceDetailsToCache(
-  details: GoogleMapsPlaceDetails[],
-): Promise<void> {
+// Function to save Google Maps details to cache
+export async function saveGoogleMapsPlaceDetailsToCache({
+  lat,
+  lon,
+  details,
+}: {
+  lat: number;
+  lon: number;
+  details: GoogleMapsPlaceDetails;
+}): Promise<void> {
   try {
-    if (!details.length) return;
-
     const supabase = await createClient();
-    const now = new Date().toISOString();
 
-    const upsertData = details.map((detail) => ({
-      osm_type: detail.osm_type,
-      osm_id: (detail.osm_id || 0).toString(),
-      details: detail,
-      created_at: now,
-    }));
+    const { error } = await supabase
+      .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
+      .upsert(
+        {
+          lat,
+          lon,
+          details,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: "lat, lon" },
+      );
 
-    const batchSize = 10;
-    for (let i = 0; i < upsertData.length; i += batchSize) {
-      const batch = upsertData.slice(i, i + batchSize);
-
-      const { error } = await supabase
-        .from(PLACE_DETAILS_CACHE_TABLE_NAME)
-        .upsert(batch, { onConflict: "osm_type, osm_id" });
-
-      if (error) {
-        console.error("Error saving Google Maps details to cache:", error);
-      }
+    if (error) {
+      console.error("Error saving Google Maps details to cache:", error);
     }
   } catch (error) {
     console.error("Error saving Google Maps details to cache:", error);

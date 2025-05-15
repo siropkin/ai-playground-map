@@ -30,10 +30,10 @@ export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
   }
 
   return {
-    south: parseFloat(bounds.south.toFixed(6)),
-    north: parseFloat(bounds.north.toFixed(6)),
-    west: parseFloat(bounds.west.toFixed(6)),
-    east: parseFloat(bounds.east.toFixed(6)),
+    south: parseFloat(bounds.south.toFixed(7)),
+    north: parseFloat(bounds.north.toFixed(7)),
+    west: parseFloat(bounds.west.toFixed(7)),
+    east: parseFloat(bounds.east.toFixed(7)),
   };
 }
 

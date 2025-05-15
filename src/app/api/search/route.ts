@@ -18,11 +18,10 @@ export async function POST(
     const { bounds } = body as { bounds: MapBounds };
 
     if (
-      !bounds ||
-      !bounds.north ||
-      !bounds.south ||
-      !bounds.east ||
-      !bounds.west
+      bounds?.north == null ||
+      bounds?.south == null ||
+      bounds?.east == null ||
+      bounds?.west == null
     ) {
       return NextResponse.json(
         { error: "Invalid map bounds provided" },
@@ -30,7 +29,7 @@ export async function POST(
       );
     }
 
-    const osmPlaygrounds = await runOSMQuery({
+    const osmResults = await runOSMQuery({
       bounds,
       leisure: "playground",
       timeout: 5,
@@ -42,27 +41,25 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    if (osmPlaygrounds.length === 0) {
+    if (osmResults.length === 0) {
       return NextResponse.json([]);
     }
 
-    const playgrounds: Playground[] = osmPlaygrounds
-      .map((playground) => ({
-        id: playground.id,
-        name: playground.tags?.name || null,
-        description: playground.tags?.description || null,
-        lat:
-          playground.type === "node" ? playground.lat : playground.center?.lat,
-        lon:
-          playground.type === "node" ? playground.lon : playground.center?.lon,
+    const playgrounds: Playground[] = osmResults
+      .map((item) => ({
+        id: item.id,
+        name: item.tags?.name || null,
+        description: item.tags?.description || null,
+        lat: item.type === "node" ? item.lat : item.center?.lat,
+        lon: item.type === "node" ? item.lon : item.center?.lon,
         features: null,
         parking: null,
         sources: null,
         address: null,
         images: null,
-        osmId: playground.id,
-        osmType: playground.type,
-        osmTags: playground.tags,
+        osmId: item.id,
+        osmType: item.type,
+        osmTags: item.tags,
         enriched: false,
       }))
       .filter((playground) => playground.lat && playground.lon);

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMultipleGoogleMapsPlaceDetails } from "@/lib/google-maps";
-import { Playground } from "@/types/playground";
+
 import { GoogleMapsPlaceDetails } from "@/types/google-maps";
+import { fetchGoogleMapsDetailsWithCache } from "@/lib/google-maps";
 
 export async function POST(
   request: NextRequest,
 ): Promise<
-  NextResponse<{ error: string }> | NextResponse<GoogleMapsPlaceDetails[]>
+  | NextResponse<{ error: string }>
+  | NextResponse<{ details: GoogleMapsPlaceDetails | null }>
 > {
   const signal = request.signal;
 
@@ -16,40 +17,29 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { playgrounds } = body as {
-      playgrounds: Playground[];
+    const { lat, lon } = body as {
+      lat: number;
+      lon: number;
     };
 
-    if (
-      !playgrounds ||
-      !Array.isArray(playgrounds) ||
-      playgrounds.length === 0
-    ) {
+    if (lat == null || lon == null) {
       return NextResponse.json(
-        { error: "Invalid or empty playgrounds array provided" },
+        { error: "Invalid coordinates" },
         { status: 400 },
       );
     }
 
-    const items = playgrounds.map((playground) => ({
-      id: playground.osmId,
-      type: (playground.osmType || "").toString(),
-      lat: playground.lat,
-      lon: playground.lon,
-    }));
-
-    // Use Google Maps for reverse geocoding instead of OSM
-    const details: GoogleMapsPlaceDetails[] =
-      await getMultipleGoogleMapsPlaceDetails({
-        items,
-        signal,
-      });
+    const details = await fetchGoogleMapsDetailsWithCache({
+      lat,
+      lon,
+      signal,
+    });
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    return NextResponse.json(details);
+    return NextResponse.json({ details });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });

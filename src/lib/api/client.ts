@@ -4,14 +4,14 @@ import { PerplexityInsights } from "@/types/perplexity";
 import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 
 /**
- * Client-side function to fetch playgrounds from the API
+ * Client-side function to search for playgrounds in the API
  */
-export async function fetchPlaygrounds(
+export async function searchPlaygrounds(
   bounds: MapBounds,
   signal?: AbortSignal,
 ): Promise<Playground[]> {
   try {
-    const response = await fetch("/api/playgrounds/search", {
+    const response = await fetch("/api/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -37,19 +37,18 @@ export async function fetchPlaygrounds(
 /**
  * Client-side function to fetch playgrounds details from the API
  */
-export async function fetchMultiplePlaygroundDetails(
-  playgrounds: Playground[],
+export async function fetchPlaygroundDetails(
+  lat: number,
+  lon: number,
   signal?: AbortSignal,
-): Promise<GoogleMapsPlaceDetails[]> {
+): Promise<GoogleMapsPlaceDetails | null> {
   try {
-    if (!playgrounds.length) return [];
-
-    const response = await fetch("/api/playgrounds/details", {
+    const response = await fetch("/api/details", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ playgrounds }),
+      body: JSON.stringify({ lat, lon }),
       signal,
     });
 
@@ -57,13 +56,14 @@ export async function fetchMultiplePlaygroundDetails(
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data.details;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      return [];
+      return null;
     }
     console.error("Error fetching playground details:", error);
-    return [];
+    return null;
   }
 }
 
@@ -75,7 +75,7 @@ export async function generatePlaygroundAiInsights(
   signal?: AbortSignal,
 ): Promise<PerplexityInsights | null> {
   try {
-    const response = await fetch("/api/playgrounds/ai-insights", {
+    const response = await fetch("/api/insights", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

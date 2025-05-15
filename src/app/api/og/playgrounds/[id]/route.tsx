@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
 import { SITE_NAME, UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString } from "@/lib/utils";
-import { fetchPlaygroundById } from "@/lib/api/server";
+import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
 
 interface RouteContext {
   params: Promise<{
@@ -23,7 +23,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
       );
     }
 
-    const playground = await fetchPlaygroundById(id);
+    const playground = await fetchPlaygroundByIdWithCache(id);
 
     if (!playground) {
       return NextResponse.json(

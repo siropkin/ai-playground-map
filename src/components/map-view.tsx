@@ -353,7 +353,7 @@ export function MapView() {
       const feature = e.features?.[0];
       if (feature?.properties?.id) {
         router.push(
-          `/playground/${formatOsmIdentifier(feature.properties.id, feature.properties.type)}`,
+          `/playgrounds/${formatOsmIdentifier(feature.properties.id, feature.properties.type)}`,
         );
       }
     };
@@ -366,7 +366,7 @@ export function MapView() {
       e.originalEvent.stopPropagation();
       const feature = e.features?.[0];
       if (feature?.properties?.id) {
-        router.push(`/playground/${feature.properties.id}`);
+        router.push(`/playgrounds/${feature.properties.id}`);
       }
     };
 

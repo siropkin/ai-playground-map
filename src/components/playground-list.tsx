@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 
 export function PlaygroundList({
   displayEmptyState,
@@ -34,8 +35,8 @@ export function PlaygroundList({
   return (
     <div className="flex flex-col space-y-2">
       {playgrounds.map((playground) => {
-        const displayImage = playground.images?.[0];
         const name = playground.name || UNNAMED_PLAYGROUND;
+        const displayImage = playground.images?.[0];
         return (
           <Card
             key={playground.id}
@@ -65,9 +66,10 @@ export function PlaygroundList({
                 <Skeleton className="h-4 w-full" />
               ) : name ? (
                 <Link
-                  href="/playground/[id]"
-                  as={`/playground/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
+                  href="/playgrounds/[id]"
+                  as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
                   className="underline"
+                  aria-label={`View details about ${name}`}
                 >
                   <h3 className="font-semibold">{name}</h3>
                 </Link>
@@ -103,13 +105,14 @@ export function PlaygroundList({
                 <Skeleton className="h-4 w-full" />
               ) : playground.address ? (
                 <div
-                  className="text-muted-foreground flex cursor-pointer items-center text-xs"
+                  className="text-muted-foreground flex cursor-pointer text-xs underline"
                   onClick={() => {
                     requestFlyTo([playground.lon, playground.lat]);
                   }}
+                  aria-label={`See ${name} on the map`}
                 >
-                  📍
-                  {playground.address}
+                  <MapPin className="mr-1 h-4 w-4 shrink-0" />
+                  <span>{playground.address}</span>
                 </div>
               ) : null}
             </CardContent>

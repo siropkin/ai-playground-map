@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { PerplexityInsights } from "@/types/perplexity";
-import {
-  fetchPerplexityInsights,
-  fetchPerplexityInsightsWithCache,
-} from "@/lib/perplexity";
+import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
 
 export async function POST(
   request: NextRequest,
@@ -21,20 +19,20 @@ export async function POST(
     const body = await request.json();
     const { address } = body as { address: string };
 
-    if (!address || typeof address !== "string") {
+    if (!address) {
       return NextResponse.json(
         { error: "Valid address is required" },
         { status: 400 },
       );
     }
 
-    const aiInsight = await fetchPerplexityInsightsWithCache(address, signal);
+    const insight = await fetchPerplexityInsightsWithCache(address, signal);
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    return NextResponse.json({ insights: aiInsight });
+    return NextResponse.json({ insights: insight });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });

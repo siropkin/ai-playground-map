@@ -1,28 +1,20 @@
 import { cache } from "react";
+
 import { Playground } from "@/types/playground";
 import { fetchMultipleOSMPlaceDetails } from "@/lib/osm";
-import { GoogleMapsPlaceDetails } from "@/types/google-maps";
-import { getMultipleGoogleMapsPlaceDetails } from "@/lib/google-maps";
-import {
-  fetchPerplexityInsights,
-  fetchPerplexityInsightsWithCache,
-} from "@/lib/perplexity";
+import { fetchGoogleMapsDetailsWithCache } from "@/lib/google-maps";
+import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
 
-async function _fetchPlaygroundById(id: string): Promise<Playground | null> {
+async function fetchPlaygroundById(id: string): Promise<Playground | null> {
   try {
     const [osmPlaceDetails] = await fetchMultipleOSMPlaceDetails({
       osmIds: [id],
     });
 
-    if (!osmPlaceDetails) {
+    if (osmPlaceDetails?.type !== "playground") {
       return null;
     }
 
-    if (!osmPlaceDetails.lat || !osmPlaceDetails.lon) {
-      return null;
-    }
-
-    // Create the base playground object
     const playground: Playground = {
       id: osmPlaceDetails.osm_id,
       name: null,
@@ -40,37 +32,25 @@ async function _fetchPlaygroundById(id: string): Promise<Playground | null> {
       enriched: false,
     };
 
-    // Enrich with Google Maps data
-    const items = [
-      {
-        id: playground.osmId,
-        type: (playground.osmType || "").toString(),
-        lat: playground.lat,
-        lon: playground.lon,
-      },
-    ];
+    const details = await fetchGoogleMapsDetailsWithCache({
+      lat: playground.lat,
+      lon: playground.lon,
+    });
 
-    // Use Google Maps for reverse geocoding instead of OSM
-    const details: GoogleMapsPlaceDetails[] =
-      await getMultipleGoogleMapsPlaceDetails({
-        items,
-      });
+    if (details) {
+      playground.address = details.formatted_address;
 
-    if (details.length > 0 && details[0].formatted_address) {
-      playground.address = details[0].formatted_address;
-
-      const aiInsight = await fetchPerplexityInsightsWithCache(
+      const insight = await fetchPerplexityInsightsWithCache(
         playground.address,
       );
 
-      if (aiInsight) {
-        playground.name = aiInsight.name || playground.name;
-        playground.description =
-          aiInsight.description || playground.description;
-        playground.features = aiInsight.features || playground.features;
-        playground.parking = aiInsight.parking || playground.parking;
-        playground.sources = aiInsight.sources || playground.sources;
-        playground.images = aiInsight.images || playground.images;
+      if (insight) {
+        playground.name = insight.name || playground.name;
+        playground.description = insight.description || playground.description;
+        playground.features = insight.features || playground.features;
+        playground.parking = insight.parking || playground.parking;
+        playground.sources = insight.sources || playground.sources;
+        playground.images = insight.images || playground.images;
         playground.enriched = true;
       }
     }
@@ -82,4 +62,4 @@ async function _fetchPlaygroundById(id: string): Promise<Playground | null> {
   }
 }
 
-export const fetchPlaygroundById = cache(_fetchPlaygroundById);
+export const fetchPlaygroundByIdWithCache = cache(fetchPlaygroundById);

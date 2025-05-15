@@ -12,9 +12,9 @@ import {
 import { Playground } from "@/types/playground";
 import { useFilters } from "@/contexts/filters-context";
 import {
-  fetchPlaygrounds as apiFetchPlaygrounds,
-  fetchMultiplePlaygroundDetails as apiFetchMultiplePlaygroundDetails,
-  generatePlaygroundAiInsights as apiGeneratePlaygroundAiInsight,
+  searchPlaygrounds,
+  fetchPlaygroundDetails,
+  generatePlaygroundAiInsights,
 } from "@/lib/api/client";
 import { useDebounce } from "@/lib/hooks";
 
@@ -44,7 +44,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
 
-  const fetchPlaygrounds = useCallback(
+  const localFetchPlaygrounds = useCallback(
     async (signal?: AbortSignal) => {
       if (!mapBounds) return;
 
@@ -52,10 +52,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
-        const playgroundsForBounds = await apiFetchPlaygrounds(
-          mapBounds,
-          signal,
-        );
+        const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
           setPlaygrounds(playgroundsForBounds);
           setPendingEnrichment(playgroundsForBounds);
@@ -77,7 +74,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     [mapBounds],
   );
 
-  const debouncedFetchPlaygrounds = useDebounce(fetchPlaygrounds, 1500);
+  const debouncedFetchPlaygrounds = useDebounce(localFetchPlaygrounds, 1500);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -97,40 +94,39 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       setEnriching(true);
 
       try {
-        const details = await apiFetchMultiplePlaygroundDetails(
-          pendingEnrichment,
-          signal,
-        );
-
         if (signal?.aborted) return;
 
         await Promise.all(
-          details.map(async (d) => {
-            if (!d.formatted_address) {
-              return;
-            }
-
-            const aiInsight = await apiGeneratePlaygroundAiInsight(
-              d.formatted_address,
+          pendingEnrichment.map(async (pe) => {
+            const details = await fetchPlaygroundDetails(
+              pe.lat,
+              pe.lon,
               signal,
             );
 
-            if (signal?.aborted) {
-              return;
-            }
+            if (signal?.aborted) return;
+
+            if (!details) return;
+
+            const insight = await generatePlaygroundAiInsights(
+              details.formatted_address,
+              signal,
+            );
+
+            if (signal?.aborted) return;
 
             setPlaygrounds((prev) => {
               return prev.map((p) =>
-                p.osmId === d.osm_id
+                p.osmId === pe.osmId
                   ? {
                       ...p,
-                      name: aiInsight?.name || p.name,
-                      description: aiInsight?.description || p.description,
-                      address: d.formatted_address,
-                      features: aiInsight?.features || p.features,
-                      parking: aiInsight?.parking || p.parking,
-                      sources: aiInsight?.sources || p.sources,
-                      images: aiInsight?.images || p.images,
+                      name: insight?.name || p.name,
+                      description: insight?.description || p.description,
+                      address: details.formatted_address,
+                      features: insight?.features || p.features,
+                      parking: insight?.parking || p.parking,
+                      sources: insight?.sources || p.sources,
+                      images: insight?.images || p.images,
                       enriched: true,
                     }
                   : p,

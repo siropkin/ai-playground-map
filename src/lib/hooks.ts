@@ -6,7 +6,8 @@ import { useEffect, useRef, useCallback } from "react";
  * @param delay The delay in milliseconds
  * @returns A debounced version of the function
  */
-export function useDebounce<T extends (...args: unknown[]) => unknown>(
+// @ts-ignore
+export function useDebounce<T extends (...args: any[]) => any>(
   fn: T,
   delay: number,
 ): (...args: Parameters<T>) => void {
