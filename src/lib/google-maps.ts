@@ -75,7 +75,7 @@ export async function fetchGoogleMapsDetails({
     let errorBody = "";
     try {
       errorBody = await nearbyResponse.text();
-    } catch (e) {
+    } catch {
       // ignore
     }
     throw new Error(

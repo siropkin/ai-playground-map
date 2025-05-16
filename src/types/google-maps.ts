@@ -25,7 +25,7 @@ export interface GoogleMapsPlaceDetails {
     name: string;
     widthPx: number;
     heightPx: number;
-    authorAttributions?: any[];
+    authorAttributions?: string[];
     flagContentUri: string;
     googleMapsUri: string;
   }>;
