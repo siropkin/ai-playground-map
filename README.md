@@ -75,15 +75,19 @@ Follow these steps to set up the project locally:
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
       GOOGLE_MAPS_API_KEY=your_google_maps_api_key
       PERPLEXITY_API_KEY=your_perplexity_api_key
-
+      
+      # OSM Config
+      OSM_QUERY_TIMEOUT=5
+      OSM_QUERY_LIMIT=10
+      
+      # Google Maps Config
+      GOOGLE_MAPS_NEARBYSEARCH_RADIUS=50
+      
       # Perplexity Config
       PERPLEXITY_MODEL=sonar-pro
       PERPLEXITY_TEMPERATURE=0.17
       PERPLEXITY_SEARCH_CONTEXT_SIZE=medium
 
-      # OSM Config
-      OSM_QUERY_TIMEOUT=5
-      OSM_QUERY_LIMIT=10
 
       # Cache Config
       PERPLEXITY_CACHE_TTL_MS=31536000000
