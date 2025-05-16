@@ -82,6 +82,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       debouncedFetchPlaygrounds(signal);
     };
     fetchData(controller.signal);
+    // TODO: This is the abort controller place. If user move map too fast - I think it worth to abort then continue and save the results
     // return () => {
     //   controller.abort();
     // };
