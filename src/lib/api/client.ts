@@ -15,6 +15,7 @@ export async function searchPlaygrounds(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-app-origin": "internal",
       },
       body: JSON.stringify({ bounds }),
       signal,
@@ -47,6 +48,7 @@ export async function fetchPlaygroundDetails(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-app-origin": "internal",
       },
       body: JSON.stringify({ lat, lon }),
       signal,
@@ -82,6 +84,7 @@ export async function generatePlaygroundAiInsights({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-app-origin": "internal",
       },
       body: JSON.stringify({ address }),
       signal,
