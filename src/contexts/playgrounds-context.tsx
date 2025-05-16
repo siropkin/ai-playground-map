@@ -82,9 +82,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       debouncedFetchPlaygrounds(signal);
     };
     fetchData(controller.signal);
-    return () => {
-      controller.abort();
-    };
+    // return () => {
+    //   controller.abort();
+    // };
   }, [debouncedFetchPlaygrounds]);
 
   useEffect(() => {
