@@ -4,7 +4,7 @@ import {
   saveGoogleMapsPlaceDetailsToCache,
 } from "@/lib/cache";
 
-// Function to fetch address from Google Maps API using reverse geocoding
+// Function to fetch playground details from Google Maps API using Places API
 export async function fetchGoogleMapsDetails({
   lat,
   lon,
@@ -23,25 +23,48 @@ export async function fetchGoogleMapsDetails({
     throw new Error("Google Maps API key is missing");
   }
 
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}`,
-    { signal },
-  );
+  const radius = parseInt(process.env.GOOGLE_MAPS_NEARBYSEARCH_RADIUS || "50");
+  const nearbySearchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lon}&radius=${radius}&type=playground&key=${apiKey}`;
+  const nearbyResponse = await fetch(nearbySearchUrl, { signal });
 
-  if (!response.ok) {
+  if (!nearbyResponse.ok) {
     throw new Error(
-      `Google Maps API error: ${response.status} ${response.statusText}`,
+      `Google Maps API error: ${nearbyResponse.status} ${nearbyResponse.statusText}`,
     );
   }
 
-  const data = await response.json();
+  const nearbyData = await nearbyResponse.json();
 
-  if (data.status !== "OK" || !data.results || data.results.length === 0) {
-    console.error("Google Maps API returned no results:", data);
-    return null;
+  if (
+    nearbyData.status !== "OK" ||
+    !nearbyData.results ||
+    nearbyData.results.length === 0
+  ) {
+    // Fallback to geocoding if no playgrounds found
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}`;
+    const geocodeResponse = await fetch(geocodeUrl, { signal });
+
+    if (!geocodeResponse.ok) {
+      throw new Error(
+        `Google Maps API error: ${geocodeResponse.status} ${geocodeResponse.statusText}`,
+      );
+    }
+
+    const geocodeData = await geocodeResponse.json();
+
+    if (
+      geocodeData.status !== "OK" ||
+      !geocodeData.results ||
+      geocodeData.results.length === 0
+    ) {
+      console.error("Google Maps API returned no results:", geocodeData);
+      return null;
+    }
+
+    return geocodeData.results[0];
+  } else {
+    return nearbyData.results[0];
   }
-
-  return data.results[0];
 }
 
 // Function to fetch address from Google Maps API with caching
