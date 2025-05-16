@@ -89,9 +89,10 @@ export default async function PlaygroundDetail({
   const { data } = await supabase.auth.getUser();
   const isAdmin = data?.user?.role === APP_ADMIN_ROLE;
 
-  const googleMapsUrl = playground.address
-    ? `https://www.google.com/maps/search/${encodeURIComponent(playground.address)}`
-    : `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
+  // const googleMapsUrl = playground.address
+  //   ? `https://www.google.com/maps/search/${encodeURIComponent(playground.address)}`
+  //   : `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
 
   return (
     <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden px-6 py-10">
