@@ -92,7 +92,7 @@ export default function MapViewSingle({ playground }: MapViewSingleProps) {
           "text-anchor": "left",
           "text-justify": "left",
           "text-size": 12,
-          "text-allow-overlap": true,
+          "text-allow-overlap": false,
         },
         paint: {
           "text-color": colors.point,
