@@ -537,14 +537,14 @@ export function MapView() {
         ref={setMapContainer}
         className="absolute top-0 left-0 h-full w-full"
       />
-      <div className="absolute right-4 bottom-10 z-1 flex sm:right-4 sm:bottom-8">
+      <div className="absolute right-4 bottom-10 z-1 flex md:right-4 md:bottom-8">
         <Button
           variant="outline"
           aria-label="Center map on my location"
           onClick={handleNearMeClick}
         >
           <MapPin className="h-4 w-4" />
-          <span className="hidden sm:block">Near me</span>
+          <span className="hidden md:block">Near me</span>
         </Button>
       </div>
       {(loading || enriching) && (
