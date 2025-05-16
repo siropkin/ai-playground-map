@@ -128,8 +128,10 @@ export default async function PlaygroundDetail({
             {isAdmin && (
               <div className="flex gap-2">
                 <ClearCacheButton
-                  address={playground.address || ""}
                   playgroundId={resolvedParams.id}
+                  lat={playground.lat}
+                  lon={playground.lon}
+                  address={playground.address || ""}
                 />
               </div>
             )}
@@ -219,7 +221,7 @@ export default async function PlaygroundDetail({
           </div>
         </div>
       )}
-      
+
       {/* Report Issue (when no AI disclaimer) */}
       {!playground.enriched && (
         <div className="flex justify-end">

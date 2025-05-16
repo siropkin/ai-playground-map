@@ -1,6 +1,9 @@
 "use server";
 
-import { clearPerplexityInsightsCache } from "@/lib/cache";
+import {
+  clearGoogleMapsPlaceDetailsCache,
+  clearPerplexityInsightsCache,
+} from "@/lib/cache";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,22 +42,30 @@ export async function reportIssue({
   }
 }
 
-export async function clearAiInsightsCacheAction(
-  address: string,
-  playgroundId: string,
-) {
+export async function clearPlaygroundCacheAction({
+  playgroundId,
+  lat,
+  lon,
+  address,
+}: {
+  playgroundId: string;
+  lat: number;
+  lon: number;
+  address: string;
+}) {
   try {
     if (!address) {
       return { success: false, message: "No address provided" };
     }
 
     await clearPerplexityInsightsCache({ address });
+    await clearGoogleMapsPlaceDetailsCache({ lat, lon });
 
     revalidatePath(`/playgrounds/${playgroundId}`);
 
-    return { success: true, message: "AI insights cache cleared successfully" };
+    return { success: true, message: "Playground cache cleared successfully" };
   } catch (error) {
-    console.error("Error clearing AI insights cache:", error);
-    return { success: false, message: "Failed to clear AI insights cache" };
+    console.error("Error clearing playground cache:", error);
+    return { success: false, message: "Failed to clear playground cache" };
   }
 }
