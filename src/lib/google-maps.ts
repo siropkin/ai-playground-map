@@ -67,7 +67,7 @@ export async function fetchGoogleMapsDetails({
   ].join(",");
 
   const requestBody = {
-    includedTypes: ["playground"],
+    includedTypes: ["playground", "park"],
     maxResultCount: 1,
     locationRestriction: {
       circle: {
@@ -107,12 +107,10 @@ export async function fetchGoogleMapsDetails({
     );
   }
 
-  const responseData = await nearbyResponse.json();
-
-  if (responseData.places && responseData.places.length > 0) {
-    const place = responseData.places[0];
-
-    // Check if location data is available for the found place
+  const nearbyData = await nearbyResponse.json();
+  if (nearbyData.places && nearbyData.places.length > 0) {
+    const place = nearbyData.places[0];
+    // Check if location geocodeData is available for the found place
     if (
       place.location &&
       typeof place.location.latitude === "number" &&
@@ -165,20 +163,24 @@ export async function fetchGoogleMapsDetails({
     );
   }
 
-  const data = await geocodeResponse.json();
+  const geocodeData = await geocodeResponse.json();
 
-  if (data.status !== "OK" || !data.results || data.results.length === 0) {
+  if (
+    geocodeData.status !== "OK" ||
+    !geocodeData.results ||
+    geocodeData.results.length === 0
+  ) {
     console.error(
       "Google Maps API (geocode fallback) returned no results or an error:",
-      data.status,
-      data.error_message,
+      geocodeData.status,
+      geocodeData.error_message,
     );
     return null;
   }
 
   return {
-    id: data.results[0].place_id,
-    formattedAddress: data.results[0].formatted_address,
+    id: geocodeData.results[0].place_id,
+    formattedAddress: geocodeData.results[0].formatted_address,
   } as GoogleMapsPlaceDetails;
 }
 
@@ -205,7 +207,6 @@ export async function fetchGoogleMapsDetailsWithCache({
   }
 
   const freshDetails = await fetchGoogleMapsDetails({ lat, lon, signal });
-
   if (signal?.aborted || !freshDetails) {
     return null;
   }
