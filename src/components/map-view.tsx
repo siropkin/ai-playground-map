@@ -237,7 +237,7 @@ export function MapView() {
             "text-anchor": "left",
             "text-justify": "left",
             "text-size": 11,
-            "text-allow-overlap": true,
+            "text-allow-overlap": false,
             "text-optional": false,
           },
           paint: {
