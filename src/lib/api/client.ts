@@ -74,9 +74,11 @@ export async function fetchPlaygroundDetails(
  */
 export async function generatePlaygroundAiInsights({
   address,
+  name,
   signal,
 }: {
   address: string;
+  name?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
   try {
@@ -86,7 +88,7 @@ export async function generatePlaygroundAiInsights({
         "Content-Type": "application/json",
         "x-app-origin": "internal",
       },
-      body: JSON.stringify({ address }),
+      body: JSON.stringify({ address, name }),
       signal,
     });
 

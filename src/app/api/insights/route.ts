@@ -17,8 +17,9 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { address } = body as {
+    const { address, name } = body as {
       address: string;
+      name?: string;
     };
 
     if (!address) {
@@ -30,6 +31,7 @@ export async function POST(
 
     const insight = await fetchPerplexityInsightsWithCache({
       address,
+      name,
       signal,
     });
 
