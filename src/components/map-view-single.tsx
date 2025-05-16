@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useTheme } from "next-themes";
+
 import type { Playground } from "@/types/playground";
+import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 interface MapViewSingleProps {
   playground: Playground;
@@ -62,7 +64,11 @@ export default function MapViewSingle({ playground }: MapViewSingleProps) {
                 coordinates: [playground.lon, playground.lat],
               },
               properties: {
-                name: playground.name,
+                id: playground.osmId,
+                type: (playground.osmType || "").toString(),
+                name: playground.enriched
+                  ? playground.name || UNNAMED_PLAYGROUND
+                  : "",
               },
             },
           ],
