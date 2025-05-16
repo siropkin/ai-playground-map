@@ -111,7 +111,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             const insight = await generatePlaygroundAiInsights({
               address: details.formattedAddress,
-              name: details.name,
+              name: details.displayName?.text || pe.name || undefined,
               signal,
             });
 
@@ -122,7 +122,8 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 p.osmId === pe.osmId
                   ? {
                       ...p,
-                      name: insight?.name || details.name || p.name,
+                      name:
+                        insight?.name || details.displayName?.text || p.name,
                       description: insight?.description || p.description,
                       address: details.formattedAddress,
                       features: insight?.features || p.features,
