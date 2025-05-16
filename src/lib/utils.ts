@@ -1,52 +1,96 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Playground } from "@/types/playground";
+import { MapBounds } from "@/types/map";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Helper function to format enum-like strings (e.g., 'park_district' -> 'Park District')
+export function formatOsmIdentifier(id: number, type: string | null): string {
+  const typeMap: Record<string, string> = {
+    node: "N",
+    way: "W",
+    relation: "R",
+  };
+  return `${typeMap[type || "node"] || "N"}${id}`;
+}
+
+// Helper function to format enum-like strings (e.g., 'surface:synthetic_rubberized' -> 'Surface: Synthetic Rubberized')
 export function formatEnumString(str: string | undefined | null): string {
   if (!str) return "";
-  return str.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  return str
+    .replace(/_/g, " ")
+    .replace(/:/g, ": ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-// Helper function to format age range
-export function getAgeRange(ageMin: number | null, ageMax: number | null) {
-  if (!ageMin && !ageMax) return null;
-  if (!ageMin) return `Ages 0-${ageMax}`;
-  if (!ageMax) return `Ages ${ageMin}+`;
-  return `Ages ${ageMin}-${ageMax}`;
-}
-
-// Helper function to get today's open hours
-export function getTodayOpenHours(openHours: Playground["openHours"]) {
-  if (!openHours) {
-    return "No info available";
+export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
+  if (!bounds) {
+    return null;
   }
-  const days: (keyof Playground["openHours"])[] = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const today = days[new Date().getDay()];
-  const hours = openHours[today];
-  if (!hours || hours.closed) return "Closed today";
-  return `${hours.open}–${hours.close}`;
+
+  return {
+    south: parseFloat(bounds.south.toFixed(7)),
+    north: parseFloat(bounds.north.toFixed(7)),
+    west: parseFloat(bounds.west.toFixed(7)),
+    east: parseFloat(bounds.east.toFixed(7)),
+  };
 }
 
-// Function to format the address of a playground
-export function formatAddress(playground: Playground): string {
-  const arr = [
-    playground.address,
-    playground.city,
-    playground.state,
-    playground.zipCode,
-  ].filter(Boolean);
-  return arr.join(", ") || "No address available";
+export function getMapBoundsStateFromUrl(): MapBounds | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+
+  const south = params.get("south");
+  const north = params.get("north");
+  const west = params.get("west");
+  const east = params.get("east");
+
+  const bounds = {
+    south: parseFloat(south || ""),
+    north: parseFloat(north || ""),
+    west: parseFloat(west || ""),
+    east: parseFloat(east || ""),
+  };
+
+  if (
+    isNaN(bounds.south) ||
+    isNaN(bounds.north) ||
+    isNaN(bounds.west) ||
+    isNaN(bounds.east)
+  ) {
+    return null;
+  }
+
+  return bounds;
+}
+
+export function updateUrlWithMapBounds(bounds: MapBounds | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+
+  if (bounds) {
+    params.set("south", String(bounds.south));
+    params.set("north", String(bounds.north));
+    params.set("west", String(bounds.west));
+    params.set("east", String(bounds.east));
+  } else {
+    params.delete("south");
+    params.delete("north");
+    params.delete("west");
+    params.delete("east");
+  }
+
+  if (params.toString()) {
+    window.history.pushState({}, "", `${url.pathname}?${params.toString()}`);
+  } else {
+    window.history.pushState({}, "", url.pathname);
+  }
 }

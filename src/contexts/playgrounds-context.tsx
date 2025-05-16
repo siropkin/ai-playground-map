@@ -1,30 +1,29 @@
 "use client";
 
-import type { Playground } from "@/types/playground";
 import {
   type ReactNode,
   createContext,
   useCallback,
   useContext,
   useEffect,
-  useMemo,
-  useRef,
   useState,
 } from "react";
+
+import { Playground } from "@/types/playground";
 import { useFilters } from "@/contexts/filters-context";
-import { getPlaygroundsForBounds } from "@/data/playgrounds";
 import {
-  AGE_GROUPS,
-  APP_ADMIN_ROLE,
-  MAX_ZOOM_LEVEL_TO_FETCH_DATA,
-} from "@/lib/constants";
-import { useAuth } from "@/contexts/auth-context";
+  searchPlaygrounds,
+  fetchPlaygroundDetails,
+  generatePlaygroundAiInsights,
+} from "@/lib/api/client";
+import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
 interface PlaygroundsContextType {
   playgrounds: Playground[];
   loading: boolean;
+  enriching: boolean;
   error: string | null;
   flyToCoords: FlyToCoordinates | null;
   requestFlyTo: (coords: FlyToCoordinates) => void;
@@ -36,110 +35,133 @@ const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
 );
 
 export function PlaygroundsProvider({ children }: { children: ReactNode }) {
-  const { mapBounds, approvals, accesses, ages, features } = useFilters();
-  const { user } = useAuth();
+  const { mapBounds } = useFilters();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
+  const [pendingEnrichment, setPendingEnrichment] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
 
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const localFetchPlaygrounds = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!mapBounds) return;
 
-  const debouncedFetchPlaygrounds = useCallback(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    debounceTimerRef.current = setTimeout(async () => {
       setLoading(true);
       setError(null);
 
       try {
-        if (mapBounds) {
-          const zoomLevel = Math.max(
-            Math.abs(mapBounds.north - mapBounds.south),
-            Math.abs(mapBounds.east - mapBounds.west),
-          );
-
-          if (zoomLevel <= MAX_ZOOM_LEVEL_TO_FETCH_DATA) {
-            const playgroundsForBounds =
-              await getPlaygroundsForBounds(mapBounds);
-            setPlaygrounds(playgroundsForBounds);
-          } else {
-            setPlaygrounds([]);
-          }
+        const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
+        if (!signal?.aborted) {
+          setPlaygrounds(playgroundsForBounds);
+          setPendingEnrichment(playgroundsForBounds);
         }
       } catch (err) {
-        console.error("Error fetching playgrounds:", err);
-        setError("Failed to load playgrounds. Please try again.");
+        if (
+          !(err instanceof DOMException && err.name === "AbortError") &&
+          !signal?.aborted
+        ) {
+          console.error("Error fetching playgrounds:", err);
+          setError("Failed to load playgrounds. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (!signal?.aborted) {
+          setLoading(false);
+        }
       }
-    }, 300);
-  }, [mapBounds]);
+    },
+    [mapBounds],
+  );
+
+  const debouncedFetchPlaygrounds = useDebounce(localFetchPlaygrounds, 1000);
 
   useEffect(() => {
-    debouncedFetchPlaygrounds();
-
+    const controller = new AbortController();
+    const fetchData = async (signal?: AbortSignal) => {
+      debouncedFetchPlaygrounds(signal);
+    };
+    fetchData(controller.signal);
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      controller.abort();
     };
   }, [debouncedFetchPlaygrounds]);
 
-  const filteredPlaygrounds = useMemo(() => {
-    const isAdmin = user?.role === APP_ADMIN_ROLE;
-    const accessSet = accesses && accesses.length ? new Set(accesses) : null;
-    const ageSet = ages && ages.length ? new Set(ages) : null;
-    const featureSet = features && features.length ? new Set(features) : null;
+  useEffect(() => {
+    if (pendingEnrichment.length === 0) return;
 
-    return playgrounds.filter((playground) => {
-      // Filter isn't approved if it's not admin
-      if (!isAdmin && !playground.isApproved) {
-        return false;
-      }
+    const performEnrichment = async (signal?: AbortSignal) => {
+      setEnriching(true);
 
-      // Filter by approval
-      if (
-        approvals &&
-        approvals.length &&
-        !approvals.includes(playground.isApproved)
-      ) {
-        return false;
-      }
+      try {
+        if (signal?.aborted) return;
 
-      // Filter by access
-      if (accessSet && !accessSet.has(playground.accessType)) {
-        return false;
-      }
-
-      // Filter by ages (check if playground's age range overlaps with any selected age group)
-      if (ageSet) {
-        const matchesAge = AGE_GROUPS.some(
-          (group: { key: string; min: number; max: number }) => {
-            if (!ageSet.has(group.key)) return false;
-            return (
-              playground.ageMin <= group.max && playground.ageMax >= group.min
+        await Promise.all(
+          pendingEnrichment.map(async (pe) => {
+            const details = await fetchPlaygroundDetails(
+              pe.lat,
+              pe.lon,
+              signal,
             );
-          },
-        );
-        if (!matchesAge) return false;
-      }
 
-      // Filter by features (must include all selected features)
-      if (featureSet && features) {
+            if (signal?.aborted) return;
+
+            if (!details) return;
+
+            const insight = await generatePlaygroundAiInsights({
+              address: details.formatted_address,
+              signal,
+            });
+
+            if (signal?.aborted) return;
+
+            setPlaygrounds((prev) => {
+              return prev.map((p) =>
+                p.osmId === pe.osmId
+                  ? {
+                      ...p,
+                      name: insight?.name || p.name,
+                      description: insight?.description || p.description,
+                      address: details.formatted_address,
+                      features: insight?.features || p.features,
+                      parking: insight?.parking || p.parking,
+                      sources: insight?.sources || p.sources,
+                      images: insight?.images || p.images,
+                      enriched: true,
+                    }
+                  : p,
+              );
+            });
+          }),
+        );
+
+        setPendingEnrichment([]);
+      } catch (err) {
         if (
-          !features.every((feature) => playground.features.includes(feature))
+          !(err instanceof DOMException && err.name === "AbortError") &&
+          !signal?.aborted
         ) {
-          return false;
+          console.error("Error enriching playgrounds:", err);
+        }
+      } finally {
+        if (!signal?.aborted) {
+          setEnriching(false);
         }
       }
+    };
 
-      return true;
-    });
-  }, [playgrounds, approvals, accesses, ages, features, user]);
+    const controller = new AbortController();
+
+    const fetchData = async () => {
+      await performEnrichment(controller.signal);
+    };
+
+    fetchData();
+
+    return () => {
+      controller.abort();
+    };
+  }, [pendingEnrichment]);
 
   const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
     setFlyToCoords(coords);
@@ -152,8 +174,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   return (
     <PlaygroundsContext.Provider
       value={{
-        playgrounds: filteredPlaygrounds,
+        playgrounds,
         loading,
+        enriching,
         error,
         flyToCoords,
         requestFlyTo,

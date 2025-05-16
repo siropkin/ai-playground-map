@@ -1,21 +1,24 @@
 "use client";
 
 import Image from "next/image";
-import { MapPin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import { formatAddress, formatEnumString, getAgeRange } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { UNNAMED_PLAYGROUND } from "@/lib/constants";
+import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
+import Link from "next/link";
+import { MapPin } from "lucide-react";
 
 export function PlaygroundList({
-  showEmptyState,
+  displayEmptyState,
 }: {
-  showEmptyState?: boolean;
+  displayEmptyState?: boolean;
 }) {
   const { playgrounds, requestFlyTo } = usePlaygrounds();
 
   if (!playgrounds?.length) {
-    return showEmptyState ? (
+    return displayEmptyState ? (
       <Card className="bg-background/95 flex w-[100%] flex-col items-center justify-center gap-0 overflow-hidden p-8 shadow-lg backdrop-blur-sm transition-shadow">
         <CardContent className="flex flex-col items-center p-0">
           <div className="text-muted-foreground mb-2 text-5xl">🔍</div>
@@ -31,94 +34,97 @@ export function PlaygroundList({
 
   return (
     <div className="flex flex-col space-y-2">
-      {playgrounds.map((playground, index) => {
-        const primaryPhoto = playground.photos?.find((p) => p.isPrimary);
-        const displayPhoto = primaryPhoto || playground.photos?.[0];
-        const ageRange = getAgeRange(playground.ageMin, playground.ageMax);
-
+      {playgrounds.map((playground) => {
+        const name = playground.name || UNNAMED_PLAYGROUND;
+        const displayImage = playground.images?.[0];
         return (
           <Card
             key={playground.id}
-            className={`bg-background/95 flex cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl ${
-              !playground.isApproved
-                ? "border-2 border-amber-500 dark:border-amber-600"
-                : ""
-            }`}
-            onClick={() => {
-              requestFlyTo([playground.longitude, playground.latitude]);
-            }}
+            className="bg-background/95 flex min-h-[200px] flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
           >
             <CardHeader className="flex w-1/3 gap-0 p-0">
               <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
-                {displayPhoto ? (
+                {!playground.enriched ? (
+                  <Skeleton className="h-full w-full rounded-r-none" />
+                ) : displayImage ? (
                   <Image
                     className="h-full w-full object-cover"
-                    src={displayPhoto.filename}
-                    alt={displayPhoto.caption || `Photo of ${playground.name}`}
-                    width={100}
-                    height={300}
-                    priority={index < 3}
+                    src={displayImage.image_url}
+                    alt={`Photo of ${name}`}
+                    width={displayImage.width}
+                    height={displayImage.height}
+                    unoptimized={true}
                   />
                 ) : (
-                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-xs">
-                    No image
-                  </div>
+                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
                 )}
               </div>
             </CardHeader>
 
-            <CardContent className="flex w-2/3 flex-col p-4">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold">{playground.name}</h3>
-                {!playground.isApproved && (
-                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
-                    Not approved
-                  </Badge>
-                )}
-              </div>
+            <CardContent className="flex w-2/3 flex-col gap-2 p-4">
+              {!playground.enriched ? (
+                <Skeleton className="h-4 w-full" />
+              ) : name ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/playgrounds/[id]"
+                    as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
+                    className="underline"
+                    aria-label={`Go to ${name} page`}
+                  >
+                    <h3 className="font-semibold">{name}</h3>
+                  </Link>
+                  {playground.enriched && (
+                    <span
+                      className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
+                      title="AI-generated content may contain errors"
+                    >
+                      AI
+                    </span>
+                  )}
+                </div>
+              ) : null}
 
-              {playground.description && (
+              {!playground.enriched ? (
+                <Skeleton className="h-16 w-full" />
+              ) : playground.description ? (
                 <div className="text-muted-foreground text-xs">
                   {playground.description}
                 </div>
-              )}
+              ) : null}
 
-              <div className="mt-2 flex flex-wrap gap-1 empty:hidden">
-                {/* Access Type Badge */}
-                {playground.accessType && (
-                  <Badge variant="outline">
-                    {formatEnumString(playground.accessType)}
-                  </Badge>
-                )}
+              {!playground.enriched ? (
+                <Skeleton className="h-4 w-full" />
+              ) : playground.features?.length ? (
+                <div className="flex flex-wrap gap-1">
+                  {playground.features.map((value, i) => (
+                    <Badge
+                      className="max-w-full truncate"
+                      variant="outline"
+                      key={i}
+                    >
+                      <span className="truncate">
+                        {formatEnumString(value)}
+                      </span>
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
 
-                {/* Age Range Badge */}
-                {ageRange && <Badge variant="outline">{ageRange}</Badge>}
-
-                {/* Surface Type Badge (Optional but useful) */}
-                {playground.surfaceType && (
-                  <Badge variant="outline">
-                    {formatEnumString(playground.surfaceType)} Surface
-                  </Badge>
-                )}
-
-                {/* Features Badges */}
-                {playground.features?.slice(0, 2).map((feature) => (
-                  <Badge variant="outline" key={feature}>
-                    {formatEnumString(feature)}
-                  </Badge>
-                ))}
-
-                {playground.features?.length > 2 && (
-                  <Badge variant="outline">
-                    +{playground.features.length - 2} more
-                  </Badge>
-                )}
-              </div>
-
-              <div className="text-muted-foreground mt-2 flex items-center text-xs">
-                <MapPin className="mr-1 h-4 w-4 shrink-0" />
-                <span className="truncate">{formatAddress(playground)}</span>
-              </div>
+              {!playground.enriched ? (
+                <Skeleton className="h-4 w-full" />
+              ) : playground.address ? (
+                <div
+                  className="text-muted-foreground mr-1 flex cursor-pointer items-center text-xs underline"
+                  onClick={() => {
+                    requestFlyTo([playground.lon, playground.lat]);
+                  }}
+                  aria-label={`See ${name} on the map`}
+                >
+                  <span>{playground.address}</span>
+                  <MapPin className="ml-2 h-4 w-4 shrink-0" />
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         );

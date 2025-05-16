@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/constants";
 import { FiltersProvider } from "@/contexts/filters-context";
 import { PlaygroundsProvider } from "@/contexts/playgrounds-context";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -15,23 +15,23 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://goodplaygroundmap.com"),
+  metadataBase: new URL(SITE_URL),
   title: SITE_NAME,
-  description: "Find good playgrounds for kids near you",
+  description: SITE_DESCRIPTION,
   openGraph: {
     title: SITE_NAME,
-    description: "Find good playgrounds for kids near you",
+    description: SITE_DESCRIPTION,
     images: [
       {
         url: "/api/og/home",
         width: 1200,
         height: 630,
-        alt: "Good Playground Map",
+        alt: SITE_NAME,
       },
     ],
     type: "website",
     locale: "en_US",
-    url: "https://goodplaygroundmap.com",
+    url: SITE_URL,
   },
 };
 

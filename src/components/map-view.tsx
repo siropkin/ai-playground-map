@@ -8,10 +8,13 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { FeatureCollection, Point } from "geojson";
 
+import type { Playground } from "@/types/playground";
+import { MapBounds } from "@/types/map";
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
-import type { Playground } from "@/types/playground";
+import { UNNAMED_PLAYGROUND } from "@/lib/constants";
+import { formatOsmIdentifier } from "@/lib/utils";
 
 // Safely set Mapbox access token with proper error handling
 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -41,8 +44,6 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        notApprovedPoint: "#f59e0b",
-        notApprovedPointStroke: "#FFFFFF",
         point: "#000000",
         pointStroke: "#FFFFFF",
         label: "#000000",
@@ -51,8 +52,6 @@ const getMapColors = (theme: string | undefined) => {
         labelHalo: "#FFFFFF",
       }
     : {
-        notApprovedPoint: "#f59e0b",
-        notApprovedPointStroke: "#000000",
         point: "#FFFFFF",
         pointStroke: "#000000",
         label: "#FFFFFF",
@@ -62,7 +61,7 @@ const getMapColors = (theme: string | undefined) => {
       };
 };
 
-const getMapBounds = (map: mapboxgl.Map | null) => {
+const getMapBounds = (map: mapboxgl.Map | null): MapBounds => {
   if (!map) {
     return { south: 0, north: 0, west: 0, east: 0 };
   }
@@ -80,22 +79,19 @@ const getMapBounds = (map: mapboxgl.Map | null) => {
 
 const createGeoJson = (
   playgrounds: Playground[],
-): FeatureCollection<
-  Point,
-  { id: number; name: string; isApproved: boolean }
-> => {
+): FeatureCollection<Point, { id: number; name: string }> => {
   return {
     type: "FeatureCollection",
     features: playgrounds.map((playground) => ({
       type: "Feature",
       geometry: {
         type: "Point",
-        coordinates: [playground.longitude, playground.latitude],
+        coordinates: [playground.lon, playground.lat],
       },
       properties: {
-        id: playground.id,
-        name: playground.name,
-        isApproved: playground.isApproved,
+        id: playground.osmId,
+        type: (playground.osmType || "").toString(),
+        name: playground.enriched ? playground.name || UNNAMED_PLAYGROUND : "",
       },
     })),
   };
@@ -104,7 +100,7 @@ const createGeoJson = (
 export function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading } =
+  const { playgrounds, flyToCoords, clearFlyToRequest, loading, enriching } =
     usePlaygrounds();
   const router = useRouter();
 
@@ -138,7 +134,7 @@ export function MapView() {
 
   const playgroundsGeoJson = useCallback((): FeatureCollection<
     Point,
-    { id: number; name: string; isApproved: boolean }
+    { id: number; name: string }
   > => {
     return createGeoJson(playgrounds || []);
   }, [playgrounds]);
@@ -160,11 +156,8 @@ export function MapView() {
           type: "geojson",
           data: playgroundsGeoJson(),
           cluster: true,
-          clusterMaxZoom: 9,
+          clusterMaxZoom: 14,
           clusterRadius: 15,
-          clusterProperties: {
-            hasUnapproved: ["any", ["!", ["get", "isApproved"]]],
-          },
         });
       } else {
         (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
@@ -180,12 +173,7 @@ export function MapView() {
           source: SOURCE_ID,
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": [
-              "case",
-              ["==", ["get", "hasUnapproved"], true],
-              mapColors.notApprovedPoint,
-              mapColors.clusterBg,
-            ],
+            "circle-color": mapColors.clusterBg,
             "circle-radius": [
               "step",
               ["get", "point_count"],
@@ -227,20 +215,10 @@ export function MapView() {
           source: SOURCE_ID,
           filter: ["!", ["has", "point_count"]],
           paint: {
-            "circle-color": [
-              "case",
-              ["==", ["get", "isApproved"], false],
-              mapColors.notApprovedPoint,
-              mapColors.point,
-            ],
+            "circle-color": mapColors.point,
             "circle-radius": 10,
             "circle-stroke-width": 1,
-            "circle-stroke-color": [
-              "case",
-              ["==", ["get", "isApproved"], false],
-              mapColors.notApprovedPointStroke,
-              mapColors.pointStroke,
-            ],
+            "circle-stroke-color": mapColors.pointStroke,
           },
         });
       }
@@ -374,7 +352,9 @@ export function MapView() {
       e.originalEvent.stopPropagation();
       const feature = e.features?.[0];
       if (feature?.properties?.id) {
-        router.push(`/playground/${feature.properties.id}`);
+        router.push(
+          `/playgrounds/${formatOsmIdentifier(feature.properties.id, feature.properties.type)}`,
+        );
       }
     };
 
@@ -386,7 +366,7 @@ export function MapView() {
       e.originalEvent.stopPropagation();
       const feature = e.features?.[0];
       if (feature?.properties?.id) {
-        router.push(`/playground/${feature.properties.id}`);
+        router.push(`/playgrounds/${feature.properties.id}`);
       }
     };
 
@@ -500,9 +480,10 @@ export function MapView() {
 
   useEffect(() => {
     if (map.current && flyToCoords) {
+      const zoom = map.current.getZoom();
       map.current.flyTo({
         center: flyToCoords,
-        zoom: 14,
+        zoom: Math.max(zoom, 16),
         essential: true,
       });
       clearFlyToRequest();
@@ -518,6 +499,29 @@ export function MapView() {
       }
     };
   }, []);
+
+  // Add effect to disable/enable map interactions based on enriching state
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) {
+      return;
+    }
+
+    if (enriching) {
+      // Disable map interactions when enriching
+      map.current.dragPan.disable();
+      map.current.scrollZoom.disable();
+      map.current.doubleClickZoom.disable();
+      map.current.touchZoomRotate.disable();
+      map.current.keyboard.disable();
+    } else {
+      // Re-enable map interactions when not enriching
+      map.current.dragPan.enable();
+      map.current.scrollZoom.enable();
+      map.current.doubleClickZoom.enable();
+      map.current.touchZoomRotate.enable();
+      map.current.keyboard.enable();
+    }
+  }, [enriching, isMapLoaded]);
 
   if (error) {
     return (
@@ -543,9 +547,9 @@ export function MapView() {
           <span className="hidden sm:block">Near me</span>
         </Button>
       </div>
-      {loading && (
+      {(loading || enriching) && (
         <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
-          Loading playgrounds...
+          {loading ? "Loading playgrounds..." : "Enriching playgrounds..."}
         </div>
       )}
     </div>

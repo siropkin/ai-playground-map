@@ -1,10 +1,6 @@
-export type Playground = {
-  id: number;
+export type PerplexityInsights = {
   name: string | null;
   description: string | null;
-  lat: number;
-  lon: number;
-  address: string | null;
   features: string[] | null;
   parking: string | null;
   sources: string[] | null;
@@ -16,8 +12,4 @@ export type Playground = {
         width: number;
       }[]
     | null;
-  osmId: number;
-  osmType: "node" | "way" | "relation";
-  osmTags: Record<string, string> | null;
-  enriched: boolean | null;
 };
