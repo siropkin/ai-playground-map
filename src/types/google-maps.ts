@@ -1,6 +1,10 @@
 export interface GoogleMapsPlaceDetails {
   id: string;
   formattedAddress: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
   name?: string;
   types?: string[];
   rating?: number;
@@ -29,6 +33,12 @@ export interface GoogleMapsPlaceDetails {
     flagContentUri: string;
     googleMapsUri: string;
   }>;
-  generativeSummary?: string;
-  reviewSummary?: string;
+  generativeSummary?: {
+    overview: {
+      text: string;
+      languageCode: string;
+    };
+    overviewFlagContentUri: string;
+    disclosureText: { text: string; languageCode: string };
+  };
 }
