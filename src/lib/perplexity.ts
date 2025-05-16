@@ -7,9 +7,11 @@ import { PerplexityInsights } from "@/types/perplexity";
 // Function to fetch AI insights from Perplexity
 export async function fetchPerplexityInsights({
   address,
+  name,
   signal,
 }: {
   address: string;
+  name?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
   if (signal?.aborted) {
@@ -22,11 +24,11 @@ export async function fetchPerplexityInsights({
   }
 
   const prompt = `
-Task: Find information about a children's playground at or near the specified address.
+Task: Find information about a children's playground at or near the specified ${name ? `location known as "${name}"` : "address"}.
 
 Location Criteria:
 - The playground must be located at one of the following:
-  - Precisely at the address: ${address}
+  - Precisely at the address: ${address}${name ? ` (known as "${name}")` : ""}
   - Within a park, recreation center, community center, school grounds, or public space at this exact address
   - Part of a sports complex or facility at this address
 - If no playground is found at the exact address, check for playgrounds within a 0.1-mile radius, but only include them if they are clearly associated with a named park or facility.
@@ -61,7 +63,7 @@ If no playground is found with high confidence, return:
 Return only the valid JSON object without any additional text or markdown.
 `;
 
-  const reqBody = {
+  const requestBody = {
     model: (process.env.PERPLEXITY_MODEL || "sonar").toLowerCase(),
     temperature: parseFloat(process.env.PERPLEXITY_TEMPERATURE || "0.17"),
     return_images: true,
@@ -77,7 +79,7 @@ Return only the valid JSON object without any additional text or markdown.
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify(reqBody),
+    body: JSON.stringify(requestBody),
     signal,
   });
 
@@ -103,22 +105,27 @@ Return only the valid JSON object without any additional text or markdown.
 // Function to fetch AI insights from Perplexity with caching
 export async function fetchPerplexityInsightsWithCache({
   address,
+  name,
   signal,
 }: {
   address: string;
+  name?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
   if (signal?.aborted) {
     return null;
   }
 
-  const cachedInsights = await fetchPerplexityInsightsFromCache({ address });
+  const cachedInsights = await fetchPerplexityInsightsFromCache({
+    address,
+  });
   if (cachedInsights) {
     return cachedInsights;
   }
 
   const freshInsights = await fetchPerplexityInsights({
     address,
+    name,
     signal,
   });
 

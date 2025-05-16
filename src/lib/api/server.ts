@@ -40,10 +40,12 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
     });
 
     if (details) {
-      playground.address = details.formatted_address;
+      playground.address = details.formattedAddress;
+      playground.name = details.displayName?.text || playground.name;
 
       const insight = await fetchPerplexityInsightsWithCache({
         address: playground.address,
+        name: playground.name || undefined,
       });
 
       if (insight) {

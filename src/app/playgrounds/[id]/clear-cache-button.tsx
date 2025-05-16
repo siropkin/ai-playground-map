@@ -2,34 +2,43 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { clearAiInsightsCacheAction } from "./actions";
+import { clearPlaygroundCacheAction } from "./actions";
 
 export default function ClearCacheButton({
-  address,
   playgroundId,
+  lat,
+  lon,
+  address,
 }: {
   address: string;
+  lat: number;
+  lon: number;
   playgroundId: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClearCache = async () => {
     const confirmed = confirm(
-      "Are you sure you want to clear the AI insights cache for this playground?",
+      "Are you sure you want to clear the cache for this playground?",
     );
 
     if (!confirmed) {
       return;
     }
 
-    if (!address) {
-      alert("Error: No address available to clear cache");
+    if (!playgroundId || lat == null || lon == null || !address) {
+      alert("Error: No playground ID or address provided");
       return;
     }
 
     setIsLoading(true);
     try {
-      const result = await clearAiInsightsCacheAction(address, playgroundId);
+      const result = await clearPlaygroundCacheAction({
+        playgroundId,
+        lat,
+        lon,
+        address,
+      });
 
       if (result.success) {
         alert(`Success: ${result.message}`);
@@ -37,7 +46,7 @@ export default function ClearCacheButton({
         alert(`Error: ${result.message}`);
       }
     } catch {
-      alert("Error: Failed to clear AI insights cache");
+      alert("Error: Failed to clear cache");
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +59,7 @@ export default function ClearCacheButton({
       onClick={handleClearCache}
       disabled={isLoading || !address}
     >
-      {isLoading ? "Clearing..." : "Clear AI cache"}
+      {isLoading ? "Clearing..." : "Clear cache"}
     </Button>
   );
 }
