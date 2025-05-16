@@ -185,23 +185,7 @@ export default async function PlaygroundDetail({
               Address
             </h3>
             <p className="text-sm leading-relaxed">
-              {playground.address || "Address not available"}{" "}
-              {playground.address && (
-                <span className="text-muted-foreground text-sm">
-                  {" "}
-                  (
-                  <Link
-                    href={googleMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Get directions to this playground"
-                    className="underline"
-                  >
-                    Show on Google Maps
-                  </Link>
-                  )
-                </span>
-              )}
+              {playground.address || "Address not available"}
             </p>
           </div>
         </div>
@@ -232,7 +216,23 @@ export default async function PlaygroundDetail({
 
       {/* Location section */}
       <div>
-        <h2 className="text-xl font-semibold">Location</h2>
+        <h2 className="flex items-center justify-between text-xl font-semibold">
+          Location{" "}
+          {playground.address && (
+            <span className="text-muted-foreground text-sm">
+              {" "}
+              <Link
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Get directions to this playground"
+                className="underline"
+              >
+                Show on Google Maps
+              </Link>
+            </span>
+          )}
+        </h2>
         <div className="h-64 w-full overflow-hidden rounded-lg">
           <MapViewSingle playground={playground} />
         </div>
