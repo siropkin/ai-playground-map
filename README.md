@@ -67,20 +67,35 @@ Follow these steps to set up the project locally:
     pnpm install
    ```
     
-3. Set up environment variables for Supabase, Mapbox, Google Maps, and Perplexity AI (contact me for access)
+3. Set up environment variables:
     - Create a `.env.local` file in the root directory and add the following variables:
       ```bash
-      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
+      # Secrets
       NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-      NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
       GOOGLE_MAPS_API_KEY=your_google_maps_api_key
       PERPLEXITY_API_KEY=your_perplexity_api_key
+
+      # Perplexity Config
+      PERPLEXITY_MODEL=sonar-pro
+      PERPLEXITY_TEMPERATURE=0.17
+      PERPLEXITY_SEARCH_CONTEXT_SIZE=medium
+
+      # OSM Config
+      OSM_QUERY_TIMEOUT=5
+      OSM_QUERY_LIMIT=10
+
+      # Cache Config
+      PERPLEXITY_CACHE_TTL_MS=31536000000
+      PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME=perplexity_insights_cache
+      GOOGLE_MAPS_CACHE_TTL_MS=2592000000
+      GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME=google_maps_place_details_cache
       ```
 4. Run the app locally:
    ```bash 
     pnpm dev
    ```
-   
+
 ## Contributing
 
 Feel free to reach out if you want to contribute or have ideas:
