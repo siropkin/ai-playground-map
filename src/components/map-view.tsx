@@ -549,7 +549,9 @@ export function MapView() {
       </div>
       {(loading || enriching) && (
         <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
-          {loading ? "Loading playgrounds..." : "Enriching playgrounds..."}
+          {loading
+            ? "Loading playgrounds..."
+            : "Enriching playgrounds with AI..."}
         </div>
       )}
     </div>
