@@ -64,7 +64,13 @@ export async function fetchMultipleOSMPlaceDetails({
 
   const response = await fetch(
     `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmIds}&addressdetails=1&format=json`,
-    { signal },
+    {
+      signal,
+      headers: {
+        "User-Agent": "GoodPlaygroundMap/1.0 (ivan.seredkin@gmail.com)",
+        Referer: "https://www.goodplaygroundmap.com/",
+      },
+    },
   );
 
   if (!response.ok) {
