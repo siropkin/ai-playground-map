@@ -10,7 +10,7 @@ import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { useInView } from "react-intersection-observer";
-import React, { useEffect, useRef, useCallback, createContext, useContext } from "react";
+import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
 
 // Context for batching enrichment requests
@@ -207,10 +207,14 @@ function PlaygroundListContent({
   const containerRef = useRef<HTMLDivElement>(null);
   const prevPlaygroundIdsRef = useRef<string>("");
 
+  // Memoize the sorted ID string to avoid recalculating on every render
+  const currentIds = useMemo(
+    () => playgrounds.map(p => p.osmId).sort((a, b) => a - b).join(","),
+    [playgrounds]
+  );
+
   // Scroll to top when playground list changes (not just enrichment)
   useEffect(() => {
-    const currentIds = playgrounds.map(p => p.osmId).sort().join(",");
-
     // Only scroll if the list of playgrounds actually changed
     if (currentIds !== prevPlaygroundIdsRef.current && prevPlaygroundIdsRef.current !== "") {
       // Find the scrollable parent (either the sidebar div or sheet content)
@@ -221,7 +225,7 @@ function PlaygroundListContent({
     }
 
     prevPlaygroundIdsRef.current = currentIds;
-  }, [playgrounds]);
+  }, [currentIds]);
 
   if (!playgrounds?.length) {
     // Don't show empty state while loading

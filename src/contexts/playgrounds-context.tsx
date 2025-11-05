@@ -59,7 +59,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       try {
         const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
-          // Merge new data with existing enriched data to avoid re-enrichment
+          // Merge new OSM data with existing enriched AI data
           setPlaygrounds((prevPlaygrounds) => {
             const enrichedMap = new Map(
               prevPlaygrounds
@@ -69,8 +69,23 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             return playgroundsForBounds.map(newPlayground => {
               const existingEnriched = enrichedMap.get(newPlayground.osmId);
-              // If we already have enriched data for this playground, keep it
-              return existingEnriched || newPlayground;
+
+              if (existingEnriched) {
+                // Merge: use fresh OSM data but preserve AI-enriched fields
+                return {
+                  ...newPlayground, // Fresh OSM data (coordinates, address, tags)
+                  // Preserve AI-enriched fields
+                  name: existingEnriched.name,
+                  description: existingEnriched.description,
+                  features: existingEnriched.features,
+                  parking: existingEnriched.parking,
+                  sources: existingEnriched.sources,
+                  images: existingEnriched.images,
+                  enriched: true,
+                };
+              }
+
+              return newPlayground;
             });
           });
         }
