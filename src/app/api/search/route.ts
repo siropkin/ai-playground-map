@@ -21,7 +21,8 @@ export async function POST(
       bounds?.north == null ||
       bounds?.south == null ||
       bounds?.east == null ||
-      bounds?.west == null
+      bounds?.west == null ||
+      bounds?.zoom == null
     ) {
       return NextResponse.json(
         { error: "Invalid map bounds provided" },
@@ -29,11 +30,21 @@ export async function POST(
       );
     }
 
+    // Calculate limit based on zoom level (industry best practice)
+    // Zoomed out (zoom < 12): Show fewer items for performance
+    // Medium zoom (12-14): Balanced view
+    // Zoomed in (> 14): Show more detail
+    const zoomBasedLimit = bounds.zoom < 12
+      ? 20
+      : bounds.zoom > 14
+        ? 100
+        : 50;
+
     const osmResults = await runOSMQuery({
       bounds,
       leisure: "playground",
-      timeout: parseInt(process.env.OSM_QUERY_TIMEOUT || "5"),
-      limit: parseInt(process.env.OSM_QUERY_LIMIT || "10"),
+      timeout: parseInt(process.env.OSM_QUERY_TIMEOUT || "25"),
+      limit: zoomBasedLimit,
       signal,
     });
 

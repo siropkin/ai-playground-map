@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
@@ -63,17 +63,18 @@ const getMapColors = (theme: string | undefined) => {
 
 const getMapBounds = (map: mapboxgl.Map | null): MapBounds => {
   if (!map) {
-    return { south: 0, north: 0, west: 0, east: 0 };
+    return { south: 0, north: 0, west: 0, east: 0, zoom: 0 };
   }
   const bounds = map.getBounds();
   if (!bounds) {
-    return { south: 0, north: 0, west: 0, east: 0 };
+    return { south: 0, north: 0, west: 0, east: 0, zoom: 0 };
   }
   return {
     south: bounds.getSouth(),
     north: bounds.getNorth(),
     west: bounds.getWest(),
     east: bounds.getEast(),
+    zoom: map.getZoom(),
   };
 };
 
@@ -97,10 +98,11 @@ const createGeoJson = (
   };
 };
 
-export function MapView() {
+// Wrap with React.memo to prevent unnecessary re-renders
+export const MapView = React.memo(function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading, enriching } =
+  const { playgrounds, flyToCoords, clearFlyToRequest, loading } =
     usePlaygrounds();
   const router = useRouter();
 
@@ -132,7 +134,8 @@ export function MapView() {
     );
   }, []);
 
-  const playgroundsGeoJson = useCallback((): FeatureCollection<
+  // Memoize GeoJSON data to prevent recreation on every render
+  const playgroundsGeoJson = useMemo((): FeatureCollection<
     Point,
     { id: number; name: string }
   > => {
@@ -154,14 +157,14 @@ export function MapView() {
       if (!currentMap.getSource(SOURCE_ID)) {
         currentMap.addSource(SOURCE_ID, {
           type: "geojson",
-          data: playgroundsGeoJson(),
+          data: playgroundsGeoJson,
           cluster: true,
           clusterMaxZoom: 14,
           clusterRadius: 15,
         });
       } else {
         (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
-          playgroundsGeoJson(),
+          playgroundsGeoJson,
         );
       }
 
@@ -500,29 +503,6 @@ export function MapView() {
     };
   }, []);
 
-  // Add effect to disable/enable map interactions based on enriching state
-  useEffect(() => {
-    if (!map.current || !isMapLoaded) {
-      return;
-    }
-
-    if (enriching) {
-      // Disable map interactions when enriching
-      map.current.dragPan.disable();
-      map.current.scrollZoom.disable();
-      map.current.doubleClickZoom.disable();
-      map.current.touchZoomRotate.disable();
-      map.current.keyboard.disable();
-    } else {
-      // Re-enable map interactions when not enriching
-      map.current.dragPan.enable();
-      map.current.scrollZoom.enable();
-      map.current.doubleClickZoom.enable();
-      map.current.touchZoomRotate.enable();
-      map.current.keyboard.enable();
-    }
-  }, [enriching, isMapLoaded]);
-
   if (error) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -547,13 +527,11 @@ export function MapView() {
           <span className="hidden md:block">Near me</span>
         </Button>
       </div>
-      {(loading || enriching) && (
+      {loading && (
         <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
-          {loading
-            ? "Loading playgrounds..."
-            : "Enriching playgrounds with AI..."}
+          Loading playgrounds...
         </div>
       )}
     </div>
   );
-}
+});

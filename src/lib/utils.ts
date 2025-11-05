@@ -15,6 +15,20 @@ export function formatOsmIdentifier(id: number, type: string | null): string {
   return `${typeMap[type || "node"] || "N"}${id}`;
 }
 
+// Parse OSM identifier from URL format (e.g., "N979923607" or "979923607")
+export function parseOsmIdentifier(identifier: string): string {
+  // If it already has a prefix (N, W, or R), return as is
+  if (/^[NWR]\d+$/.test(identifier)) {
+    return identifier;
+  }
+  // If it's just a number, assume it's a node and add N prefix
+  if (/^\d+$/.test(identifier)) {
+    return `N${identifier}`;
+  }
+  // Otherwise return as is (might be invalid, but let API handle it)
+  return identifier;
+}
+
 // Helper function to format enum-like strings (e.g., 'surface:synthetic_rubberized' -> 'Surface: Synthetic Rubberized')
 export function formatEnumString(str: string | undefined | null): string {
   if (!str) return "";
@@ -34,6 +48,7 @@ export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
     north: parseFloat(bounds.north.toFixed(7)),
     west: parseFloat(bounds.west.toFixed(7)),
     east: parseFloat(bounds.east.toFixed(7)),
+    zoom: bounds.zoom,
   };
 }
 
@@ -48,19 +63,22 @@ export function getMapBoundsStateFromUrl(): MapBounds | null {
   const north = params.get("north");
   const west = params.get("west");
   const east = params.get("east");
+  const zoom = params.get("zoom");
 
   const bounds = {
     south: parseFloat(south || ""),
     north: parseFloat(north || ""),
     west: parseFloat(west || ""),
     east: parseFloat(east || ""),
+    zoom: parseFloat(zoom || "12"), // Default zoom level
   };
 
   if (
     isNaN(bounds.south) ||
     isNaN(bounds.north) ||
     isNaN(bounds.west) ||
-    isNaN(bounds.east)
+    isNaN(bounds.east) ||
+    isNaN(bounds.zoom)
   ) {
     return null;
   }
@@ -81,11 +99,13 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
     params.set("north", String(bounds.north));
     params.set("west", String(bounds.west));
     params.set("east", String(bounds.east));
+    params.set("zoom", String(bounds.zoom));
   } else {
     params.delete("south");
     params.delete("north");
     params.delete("west");
     params.delete("east");
+    params.delete("zoom");
   }
 
   if (params.toString()) {

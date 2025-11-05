@@ -8,9 +8,7 @@ export default function ClearCacheButton({
   playgroundId,
   lat,
   lon,
-  address,
 }: {
-  address: string;
   lat: number;
   lon: number;
   playgroundId: string;
@@ -26,8 +24,8 @@ export default function ClearCacheButton({
       return;
     }
 
-    if (!playgroundId || lat == null || lon == null || !address) {
-      alert("Error: No playground ID or address provided");
+    if (!playgroundId || lat == null || lon == null) {
+      alert("Error: No playground ID or coordinates provided");
       return;
     }
 
@@ -37,7 +35,6 @@ export default function ClearCacheButton({
         playgroundId,
         lat,
         lon,
-        address,
       });
 
       if (result.success) {
@@ -57,7 +54,7 @@ export default function ClearCacheButton({
       variant="destructive"
       className="border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
       onClick={handleClearCache}
-      disabled={isLoading || !address}
+      disabled={isLoading}
     >
       {isLoading ? "Clearing..." : "Clear cache"}
     </Button>

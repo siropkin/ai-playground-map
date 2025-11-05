@@ -7,6 +7,7 @@ import {
   useEffect,
   type ReactNode,
   useCallback,
+  useMemo,
 } from "react";
 import { usePathname } from "next/navigation";
 
@@ -16,6 +17,7 @@ import {
   updateUrlWithMapBounds,
 } from "@/lib/utils";
 import { MapBounds } from "@/types/map";
+import { useDebounce } from "@/lib/hooks";
 
 // TODO: Implement other filters
 
@@ -55,20 +57,31 @@ export function FiltersProvider({ children }: { children: ReactNode }) {
     setIsInitialized(true);
   }, []);
 
+  // Debounced URL update to prevent janky navigation during map movements
+  const debouncedUpdateUrl = useDebounce((bounds: MapBounds | null) => {
+    updateUrlWithMapBounds(bounds);
+  }, 500);
+
   // Update URL when map bounds change (but only after initialization)
   useEffect(() => {
     if (isInitialized && pathname === "/") {
-      updateUrlWithMapBounds(roundMapBounds(mapBounds));
+      debouncedUpdateUrl(roundMapBounds(mapBounds));
     }
+    // debouncedUpdateUrl is stable, no need to include in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitialized, pathname, mapBounds]);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      mapBounds,
+      setMapBounds: updateMapBounds,
+    }),
+    [mapBounds, updateMapBounds],
+  );
+
   return (
-    <FiltersContext.Provider
-      value={{
-        mapBounds,
-        setMapBounds: updateMapBounds,
-      }}
-    >
+    <FiltersContext.Provider value={contextValue}>
       {children}
     </FiltersContext.Provider>
   );

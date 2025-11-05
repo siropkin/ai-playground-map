@@ -1,4 +1,3 @@
-import { GoogleMapsPlaceDetails } from "@/types/google-maps";
 import { createClient } from "@/lib/supabase/server";
 import { PerplexityInsights } from "@/types/perplexity";
 
@@ -8,12 +7,6 @@ const PERPLEXITY_CACHE_TTL_MS = parseInt(
 const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME =
   process.env.PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME ||
   "perplexity_insights_cache";
-const GOOGLE_MAPS_CACHE_TTL_MS = parseInt(
-  process.env.PERPLEXITY_CACHE_TTL_MS || "2592000000",
-); // Cache TTL (30 days in milliseconds)
-const GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME =
-  process.env.GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME ||
-  "google_maps_place_details_cache";
 
 // Function to get AI insights from cache
 export async function fetchPerplexityInsightsFromCache({
@@ -122,99 +115,3 @@ export async function clearPerplexityInsightsCache({
   }
 }
 
-// Function to get Google Maps details from cache
-export async function fetchGoogleMapsPlaceDetailsFromCache({
-  lat,
-  lon,
-}: {
-  lat: number;
-  lon: number;
-}): Promise<GoogleMapsPlaceDetails | null> {
-  try {
-    const supabase = await createClient();
-    const now = Date.now();
-
-    const { data, error } = await supabase
-      .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
-      .select("details, created_at")
-      .eq("lat", lat)
-      .eq("lon", lon)
-      .single();
-
-    if (error || !data) {
-      return null;
-    }
-
-    const createdAt = new Date(data.created_at).getTime();
-    if (now - createdAt < GOOGLE_MAPS_CACHE_TTL_MS) {
-      return data.details as GoogleMapsPlaceDetails;
-    } else {
-      await supabase
-        .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
-        .delete()
-        .eq("lat", lat)
-        .eq("lon", lon);
-      return null;
-    }
-  } catch (error) {
-    console.error("Error getting Google Maps details from cache:", error);
-    return null;
-  }
-}
-
-// Function to save Google Maps details to cache
-export async function saveGoogleMapsPlaceDetailsToCache({
-  lat,
-  lon,
-  details,
-}: {
-  lat: number;
-  lon: number;
-  details: GoogleMapsPlaceDetails;
-}): Promise<void> {
-  try {
-    const supabase = await createClient();
-
-    const { error } = await supabase
-      .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
-      .upsert(
-        {
-          lat,
-          lon,
-          details,
-          created_at: new Date().toISOString(),
-        },
-        { onConflict: "lat, lon" },
-      );
-
-    if (error) {
-      console.error("Error saving Google Maps details to cache:", error);
-    }
-  } catch (error) {
-    console.error("Error saving Google Maps details to cache:", error);
-  }
-}
-
-// Function to clear Google Maps place details cache
-export async function clearGoogleMapsPlaceDetailsCache({
-  lat,
-  lon,
-}: {
-  lat: number;
-  lon: number;
-}): Promise<void> {
-  try {
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from(GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME)
-      .delete()
-      .eq("lat", lat)
-      .eq("lon", lon);
-
-    if (error) {
-      console.error("Error clearing Google Maps place details cache:", error);
-    }
-  } catch (error) {
-    console.error("Error clearing Google Maps place details cache:", error);
-  }
-}

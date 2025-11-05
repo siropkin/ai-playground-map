@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { PerplexityInsights } from "@/types/perplexity";
+import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
 import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
 
 export async function POST(
@@ -17,21 +17,23 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { address, name } = body as {
-      address: string;
+    const { location, name, osmId } = body as {
+      location: PerplexityLocation;
       name?: string;
+      osmId?: string;
     };
 
-    if (!address) {
+    if (!location || typeof location.latitude !== "number" || typeof location.longitude !== "number" || !location.country) {
       return NextResponse.json(
-        { error: "Valid address is required" },
+        { error: "Valid location with latitude, longitude, and country is required" },
         { status: 400 },
       );
     }
 
     const insight = await fetchPerplexityInsightsWithCache({
-      address,
+      location,
       name,
+      osmId,
       signal,
     });
 

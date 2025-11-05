@@ -10,7 +10,14 @@ export function useDebounce<
   T extends (...args: Parameters<T>) => ReturnType<T>,
 >(fn: T, delay: number): (...args: Parameters<T>) => void {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const fnRef = useRef(fn);
 
+  // Update ref without causing re-renders
+  useEffect(() => {
+    fnRef.current = fn;
+  }, [fn]);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -27,9 +34,9 @@ export function useDebounce<
       }
 
       timerRef.current = setTimeout(() => {
-        fn(...args);
+        fnRef.current(...args);
       }, delay);
     },
-    [fn, delay],
+    [delay], // Only depend on delay, not fn
   );
 }

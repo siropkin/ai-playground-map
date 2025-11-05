@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import {
@@ -9,7 +10,6 @@ import {
 } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
-import { Button } from "@/components/ui/button";
 import SourceCard from "@/components/source-card";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
@@ -25,12 +25,9 @@ export async function generateMetadata({
   const resolvedParams = await params;
   const playground = await fetchPlaygroundByIdWithCache(resolvedParams.id);
 
+  // Must call notFound() here, not return metadata, to ensure proper HTTP 404 status
   if (!playground) {
-    return {
-      title: `Playground Not Found | ${SITE_NAME}`,
-      description:
-        "Looks like this playground took a swing break. Try another one for more fun!",
-    };
+    notFound();
   }
 
   const name = playground.name || UNNAMED_PLAYGROUND;
@@ -68,21 +65,10 @@ export default async function PlaygroundDetail({
   const resolvedParams = await params;
   const playground = await fetchPlaygroundByIdWithCache(resolvedParams.id);
 
+  // This must be called at the page component level, not in the fetch function
+  // to ensure proper HTTP 404 status
   if (!playground) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-        <h1 className="text-center text-4xl font-bold">
-          404 Playground Not Found
-        </h1>
-        <p className="text-muted-foreground max-w-md text-center">
-          Uh-oh! This playground is really good at hiding. Let&apos;s find our
-          way back home!
-        </p>
-        <Link href="/">
-          <Button>Go back home</Button>
-        </Link>
-      </div>
-    );
+    notFound();
   }
 
   const supabase = await createClient();
@@ -132,7 +118,6 @@ export default async function PlaygroundDetail({
                   playgroundId={resolvedParams.id}
                   lat={playground.lat}
                   lon={playground.lon}
-                  address={playground.address || ""}
                 />
               </div>
             )}
