@@ -10,7 +10,7 @@ import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { useInView } from "react-intersection-observer";
-import { useEffect, useRef, useCallback, createContext, useContext } from "react";
+import React, { useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
 
 // Context for batching enrichment requests
@@ -82,7 +82,7 @@ function useEnrichmentBatch() {
 }
 
 // Individual playground item with intersection observer
-function PlaygroundItem({ playground }: { playground: Playground }) {
+const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
   const { requestFlyTo } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
@@ -196,7 +196,7 @@ function PlaygroundItem({ playground }: { playground: Playground }) {
       </Card>
     </div>
   );
-}
+});
 
 function PlaygroundListContent({
   displayEmptyState,

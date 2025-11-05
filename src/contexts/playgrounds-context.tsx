@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -80,16 +81,18 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const debouncedFetchPlaygrounds = useDebounce(localFetchPlaygrounds, 1000);
 
   useEffect(() => {
+    if (!mapBounds) return;
+
     const controller = new AbortController();
-    const fetchData = async (signal?: AbortSignal) => {
-      debouncedFetchPlaygrounds(signal);
-    };
-    fetchData(controller.signal);
+    debouncedFetchPlaygrounds(controller.signal);
+
     // TODO: This is the abort controller place. If user move map too fast - I think it worth to abort then continue and save the results
     // return () => {
     //   controller.abort();
     // };
-  }, [debouncedFetchPlaygrounds]);
+    // debouncedFetchPlaygrounds is stable, no need to include in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapBounds]);
 
   // Enrich a single playground
   const enrichPlayground = useCallback(
@@ -109,6 +112,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         const insight = await generatePlaygroundAiInsights({
           location,
           name: playground.name || undefined,
+          osmId: playground.osmType && playground.osmId
+            ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
+            : undefined,
           signal: abortControllerRef.current?.signal,
         });
 
@@ -151,6 +157,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             lat: p.lat,
             lon: p.lon,
             name: p.name || undefined,
+            osmId: p.osmType && p.osmId
+              ? `${p.osmType[0].toUpperCase()}${p.osmId}`
+              : undefined,
           })),
           signal: abortControllerRef.current?.signal,
         });
@@ -196,19 +205,32 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     setFlyToCoords(null);
   }, []);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      playgrounds,
+      loading,
+      error,
+      flyToCoords,
+      requestFlyTo,
+      clearFlyToRequest,
+      enrichPlayground,
+      enrichPlaygroundsBatch,
+    }),
+    [
+      playgrounds,
+      loading,
+      error,
+      flyToCoords,
+      requestFlyTo,
+      clearFlyToRequest,
+      enrichPlayground,
+      enrichPlaygroundsBatch,
+    ],
+  );
+
   return (
-    <PlaygroundsContext.Provider
-      value={{
-        playgrounds,
-        loading,
-        error,
-        flyToCoords,
-        requestFlyTo,
-        clearFlyToRequest,
-        enrichPlayground,
-        enrichPlaygroundsBatch,
-      }}
-    >
+    <PlaygroundsContext.Provider value={contextValue}>
       {children}
     </PlaygroundsContext.Provider>
   );

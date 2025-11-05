@@ -19,6 +19,7 @@ export async function POST(
         lat: number;
         lon: number;
         name?: string;
+        osmId?: string;
       }>;
     };
 
@@ -62,6 +63,7 @@ export async function POST(
           playgroundId: pg.id,
           location: data.location as PerplexityLocation,
           name: pg.name,
+          osmId: pg.osmId,
         };
       } catch (error) {
         console.error(`Error fetching location for playground ${pg.id}:`, error);

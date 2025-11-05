@@ -74,10 +74,12 @@ export async function fetchLocationData(
 export async function generatePlaygroundAiInsights({
   location,
   name,
+  osmId,
   signal,
 }: {
   location: PerplexityLocation;
   name?: string;
+  osmId?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
   try {
@@ -87,7 +89,7 @@ export async function generatePlaygroundAiInsights({
         "Content-Type": "application/json",
         "x-app-origin": "internal",
       },
-      body: JSON.stringify({ location, name }),
+      body: JSON.stringify({ location, name, osmId }),
       signal,
     });
 
@@ -118,6 +120,7 @@ export async function generatePlaygroundAiInsightsBatch({
     lat: number;
     lon: number;
     name?: string;
+    osmId?: string;
   }>;
   signal?: AbortSignal;
 }): Promise<

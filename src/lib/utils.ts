@@ -15,6 +15,20 @@ export function formatOsmIdentifier(id: number, type: string | null): string {
   return `${typeMap[type || "node"] || "N"}${id}`;
 }
 
+// Parse OSM identifier from URL format (e.g., "N979923607" or "979923607")
+export function parseOsmIdentifier(identifier: string): string {
+  // If it already has a prefix (N, W, or R), return as is
+  if (/^[NWR]\d+$/.test(identifier)) {
+    return identifier;
+  }
+  // If it's just a number, assume it's a node and add N prefix
+  if (/^\d+$/.test(identifier)) {
+    return `N${identifier}`;
+  }
+  // Otherwise return as is (might be invalid, but let API handle it)
+  return identifier;
+}
+
 // Helper function to format enum-like strings (e.g., 'surface:synthetic_rubberized' -> 'Surface: Synthetic Rubberized')
 export function formatEnumString(str: string | undefined | null): string {
   if (!str) return "";

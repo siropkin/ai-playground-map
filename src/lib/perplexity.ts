@@ -177,18 +177,21 @@ If no playground is found with confidence, return all fields as null.`;
 export async function fetchPerplexityInsightsWithCache({
   location,
   name,
+  osmId,
   signal,
 }: {
   location: PerplexityLocation;
   name?: string;
+  osmId?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
   if (signal?.aborted) {
     return null;
   }
 
-  // Create cache key from location coordinates
-  const cacheKey = `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`;
+  // Create cache key from OSM ID (preferred) or location coordinates (fallback)
+  // Using OSM ID ensures each playground has unique cached data
+  const cacheKey = osmId || `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`;
 
   const cachedInsights = await fetchPerplexityInsightsFromCache({
     address: cacheKey,
@@ -221,6 +224,7 @@ export async function fetchPerplexityInsightsBatch({
     playgroundId: number;
     location: PerplexityLocation;
     name?: string;
+    osmId?: string;
   }>;
   signal?: AbortSignal;
 }): Promise<
@@ -244,6 +248,7 @@ export async function fetchPerplexityInsightsBatch({
         const insights = await fetchPerplexityInsightsWithCache({
           location: req.location,
           name: req.name,
+          osmId: req.osmId,
           signal,
         });
         return {

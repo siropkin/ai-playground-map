@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
@@ -98,7 +98,8 @@ const createGeoJson = (
   };
 };
 
-export function MapView() {
+// Wrap with React.memo to prevent unnecessary re-renders
+export const MapView = React.memo(function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
   const { playgrounds, flyToCoords, clearFlyToRequest, loading } =
@@ -133,7 +134,8 @@ export function MapView() {
     );
   }, []);
 
-  const playgroundsGeoJson = useCallback((): FeatureCollection<
+  // Memoize GeoJSON data to prevent recreation on every render
+  const playgroundsGeoJson = useMemo((): FeatureCollection<
     Point,
     { id: number; name: string }
   > => {
@@ -155,14 +157,14 @@ export function MapView() {
       if (!currentMap.getSource(SOURCE_ID)) {
         currentMap.addSource(SOURCE_ID, {
           type: "geojson",
-          data: playgroundsGeoJson(),
+          data: playgroundsGeoJson,
           cluster: true,
           clusterMaxZoom: 14,
           clusterRadius: 15,
         });
       } else {
         (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
-          playgroundsGeoJson(),
+          playgroundsGeoJson,
         );
       }
 
@@ -532,4 +534,4 @@ export function MapView() {
       )}
     </div>
   );
-}
+});

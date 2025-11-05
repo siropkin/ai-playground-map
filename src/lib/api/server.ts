@@ -1,17 +1,23 @@
-import { cache } from "react";
-
 import { Playground } from "@/types/playground";
 import { fetchMultipleOSMPlaceDetails } from "@/lib/osm";
 import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
 import { PerplexityLocation } from "@/types/perplexity";
+import { parseOsmIdentifier } from "@/lib/utils";
 
-async function fetchPlaygroundById(id: string): Promise<Playground | null> {
+export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playground | null> {
   let playground: Playground | null = null;
 
   try {
+    // Parse OSM identifier to ensure it has the correct format (N/W/R prefix)
+    const osmId = parseOsmIdentifier(id);
+
     const [osmPlaceDetails] = await fetchMultipleOSMPlaceDetails({
-      osmIds: [id],
+      osmIds: [osmId],
     });
+
+    if (!osmPlaceDetails) {
+      return null;
+    }
 
     if (osmPlaceDetails?.type !== "playground") {
       return null;
@@ -46,6 +52,7 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
     const insight = await fetchPerplexityInsightsWithCache({
       location,
       name: playground.name || undefined,
+      osmId: osmId,
     });
 
     if (insight) {
@@ -64,5 +71,3 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
     return playground;
   }
 }
-
-export const fetchPlaygroundByIdWithCache = cache(fetchPlaygroundById);

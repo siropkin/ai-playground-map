@@ -17,9 +17,10 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { location, name } = body as {
+    const { location, name, osmId } = body as {
       location: PerplexityLocation;
       name?: string;
+      osmId?: string;
     };
 
     if (!location || typeof location.latitude !== "number" || typeof location.longitude !== "number" || !location.country) {
@@ -32,6 +33,7 @@ export async function POST(
     const insight = await fetchPerplexityInsightsWithCache({
       location,
       name,
+      osmId,
       signal,
     });
 
