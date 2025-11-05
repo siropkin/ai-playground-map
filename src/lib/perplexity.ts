@@ -63,13 +63,20 @@ If no playground is found with high confidence, return:
 Return only the valid JSON object without any additional text or markdown.
 `;
 
-  const requestBody = {
-    model: (process.env.PERPLEXITY_MODEL || "sonar").toLowerCase(),
-    temperature: parseFloat(process.env.PERPLEXITY_TEMPERATURE || "0.17"),
+  const requestBody: Record<string, unknown> = {
+    model: process.env.PERPLEXITY_MODEL ?? "sonar-pro",
+    temperature: Number(process.env.PERPLEXITY_TEMPERATURE ?? 0.17),
     return_images: true,
     web_search_options: {
-      search_context_size: process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE || "low",
+      search_context_size:
+        process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE ?? "low",
+      ...(process.env.PERPLEXITY_LATEST_UPDATED
+        ? { latest_updated: process.env.PERPLEXITY_LATEST_UPDATED }
+        : {}),
     },
+    ...(process.env.PERPLEXITY_SEARCH_DOMAIN
+      ? { search_domain: process.env.PERPLEXITY_SEARCH_DOMAIN }
+      : {}),
     messages: [{ role: "user", content: prompt }],
   };
 
@@ -84,21 +91,56 @@ Return only the valid JSON object without any additional text or markdown.
   });
 
   if (!response.ok) {
-    throw new Error(`Perplexity AI API error: ${response.statusText}`);
+    let errorDetail = "";
+    try {
+      errorDetail = await response.text();
+    } catch {}
+    throw new Error(
+      `Perplexity AI API error: ${response.status} ${response.statusText}${
+        errorDetail ? ` - ${errorDetail}` : ""
+      }`,
+    );
   }
 
   const data = await response.json();
 
-  const contentBlock = data.choices[0].message.content;
-  const jsonMatch =
-    contentBlock.match(/```json\s*([\s\S]*?)\s*```/i) ||
-    contentBlock.match(/({[\s\S]*})/);
-  const content = jsonMatch ? jsonMatch[1] : "";
+  const contentBlock = data?.choices?.[0]?.message?.content ?? "";
+
+  // Try direct JSON parse first (JSON mode may return raw JSON string)
+  let parsed: unknown = {};
+  if (typeof contentBlock === "string") {
+    try {
+      parsed = JSON.parse(contentBlock);
+    } catch {
+      // Fallback to regex extraction for providers that wrap JSON in fences
+      const jsonMatch =
+        contentBlock.match(/```json\s*([\s\S]*?)\s*```/i) ||
+        contentBlock.match(/({[\s\S]*})/);
+      if (jsonMatch?.[1]) {
+        try {
+          parsed = JSON.parse(jsonMatch[1]);
+        } catch {
+          parsed = {};
+        }
+      }
+    }
+  } else if (contentBlock && typeof contentBlock === "object") {
+    parsed = contentBlock;
+  }
+
+  const base =
+    parsed && typeof parsed === "object"
+      ? (parsed as Partial<PerplexityInsights>)
+      : {};
 
   return {
-    ...JSON.parse(content),
-    sources: data.citations,
-    images: data.images,
+    name: base.name ?? null,
+    description: base.description ?? null,
+    features: base.features ?? null,
+    parking: base.parking ?? null,
+    sources:
+      base.sources ?? (Array.isArray(data?.citations) ? (data.citations as string[]) : null),
+    images: base.images ?? (Array.isArray(data?.images) ? data.images : null),
   };
 }
 
