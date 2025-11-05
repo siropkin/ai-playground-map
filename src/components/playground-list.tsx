@@ -9,15 +9,208 @@ import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
+import { useInView } from "react-intersection-observer";
+import { useEffect, useRef, useCallback, createContext, useContext } from "react";
+import { Playground } from "@/types/playground";
 
-export function PlaygroundList({
+// Context for batching enrichment requests
+interface EnrichmentBatchContextType {
+  requestEnrichment: (playgroundId: number) => void;
+}
+
+const EnrichmentBatchContext = createContext<EnrichmentBatchContextType | undefined>(undefined);
+
+// Provider component that handles batching logic
+function EnrichmentBatchProvider({ children }: { children: React.ReactNode }) {
+  const { enrichPlaygroundsBatch } = usePlaygrounds();
+  const batchQueue = useRef<Set<number>>(new Set());
+  const batchTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const processBatch = useCallback(() => {
+    if (batchQueue.current.size === 0) return;
+
+    const idsToEnrich = Array.from(batchQueue.current);
+    batchQueue.current.clear();
+
+    // Process in batches of 5
+    for (let i = 0; i < idsToEnrich.length; i += 5) {
+      const batch = idsToEnrich.slice(i, i + 5);
+      enrichPlaygroundsBatch(batch);
+    }
+  }, [enrichPlaygroundsBatch]);
+
+  const requestEnrichment = useCallback((playgroundId: number) => {
+    batchQueue.current.add(playgroundId);
+
+    // Clear existing timer
+    if (batchTimer.current) {
+      clearTimeout(batchTimer.current);
+    }
+
+    // If we have 5 items, process immediately
+    if (batchQueue.current.size >= 5) {
+      processBatch();
+    } else {
+      // Otherwise, wait 150ms to collect more items
+      batchTimer.current = setTimeout(processBatch, 150);
+    }
+  }, [processBatch]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (batchTimer.current) {
+        clearTimeout(batchTimer.current);
+        processBatch(); // Process any remaining items
+      }
+    };
+  }, [processBatch]);
+
+  return (
+    <EnrichmentBatchContext.Provider value={{ requestEnrichment }}>
+      {children}
+    </EnrichmentBatchContext.Provider>
+  );
+}
+
+function useEnrichmentBatch() {
+  const context = useContext(EnrichmentBatchContext);
+  if (!context) {
+    throw new Error("useEnrichmentBatch must be used within EnrichmentBatchProvider");
+  }
+  return context;
+}
+
+// Individual playground item with intersection observer
+function PlaygroundItem({ playground }: { playground: Playground }) {
+  const { requestFlyTo } = usePlaygrounds();
+  const { requestEnrichment } = useEnrichmentBatch();
+  const hasTriggeredEnrichment = useRef(false);
+
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: "200px",
+    triggerOnce: true, // Only trigger once per item
+  });
+
+  useEffect(() => {
+    if (inView && !playground.enriched && !hasTriggeredEnrichment.current) {
+      hasTriggeredEnrichment.current = true;
+      requestEnrichment(playground.osmId);
+    }
+  }, [inView, playground.enriched, playground.osmId, requestEnrichment]);
+
+  const name = playground.name || UNNAMED_PLAYGROUND;
+  const displayImage = playground.images?.[0];
+
+  return (
+    <div ref={ref}>
+      <Card
+        key={playground.id}
+        className="bg-background/95 flex min-h-[200px] flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+      >
+        <CardHeader className="flex w-1/3 gap-0 p-0">
+          <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
+            {!playground.enriched ? (
+              <Skeleton className="h-full w-full rounded-r-none" />
+            ) : displayImage ? (
+              <Image
+                className="h-full w-full object-cover"
+                src={displayImage.image_url}
+                alt={`Photo of ${name}`}
+                width={displayImage.width}
+                height={displayImage.height}
+                unoptimized={true}
+              />
+            ) : (
+              <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex w-2/3 flex-col gap-2 p-4">
+          {!playground.enriched ? (
+            <Skeleton className="h-4 w-full" />
+          ) : name ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/playgrounds/[id]"
+                as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
+                className="underline"
+                aria-label={`Go to ${name} page`}
+              >
+                <h3 className="font-semibold">{name}</h3>
+              </Link>
+              {playground.enriched && (
+                <span
+                  className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
+                  title="AI-generated content may contain errors"
+                >
+                  AI
+                </span>
+              )}
+            </div>
+          ) : null}
+
+          {!playground.enriched ? (
+            <Skeleton className="h-16 w-full" />
+          ) : playground.description ? (
+            <div className="text-muted-foreground text-xs">
+              {playground.description}
+            </div>
+          ) : null}
+
+          {!playground.enriched ? (
+            <Skeleton className="h-4 w-full" />
+          ) : playground.features?.length ? (
+            <div className="flex flex-wrap gap-1">
+              {playground.features.map((value, i) => (
+                <Badge
+                  className="max-w-full truncate"
+                  variant="outline"
+                  key={i}
+                >
+                  <span className="truncate">
+                    {formatEnumString(value)}
+                  </span>
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+
+          {!playground.enriched ? (
+            <Skeleton className="h-4 w-full" />
+          ) : playground.address ? (
+            <div
+              className="text-muted-foreground mr-1 flex cursor-pointer items-center text-xs underline"
+              onClick={() => {
+                requestFlyTo([playground.lon, playground.lat]);
+              }}
+              aria-label={`See ${name} on the map`}
+            >
+              <span>{playground.address}</span>
+              <MapPin className="ml-2 h-4 w-4 shrink-0" />
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PlaygroundListContent({
   displayEmptyState,
 }: {
   displayEmptyState?: boolean;
 }) {
-  const { playgrounds, requestFlyTo } = usePlaygrounds();
+  const { playgrounds, loading } = usePlaygrounds();
 
   if (!playgrounds?.length) {
+    // Don't show empty state while loading
+    if (loading) {
+      return null;
+    }
+
     return displayEmptyState ? (
       <Card className="bg-background/95 flex w-[100%] flex-col items-center justify-center gap-0 overflow-hidden p-8 shadow-lg backdrop-blur-sm transition-shadow">
         <CardContent className="flex flex-col items-center p-0">
@@ -34,101 +227,21 @@ export function PlaygroundList({
 
   return (
     <div className="flex flex-col space-y-2">
-      {playgrounds.map((playground) => {
-        const name = playground.name || UNNAMED_PLAYGROUND;
-        const displayImage = playground.images?.[0];
-        return (
-          <Card
-            key={playground.id}
-            className="bg-background/95 flex min-h-[200px] flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
-          >
-            <CardHeader className="flex w-1/3 gap-0 p-0">
-              <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
-                {!playground.enriched ? (
-                  <Skeleton className="h-full w-full rounded-r-none" />
-                ) : displayImage ? (
-                  <Image
-                    className="h-full w-full object-cover"
-                    src={displayImage.image_url}
-                    alt={`Photo of ${name}`}
-                    width={displayImage.width}
-                    height={displayImage.height}
-                    unoptimized={true}
-                  />
-                ) : (
-                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
-                )}
-              </div>
-            </CardHeader>
-
-            <CardContent className="flex w-2/3 flex-col gap-2 p-4">
-              {!playground.enriched ? (
-                <Skeleton className="h-4 w-full" />
-              ) : name ? (
-                <div className="flex items-center gap-2">
-                  <Link
-                    href="/playgrounds/[id]"
-                    as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
-                    className="underline"
-                    aria-label={`Go to ${name} page`}
-                  >
-                    <h3 className="font-semibold">{name}</h3>
-                  </Link>
-                  {playground.enriched && (
-                    <span
-                      className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
-                      title="AI-generated content may contain errors"
-                    >
-                      AI
-                    </span>
-                  )}
-                </div>
-              ) : null}
-
-              {!playground.enriched ? (
-                <Skeleton className="h-16 w-full" />
-              ) : playground.description ? (
-                <div className="text-muted-foreground text-xs">
-                  {playground.description}
-                </div>
-              ) : null}
-
-              {!playground.enriched ? (
-                <Skeleton className="h-4 w-full" />
-              ) : playground.features?.length ? (
-                <div className="flex flex-wrap gap-1">
-                  {playground.features.map((value, i) => (
-                    <Badge
-                      className="max-w-full truncate"
-                      variant="outline"
-                      key={i}
-                    >
-                      <span className="truncate">
-                        {formatEnumString(value)}
-                      </span>
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-
-              {!playground.enriched ? (
-                <Skeleton className="h-4 w-full" />
-              ) : playground.address ? (
-                <div
-                  className="text-muted-foreground mr-1 flex cursor-pointer items-center text-xs underline"
-                  onClick={() => {
-                    requestFlyTo([playground.lon, playground.lat]);
-                  }}
-                  aria-label={`See ${name} on the map`}
-                >
-                  <span>{playground.address}</span>
-                  <MapPin className="ml-2 h-4 w-4 shrink-0" />
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-        );
-      })}
+      {playgrounds.map((playground) => (
+        <PlaygroundItem key={playground.id} playground={playground} />
+      ))}
     </div>
+  );
+}
+
+export function PlaygroundList({
+  displayEmptyState,
+}: {
+  displayEmptyState?: boolean;
+}) {
+  return (
+    <EnrichmentBatchProvider>
+      <PlaygroundListContent displayEmptyState={displayEmptyState} />
+    </EnrichmentBatchProvider>
   );
 }

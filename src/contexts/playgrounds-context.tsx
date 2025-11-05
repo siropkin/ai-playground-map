@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -15,6 +16,7 @@ import {
   searchPlaygrounds,
   fetchLocationData,
   generatePlaygroundAiInsights,
+  generatePlaygroundAiInsightsBatch,
 } from "@/lib/api/client";
 import { useDebounce } from "@/lib/hooks";
 
@@ -23,11 +25,12 @@ type FlyToCoordinates = [number, number]; // [longitude, latitude]
 interface PlaygroundsContextType {
   playgrounds: Playground[];
   loading: boolean;
-  enriching: boolean;
   error: string | null;
   flyToCoords: FlyToCoordinates | null;
   requestFlyTo: (coords: FlyToCoordinates) => void;
   clearFlyToRequest: () => void;
+  enrichPlayground: (playgroundId: number) => Promise<void>;
+  enrichPlaygroundsBatch: (playgroundIds: number[]) => Promise<void>;
 }
 
 const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
@@ -38,11 +41,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const { mapBounds } = useFilters();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
-  const [pendingEnrichment, setPendingEnrichment] = useState<Playground[]>([]);
   const [loading, setLoading] = useState(false);
-  const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
+
+  // Abort controller for canceling enrichment requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const localFetchPlaygrounds = useCallback(
     async (signal?: AbortSignal) => {
@@ -55,7 +59,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
           setPlaygrounds(playgroundsForBounds);
-          setPendingEnrichment(playgroundsForBounds);
         }
       } catch (err) {
         if (
@@ -88,78 +91,102 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     // };
   }, [debouncedFetchPlaygrounds]);
 
-  useEffect(() => {
-    if (pendingEnrichment.length === 0) return;
-
-    const performEnrichment = async (signal?: AbortSignal) => {
-      setEnriching(true);
+  // Enrich a single playground
+  const enrichPlayground = useCallback(
+    async (playgroundId: number) => {
+      const playground = playgrounds.find((p) => p.osmId === playgroundId);
+      if (!playground || playground.enriched) return;
 
       try {
-        if (signal?.aborted) return;
-
-        await Promise.all(
-          pendingEnrichment.map(async (pe) => {
-            const location = await fetchLocationData(pe.lat, pe.lon, signal);
-
-            if (signal?.aborted) return;
-
-            if (!location) return;
-
-            const insight = await generatePlaygroundAiInsights({
-              location,
-              name: pe.name || undefined,
-              signal,
-            });
-
-            if (signal?.aborted) return;
-
-            setPlaygrounds((prev) => {
-              return prev.map((p) =>
-                p.osmId === pe.osmId
-                  ? {
-                      ...p,
-                      name: insight?.name || p.name,
-                      description: insight?.description || p.description,
-                      features: insight?.features || p.features,
-                      parking: insight?.parking || p.parking,
-                      sources: insight?.sources || p.sources,
-                      images: insight?.images || p.images,
-                      enriched: true,
-                    }
-                  : p,
-              );
-            });
-          }),
+        const location = await fetchLocationData(
+          playground.lat,
+          playground.lon,
+          abortControllerRef.current?.signal,
         );
 
-        setPendingEnrichment([]);
-      } catch (err) {
-        if (
-          !(err instanceof DOMException && err.name === "AbortError") &&
-          !signal?.aborted
-        ) {
-          console.error("Error enriching playgrounds:", err);
-        }
-      } finally {
-        if (!signal?.aborted) {
-          setEnriching(false);
-        }
+        if (!location) return;
+
+        const insight = await generatePlaygroundAiInsights({
+          location,
+          name: playground.name || undefined,
+          signal: abortControllerRef.current?.signal,
+        });
+
+        setPlaygrounds((prev) =>
+          prev.map((p) =>
+            p.osmId === playgroundId
+              ? {
+                  ...p,
+                  name: insight?.name || p.name,
+                  description: insight?.description || p.description,
+                  features: insight?.features || p.features,
+                  parking: insight?.parking || p.parking,
+                  sources: insight?.sources || p.sources,
+                  images: insight?.images || p.images,
+                  enriched: true,
+                }
+              : p,
+          ),
+        );
+      } catch (error) {
+        console.error(`Error enriching playground ${playgroundId}:`, error);
       }
+    },
+    [playgrounds],
+  );
+
+  // Enrich multiple playgrounds in a batch (max 5)
+  const enrichPlaygroundsBatch = useCallback(
+    async (playgroundIds: number[]) => {
+      const playgroundsToEnrich = playgrounds
+        .filter((p) => playgroundIds.includes(p.osmId) && !p.enriched)
+        .slice(0, 5); // Limit to 5 per batch
+
+      if (playgroundsToEnrich.length === 0) return;
+
+      try {
+        const results = await generatePlaygroundAiInsightsBatch({
+          playgrounds: playgroundsToEnrich.map((p) => ({
+            id: p.osmId,
+            lat: p.lat,
+            lon: p.lon,
+            name: p.name || undefined,
+          })),
+          signal: abortControllerRef.current?.signal,
+        });
+
+        // Update playgrounds with insights
+        setPlaygrounds((prev) =>
+          prev.map((p) => {
+            const result = results.find((r) => r.playgroundId === p.osmId);
+            if (!result || !result.insights) return p;
+
+            return {
+              ...p,
+              name: result.insights.name || p.name,
+              description: result.insights.description || p.description,
+              features: result.insights.features || p.features,
+              parking: result.insights.parking || p.parking,
+              sources: result.insights.sources || p.sources,
+              images: result.insights.images || p.images,
+              enriched: true,
+            };
+          }),
+        );
+      } catch (error) {
+        console.error("Error enriching playgrounds batch:", error);
+      }
+    },
+    [playgrounds],
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    abortControllerRef.current = new AbortController();
+    return () => {
+      abortControllerRef.current?.abort();
     };
-
-    const controller = new AbortController();
-
-    const fetchData = async () => {
-      await performEnrichment(controller.signal);
-    };
-
-    fetchData();
-
-    // TODO: This is the abort controller place. If user move map too fast - I think it worth to abort then continue and save the results
-    // return () => {
-    //   controller.abort();
-    // };
-  }, [pendingEnrichment]);
+  }, []);
 
   const requestFlyTo = useCallback((coords: FlyToCoordinates) => {
     setFlyToCoords(coords);
@@ -174,11 +201,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       value={{
         playgrounds,
         loading,
-        enriching,
         error,
         flyToCoords,
         requestFlyTo,
         clearFlyToRequest,
+        enrichPlayground,
+        enrichPlaygroundsBatch,
       }}
     >
       {children}

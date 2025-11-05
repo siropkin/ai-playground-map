@@ -105,3 +105,49 @@ export async function generatePlaygroundAiInsights({
     return null;
   }
 }
+
+/**
+ * Client-side function to enrich multiple playgrounds in a single batch request
+ */
+export async function generatePlaygroundAiInsightsBatch({
+  playgrounds,
+  signal,
+}: {
+  playgrounds: Array<{
+    id: number;
+    lat: number;
+    lon: number;
+    name?: string;
+  }>;
+  signal?: AbortSignal;
+}): Promise<
+  Array<{
+    playgroundId: number;
+    insights: PerplexityInsights | null;
+  }>
+> {
+  try {
+    const response = await fetch("/api/insights-batch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-app-origin": "internal",
+      },
+      body: JSON.stringify({ playgrounds }),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.results || [];
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return [];
+    }
+    console.error("Error generating batch playground AI insights:", error);
+    return [];
+  }
+}

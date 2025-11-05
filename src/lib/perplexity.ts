@@ -199,3 +199,54 @@ export async function fetchPerplexityInsightsWithCache({
 
   return freshInsights;
 }
+
+// Batch function to fetch insights for multiple playgrounds efficiently
+export async function fetchPerplexityInsightsBatch({
+  requests,
+  signal,
+}: {
+  requests: Array<{
+    playgroundId: number;
+    location: PerplexityLocation;
+    name?: string;
+  }>;
+  signal?: AbortSignal;
+}): Promise<
+  Array<{
+    playgroundId: number;
+    insights: PerplexityInsights | null;
+  }>
+> {
+  if (signal?.aborted) {
+    return [];
+  }
+
+  // Limit batch size to 5 for optimal performance
+  const batchSize = Math.min(requests.length, 5);
+  const batch = requests.slice(0, batchSize);
+
+  // Process all requests in parallel with caching
+  const results = await Promise.all(
+    batch.map(async (req) => {
+      try {
+        const insights = await fetchPerplexityInsightsWithCache({
+          location: req.location,
+          name: req.name,
+          signal,
+        });
+        return {
+          playgroundId: req.playgroundId,
+          insights,
+        };
+      } catch (error) {
+        console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
+        return {
+          playgroundId: req.playgroundId,
+          insights: null,
+        };
+      }
+    }),
+  );
+
+  return results;
+}
