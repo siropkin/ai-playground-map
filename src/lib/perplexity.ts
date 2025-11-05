@@ -4,6 +4,13 @@ import {
 } from "@/lib/cache";
 import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
 
+// Helper function to remove citation markers from text
+function removeCitationMarkers(text: string | null): string | null {
+  if (!text) return text;
+  // Remove citation markers like [1], [2][3], [1][2][3], etc.
+  return text.replace(/\[\d+\](\[\d+\])*/g, "").trim();
+}
+
 // Function to fetch AI insights from Perplexity
 export async function fetchPerplexityInsights({
   location,
@@ -64,6 +71,11 @@ REQUIREMENTS:
 2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
 3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
 4. Describe parking availability
+
+FORMATTING:
+- Do NOT include citation markers, footnotes, or reference numbers (like [1], [2], [3]) in any field
+- Provide clean, readable text without source indicators
+- Sources will be tracked separately
 
 If no playground is found with confidence, return all fields as null.`;
 
@@ -151,10 +163,10 @@ If no playground is found with confidence, return all fields as null.`;
       : {};
 
   return {
-    name: base.name ?? null,
-    description: base.description ?? null,
+    name: removeCitationMarkers(base.name ?? null),
+    description: removeCitationMarkers(base.description ?? null),
     features: base.features ?? null,
-    parking: base.parking ?? null,
+    parking: removeCitationMarkers(base.parking ?? null),
     sources:
       base.sources ?? (Array.isArray(data?.citations) ? (data.citations as string[]) : null),
     images: base.images ?? (Array.isArray(data?.images) ? data.images : null),
