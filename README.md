@@ -77,8 +77,8 @@ Follow these steps to set up the project locally:
      PERPLEXITY_API_KEY=your_perplexity_api_key
 
      # OSM Config
-     OSM_QUERY_TIMEOUT=5
-     OSM_QUERY_LIMIT=10
+     OSM_QUERY_TIMEOUT=25
+     OSM_QUERY_LIMIT=100
 
      # Perplexity Config
      PERPLEXITY_MODEL=sonar-pro
