@@ -99,10 +99,10 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController();
     debouncedFetchPlaygrounds(controller.signal);
 
-    // TODO: This is the abort controller place. If user move map too fast - I think it worth to abort then continue and save the results
-    // return () => {
-    //   controller.abort();
-    // };
+    // Abort previous request when bounds change to prevent race conditions
+    return () => {
+      controller.abort();
+    };
     // debouncedFetchPlaygrounds is stable, no need to include in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapBounds]);
