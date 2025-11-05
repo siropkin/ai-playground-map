@@ -11,6 +11,101 @@ function removeCitationMarkers(text: string | null): string | null {
   return text.replace(/\[\d+\](\[\d+\])*/g, "").trim();
 }
 
+// Helper function to filter out low-quality or irrelevant images
+function filterImages(images: Array<{
+  image_url: string;
+  origin_url: string;
+  height: number;
+  width: number;
+}> | null): Array<{
+  image_url: string;
+  origin_url: string;
+  height: number;
+  width: number;
+}> | null {
+  if (!images || images.length === 0) return null;
+
+  const filtered = images.filter(img => {
+    const url = img.image_url.toLowerCase();
+    const originUrl = img.origin_url.toLowerCase();
+
+    // Filter out stock photo sites
+    const stockPhotoSites = [
+      'shutterstock',
+      'istockphoto',
+      'gettyimages',
+      'depositphotos',
+      'dreamstime',
+      'stockphoto',
+      '123rf',
+      'alamy'
+    ];
+    if (stockPhotoSites.some(site => url.includes(site) || originUrl.includes(site))) {
+      return false;
+    }
+
+    // Filter out blog content, tech articles, and documentation sites
+    const blogTechPatterns = [
+      '/blog/',
+      '/wp-content/',
+      '/article/',
+      '/post/',
+      '/news/',
+      'medium.com',
+      'blogspot.',
+      'wordpress.',
+      '/docs/',
+      '/documentation/',
+      'github.com',
+      'stackoverflow.',
+      'wiki.'
+    ];
+    if (blogTechPatterns.some(pattern => url.includes(pattern) || originUrl.includes(pattern))) {
+      return false;
+    }
+
+    // Filter out obvious non-playground keywords in URLs
+    const badKeywords = [
+      'logo',
+      'icon',
+      'banner',
+      'parking',
+      'sign',
+      'advertisement',
+      'ad-',
+      '/ads/',
+      'sponsor',
+      'thumbnail',
+      'diagram',
+      'chart',
+      'graph',
+      'infographic',
+      'screenshot',
+      'map-',
+      '-map.',
+      'spatial'
+    ];
+    if (badKeywords.some(keyword => url.includes(keyword) || originUrl.includes(keyword))) {
+      return false;
+    }
+
+    // Filter out images that are too small (likely icons/logos)
+    if (img.width < 200 || img.height < 200) {
+      return false;
+    }
+
+    // Filter out extreme aspect ratios (banners/buttons)
+    const aspectRatio = img.width / img.height;
+    if (aspectRatio > 4 || aspectRatio < 0.25) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return filtered.length > 0 ? filtered : null;
+}
+
 // Function to fetch AI insights from Perplexity
 export async function fetchPerplexityInsights({
   location,
@@ -71,6 +166,12 @@ REQUIREMENTS:
 2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
 3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
 4. Describe parking availability
+
+IMAGE REQUIREMENTS:
+- ONLY return photos showing actual playground equipment, children playing, or playground structures
+- DO NOT return: stock photos, logos, signs, parking areas, maps, or unrelated images
+- Prefer photos showing slides, swings, play structures, or children using playground equipment
+- Images should clearly show outdoor recreational equipment for children
 
 FORMATTING:
 - Do NOT include citation markers, footnotes, or reference numbers (like [1], [2], [3]) in any field
@@ -162,6 +263,9 @@ If no playground is found with confidence, return all fields as null.`;
       ? (parsed as Partial<PerplexityInsights>)
       : {};
 
+  // Get images from response
+  const rawImages = base.images ?? (Array.isArray(data?.images) ? data.images : null);
+
   return {
     name: removeCitationMarkers(base.name ?? null),
     description: removeCitationMarkers(base.description ?? null),
@@ -169,7 +273,7 @@ If no playground is found with confidence, return all fields as null.`;
     parking: removeCitationMarkers(base.parking ?? null),
     sources:
       base.sources ?? (Array.isArray(data?.citations) ? (data.citations as string[]) : null),
-    images: base.images ?? (Array.isArray(data?.images) ? data.images : null),
+    images: filterImages(rawImages), // Apply image quality filtering
   };
 }
 
