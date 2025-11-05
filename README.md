@@ -6,9 +6,9 @@
 
 Good Playground Map isn't just another map app. It's a comprehensive discovery tool that leverages a revolutionary data pipeline:
 
-✨ **OpenStreetMap's global playground data** → **Google Maps address enrichment** → **Perplexity AI-powered playground research** → **Detailed, actionable playground profiles**
+✨ **OpenStreetMap's global playground data** → **Perplexity AI location-based research** → **Detailed, actionable playground profiles**
 
-This intelligent combination of open data and AI automatically researches and presents detailed information about each playground, making your search for the perfect play spot easier and more informed.
+This intelligent combination of open data and AI automatically researches and presents detailed information about each playground using geographically-aware AI search, making your search for the perfect play spot easier and more informed.
 
 ## 🤔 Why Good Playground Map?
 
@@ -24,18 +24,17 @@ Good Playground Map solves this by:
 
 What makes this app unique is its **intelligent data enrichment pipeline**:
 
-1.  **Discovery**: Pulls playground locations from OpenStreetMap's vast global database.
-2.  **Enrichment**: Uses the Google Maps Geocoding API to convert coordinates into precise, detailed addresses.
-3.  **AI-Powered Context**: Leverages Perplexity AI to automatically research and generate rich, descriptive information about each playground based on its location and name.
+1.  **Discovery**: Pulls playground locations from OpenStreetMap's vast global database, including coordinates and structured address data.
+2.  **Geographic AI Search**: Leverages Perplexity AI's native location-based search capabilities, passing precise coordinates and regional context directly to the AI search engine.
+3.  **Rich Information**: Automatically generates comprehensive playground profiles with descriptions, features, parking information, and images based on real web data from the playground's geographic area.
 
-This process transforms simple map markers into comprehensive resources, offering a superior user experience.
+This streamlined process transforms simple map markers into comprehensive resources with minimal API overhead, offering a superior user experience at lower cost.
 
 ## ✨ Features
 
 - **Intelligent Data Pipeline**:
-- OpenStreetMap integration for global playground discovery.
-- Google Maps geocoding for precise address information.
-- Perplexity AI for automated playground research and descriptions.
+- OpenStreetMap integration for global playground discovery with built-in address data.
+- Perplexity AI with native geolocation support for automated, location-aware playground research.
 - **Interactive Exploration**:
 - Responsive Mapbox-powered map interface.
 - Searchable playground listings with filtering capabilities.
@@ -51,9 +50,8 @@ This process transforms simple map markers into comprehensive resources, offerin
 - **UI**: [shadcn/ui](https://ui.shadcn.com/)
 - **Maps**: [Mapbox](https://www.mapbox.com/)
 - **Data Sources**:
-- [OpenStreetMap](https://www.openstreetmap.org/) (Playground locations)
-- [Google Maps Geocoding API](https://developers.google.com/maps/documentation/geocoding) (Address lookup)
-- [Perplexity AI](https://www.perplexity.ai/) (Information enhancement)
+- [OpenStreetMap](https://www.openstreetmap.org/) (Playground locations and address data via Nominatim)
+- [Perplexity AI](https://www.perplexity.ai/) (Location-aware information enhancement)
 - **Backend & Auth**: [Supabase](https://supabase.com/) (Database, Storage, Authentication)
 - **Deployment**: [Vercel](https://vercel.com/)
 - **Package Manager**: [pnpm](https://pnpm.io/)
@@ -76,15 +74,11 @@ Follow these steps to set up the project locally:
      NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
      NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
-     GOOGLE_MAPS_API_KEY=your_google_maps_api_key
      PERPLEXITY_API_KEY=your_perplexity_api_key
 
      # OSM Config
      OSM_QUERY_TIMEOUT=5
      OSM_QUERY_LIMIT=10
-
-     # Google Maps Config
-     GOOGLE_MAPS_NEARBYSEARCH_RADIUS=100
 
      # Perplexity Config
      PERPLEXITY_MODEL=sonar-pro
@@ -96,12 +90,9 @@ Follow these steps to set up the project locally:
      # ISO date to filter by latest page update timestamp
      PERPLEXITY_LATEST_UPDATED=
 
-
      # Cache Config
      PERPLEXITY_CACHE_TTL_MS=31536000000
      PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME=perplexity_insights_cache
-     GOOGLE_MAPS_CACHE_TTL_MS=2592000000
-     GOOGLE_MAPS_PLACE_DETAILS_CACHE_TABLE_NAME=google_maps_place_details_cache
      ```
 
 4. Run the app locally:
@@ -116,9 +107,10 @@ Feel free to reach out if you want to contribute or have ideas:
 
 ## 💰 Project Costs & Support
 
-To run this project,
-I use the Perplexity AI API and Google Maps Geocoding API which cost me some money
-(~$0.02 for one playground research) which I pay out of my own pocket.
+To run this project, I use the Perplexity AI API which costs approximately $0.01-0.015 per playground enrichment. All costs are paid out of my own pocket to keep this resource free for everyone.
+
+The project leverages free and open-source data from OpenStreetMap and Nominatim, keeping infrastructure costs minimal while maintaining high-quality results.
+
 If you like the project and want it to keep running and improving, please consider supporting me with a coffee!
 
 ## ☕ Buy Me A Coffee

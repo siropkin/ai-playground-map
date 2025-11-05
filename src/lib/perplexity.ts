@@ -2,15 +2,15 @@ import {
   fetchPerplexityInsightsFromCache,
   savePerplexityInsightsToCache,
 } from "@/lib/cache";
-import { PerplexityInsights } from "@/types/perplexity";
+import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
 
 // Function to fetch AI insights from Perplexity
 export async function fetchPerplexityInsights({
-  address,
+  location,
   name,
   signal,
 }: {
-  address: string;
+  location: PerplexityLocation;
   name?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
@@ -24,24 +24,23 @@ export async function fetchPerplexityInsights({
   }
 
   const prompt = `
-Task: Find information about a children's playground at or near the specified ${name ? `location known as "${name}"` : "address"}.
+Task: Find information about a children's playground${name ? ` known as "${name}"` : ""} in this area.
 
-Location Criteria:
-- The playground must be located at one of the following:
-  - Precisely at the address: ${address}${name ? ` (known as "${name}")` : ""}
-  - Within a park, recreation center, community center, school grounds, or public space at this exact address
-  - Part of a sports complex or facility at this address
-- If no playground is found at the exact address, check for playgrounds within a 0.1-mile radius, but only include them if they are clearly associated with a named park or facility.
+Location Context:
+${name ? `- Location name: "${name}"` : ""}
+- The search is focused on a specific geographic location
+- Look for playgrounds at or near this location (within approximately 0.1-mile radius)
+- Include playgrounds within parks, recreation centers, community centers, school grounds, or public spaces in this area
 
 Strictness:
-- Focus strictly on playgrounds meeting the location criteria.
-- If no playground is found with high confidence, return the 'not found' structure.
-- Do not include information about playgrounds at different addresses unless they are within the 0.1-mile radius and clearly relevant.
+- Focus on playgrounds within the specified geographic area
+- If no playground is found with high confidence, return the 'not found' structure
+- Prioritize playgrounds that are clearly associated with a named park or facility
 
 Image Requirements:
-- Return images only if they depict the actual playground, its equipment (e.g., slides, swings, climbing structures), or the immediate playground setting.
-- Exclude irrelevant images such as generic parks, landscapes, or unrelated facilities.
-- If no relevant images are available, return an empty image array.
+- Return images only if they depict the actual playground, its equipment (e.g., slides, swings, climbing structures), or the immediate playground setting
+- Exclude irrelevant images such as generic parks, landscapes, or unrelated facilities
+- If no relevant images are available, return an empty image array
 
 Desired Output Format:
 Return a JSON object with the following fields:
@@ -70,6 +69,13 @@ Return only the valid JSON object without any additional text or markdown.
     web_search_options: {
       search_context_size:
         process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE ?? "low",
+      user_location: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        country: location.country,
+        ...(location.city && { city: location.city }),
+        ...(location.region && { region: location.region }),
+      },
       ...(process.env.PERPLEXITY_LATEST_UPDATED
         ? { latest_updated: process.env.PERPLEXITY_LATEST_UPDATED }
         : {}),
@@ -146,11 +152,11 @@ Return only the valid JSON object without any additional text or markdown.
 
 // Function to fetch AI insights from Perplexity with caching
 export async function fetchPerplexityInsightsWithCache({
-  address,
+  location,
   name,
   signal,
 }: {
-  address: string;
+  location: PerplexityLocation;
   name?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
@@ -158,15 +164,18 @@ export async function fetchPerplexityInsightsWithCache({
     return null;
   }
 
+  // Create cache key from location coordinates
+  const cacheKey = `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`;
+
   const cachedInsights = await fetchPerplexityInsightsFromCache({
-    address,
+    address: cacheKey,
   });
   if (cachedInsights) {
     return cachedInsights;
   }
 
   const freshInsights = await fetchPerplexityInsights({
-    address,
+    location,
     name,
     signal,
   });
@@ -175,7 +184,7 @@ export async function fetchPerplexityInsightsWithCache({
     return null;
   }
 
-  await savePerplexityInsightsToCache({ address, insights: freshInsights });
+  await savePerplexityInsightsToCache({ address: cacheKey, insights: freshInsights });
 
   return freshInsights;
 }

@@ -2,8 +2,8 @@ import { cache } from "react";
 
 import { Playground } from "@/types/playground";
 import { fetchMultipleOSMPlaceDetails } from "@/lib/osm";
-import { fetchGoogleMapsDetailsWithCache } from "@/lib/google-maps";
 import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
+import { PerplexityLocation } from "@/types/perplexity";
 
 async function fetchPlaygroundById(id: string): Promise<Playground | null> {
   let playground: Playground | null = null;
@@ -19,14 +19,14 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
 
     playground = {
       id: osmPlaceDetails.osm_id,
-      name: null,
+      name: osmPlaceDetails.name || null,
       description: null,
       lat: parseFloat(osmPlaceDetails.lat),
       lon: parseFloat(osmPlaceDetails.lon),
       features: null,
       parking: null,
       sources: null,
-      address: null,
+      address: osmPlaceDetails.display_name || null,
       images: null,
       osmId: osmPlaceDetails.osm_id,
       osmType: osmPlaceDetails.osm_type,
@@ -34,29 +34,28 @@ async function fetchPlaygroundById(id: string): Promise<Playground | null> {
       enriched: false,
     };
 
-    const details = await fetchGoogleMapsDetailsWithCache({
-      lat: playground.lat,
-      lon: playground.lon,
+    // Build location object from OSM address data
+    const location: PerplexityLocation = {
+      latitude: playground.lat,
+      longitude: playground.lon,
+      city: osmPlaceDetails.address.city,
+      region: osmPlaceDetails.address.state,
+      country: osmPlaceDetails.address.country_code?.toUpperCase() || "US",
+    };
+
+    const insight = await fetchPerplexityInsightsWithCache({
+      location,
+      name: playground.name || undefined,
     });
 
-    if (details) {
-      playground.address = details.formattedAddress;
-      playground.name = details.displayName?.text || playground.name;
-
-      const insight = await fetchPerplexityInsightsWithCache({
-        address: playground.address,
-        name: playground.name || undefined,
-      });
-
-      if (insight) {
-        playground.name = insight.name || playground.name;
-        playground.description = insight.description || playground.description;
-        playground.features = insight.features || playground.features;
-        playground.parking = insight.parking || playground.parking;
-        playground.sources = insight.sources || playground.sources;
-        playground.images = insight.images || playground.images;
-        playground.enriched = true;
-      }
+    if (insight) {
+      playground.name = insight.name || playground.name;
+      playground.description = insight.description || playground.description;
+      playground.features = insight.features || playground.features;
+      playground.parking = insight.parking || playground.parking;
+      playground.sources = insight.sources || playground.sources;
+      playground.images = insight.images || playground.images;
+      playground.enriched = true;
     }
 
     return playground;

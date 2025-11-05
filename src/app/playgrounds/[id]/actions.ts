@@ -1,9 +1,6 @@
 "use server";
 
-import {
-  clearGoogleMapsPlaceDetailsCache,
-  clearPerplexityInsightsCache,
-} from "@/lib/cache";
+import { clearPerplexityInsightsCache } from "@/lib/cache";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -46,20 +43,16 @@ export async function clearPlaygroundCacheAction({
   playgroundId,
   lat,
   lon,
-  address,
 }: {
   playgroundId: string;
   lat: number;
   lon: number;
-  address: string;
 }) {
   try {
-    if (!address) {
-      return { success: false, message: "No address provided" };
-    }
+    // Create cache key from coordinates (matching the format in perplexity.ts)
+    const cacheKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
 
-    await clearPerplexityInsightsCache({ address });
-    await clearGoogleMapsPlaceDetailsCache({ lat, lon });
+    await clearPerplexityInsightsCache({ address: cacheKey });
 
     revalidatePath(`/playgrounds/${playgroundId}`);
 

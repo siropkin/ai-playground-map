@@ -1,7 +1,6 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
-import { PerplexityInsights } from "@/types/perplexity";
-import { GoogleMapsPlaceDetails } from "@/types/google-maps";
+import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
 
 /**
  * Client-side function to search for playgrounds in the API
@@ -36,15 +35,15 @@ export async function searchPlaygrounds(
 }
 
 /**
- * Client-side function to fetch playgrounds details from the API
+ * Client-side function to get structured location data from coordinates
  */
-export async function fetchPlaygroundDetails(
+export async function fetchLocationData(
   lat: number,
   lon: number,
   signal?: AbortSignal,
-): Promise<GoogleMapsPlaceDetails | null> {
+): Promise<PerplexityLocation | null> {
   try {
-    const response = await fetch("/api/details", {
+    const response = await fetch("/api/osm-location", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,12 +58,12 @@ export async function fetchPlaygroundDetails(
     }
 
     const data = await response.json();
-    return data.details;
+    return data.location;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return null;
     }
-    console.error("Error fetching playground details:", error);
+    console.error("Error fetching location data:", error);
     return null;
   }
 }
@@ -73,11 +72,11 @@ export async function fetchPlaygroundDetails(
  * Client-side function to generate a playground description from the API
  */
 export async function generatePlaygroundAiInsights({
-  address,
+  location,
   name,
   signal,
 }: {
-  address: string;
+  location: PerplexityLocation;
   name?: string;
   signal?: AbortSignal;
 }): Promise<PerplexityInsights | null> {
@@ -88,7 +87,7 @@ export async function generatePlaygroundAiInsights({
         "Content-Type": "application/json",
         "x-app-origin": "internal",
       },
-      body: JSON.stringify({ address, name }),
+      body: JSON.stringify({ location, name }),
       signal,
     });
 

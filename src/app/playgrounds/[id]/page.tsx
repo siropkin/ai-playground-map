@@ -132,7 +132,6 @@ export default async function PlaygroundDetail({
                   playgroundId={resolvedParams.id}
                   lat={playground.lat}
                   lon={playground.lon}
-                  address={playground.address || ""}
                 />
               </div>
             )}

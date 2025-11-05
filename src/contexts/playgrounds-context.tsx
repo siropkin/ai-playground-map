@@ -13,7 +13,7 @@ import { Playground } from "@/types/playground";
 import { useFilters } from "@/contexts/filters-context";
 import {
   searchPlaygrounds,
-  fetchPlaygroundDetails,
+  fetchLocationData,
   generatePlaygroundAiInsights,
 } from "@/lib/api/client";
 import { useDebounce } from "@/lib/hooks";
@@ -99,19 +99,15 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
         await Promise.all(
           pendingEnrichment.map(async (pe) => {
-            const details = await fetchPlaygroundDetails(
-              pe.lat,
-              pe.lon,
-              signal,
-            );
+            const location = await fetchLocationData(pe.lat, pe.lon, signal);
 
             if (signal?.aborted) return;
 
-            if (!details) return;
+            if (!location) return;
 
             const insight = await generatePlaygroundAiInsights({
-              address: details.formattedAddress,
-              name: details.displayName?.text || pe.name || undefined,
+              location,
+              name: pe.name || undefined,
               signal,
             });
 
@@ -122,10 +118,8 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 p.osmId === pe.osmId
                   ? {
                       ...p,
-                      name:
-                        insight?.name || details.displayName?.text || p.name,
+                      name: insight?.name || p.name,
                       description: insight?.description || p.description,
-                      address: details.formattedAddress,
                       features: insight?.features || p.features,
                       parking: insight?.parking || p.parking,
                       sources: insight?.sources || p.sources,
