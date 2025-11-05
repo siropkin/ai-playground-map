@@ -59,7 +59,20 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       try {
         const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
-          setPlaygrounds(playgroundsForBounds);
+          // Merge new data with existing enriched data to avoid re-enrichment
+          setPlaygrounds((prevPlaygrounds) => {
+            const enrichedMap = new Map(
+              prevPlaygrounds
+                .filter(p => p.enriched)
+                .map(p => [p.osmId, p])
+            );
+
+            return playgroundsForBounds.map(newPlayground => {
+              const existingEnriched = enrichedMap.get(newPlayground.osmId);
+              // If we already have enriched data for this playground, keep it
+              return existingEnriched || newPlayground;
+            });
+          });
         }
       } catch (err) {
         if (
