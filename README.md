@@ -82,7 +82,7 @@ Follow these steps to set up the project locally:
 
      # Perplexity Config
      PERPLEXITY_MODEL=sonar-pro
-     PERPLEXITY_TEMPERATURE=0.17
+     PERPLEXITY_TEMPERATURE=0.2
      PERPLEXITY_SEARCH_CONTEXT_SIZE=medium
      # Optional Perplexity filters
      # Use for domain-specific search (e.g., "sec" for SEC filings)

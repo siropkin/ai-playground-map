@@ -23,52 +23,63 @@ export async function fetchPerplexityInsights({
     throw new Error("Perplexity API key is missing");
   }
 
-  const prompt = `
-Task: Find information about a children's playground${name ? ` known as "${name}"` : ""} in this area.
+  // Structured output schema for playground data
+  const playgroundSchema = {
+    type: "object",
+    properties: {
+      name: {
+        type: ["string", "null"],
+        description:
+          "The official name of the playground or facility containing it (e.g., 'Sunset Park Playground'). Use null if no playground found.",
+      },
+      description: {
+        type: ["string", "null"],
+        description:
+          "A concise 2-3 sentence description covering equipment types, age suitability, safety features, and atmosphere. Use null if no playground found.",
+      },
+      features: {
+        type: ["array", "null"],
+        items: { type: "string" },
+        description:
+          "List of playground equipment using OpenStreetMap tags: slide, swing, climbing_frame, sandpit, seesaw, etc. See wiki.openstreetmap.org/wiki/Key:playground. Use null if no playground found.",
+      },
+      parking: {
+        type: ["string", "null"],
+        description:
+          "Brief parking description (e.g., 'Street parking available' or 'Dedicated lot at entrance'). Use null if no playground found or no info available.",
+      },
+    },
+    required: ["name", "description", "features", "parking"],
+    additionalProperties: false,
+  };
 
-Location Context:
-${name ? `- Location name: "${name}"` : ""}
-- The search is focused on a specific geographic location
-- Look for playgrounds at or near this location (within approximately 0.1-mile radius)
-- Include playgrounds within parks, recreation centers, community centers, school grounds, or public spaces in this area
+  // Optimized prompt following Perplexity best practices
+  const prompt = `Find detailed information about a children's playground${name ? ` named "${name}"` : ""} in this geographic area.
 
-Strictness:
-- Focus on playgrounds within the specified geographic area
-- If no playground is found with high confidence, return the 'not found' structure
-- Prioritize playgrounds that are clearly associated with a named park or facility
+SEARCH FOCUS:
+Search within 0.1-mile radius for playgrounds in parks, recreation centers, schools, or public facilities${name ? ` matching the name "${name}"` : ""}.
 
-Image Requirements:
-- Return images only if they depict the actual playground, its equipment (e.g., slides, swings, climbing structures), or the immediate playground setting
-- Exclude irrelevant images such as generic parks, landscapes, or unrelated facilities
-- If no relevant images are available, return an empty image array
+REQUIREMENTS:
+1. Find the playground's official name or facility name
+2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
+3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
+4. Describe parking availability
 
-Desired Output Format:
-Return a JSON object with the following fields:
-{
-  "name": "string", // The name of the playground or the facility/park containing it (e.g., "Sunset Park Playground")
-  "description": "string", // A concise 2-sentence description of the playground, focusing on key features (e.g., types of equipment, age suitability, safety features, shade availability, or atmosphere)
-  "features": ["string"], // A list of specific playground features, using OpenStreetMap playground tags (e.g., "slide", "swing", "climbing_frame", "sandpit", "seesaw"). Refer to https://wiki.openstreetmap.org/wiki/Key:playground for valid tags
-  "parking": "string" // A brief description of nearby parking options (e.g., "Street parking available nearby" or "Dedicated lot at park entrance")
-}
-
-If no playground is found with high confidence, return:
-{
-  "name": null,
-  "description": null,
-  "features": null,
-  "parking": null
-}
-
-Return only the valid JSON object without any additional text or markdown.
-`;
+If no playground is found with confidence, return all fields as null.`;
 
   const requestBody: Record<string, unknown> = {
     model: process.env.PERPLEXITY_MODEL ?? "sonar-pro",
-    temperature: Number(process.env.PERPLEXITY_TEMPERATURE ?? 0.17),
+    temperature: Number(process.env.PERPLEXITY_TEMPERATURE ?? 0.2),
     return_images: true,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        schema: playgroundSchema,
+      },
+    },
     web_search_options: {
       search_context_size:
-        process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE ?? "low",
+        process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE ?? "medium",
       user_location: {
         latitude: location.latitude,
         longitude: location.longitude,
