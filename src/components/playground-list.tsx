@@ -204,6 +204,24 @@ function PlaygroundListContent({
   displayEmptyState?: boolean;
 }) {
   const { playgrounds, loading } = usePlaygrounds();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prevPlaygroundIdsRef = useRef<string>("");
+
+  // Scroll to top when playground list changes (not just enrichment)
+  useEffect(() => {
+    const currentIds = playgrounds.map(p => p.osmId).sort().join(",");
+
+    // Only scroll if the list of playgrounds actually changed
+    if (currentIds !== prevPlaygroundIdsRef.current && prevPlaygroundIdsRef.current !== "") {
+      // Find the scrollable parent (either the sidebar div or sheet content)
+      const scrollableParent = containerRef.current?.closest('[class*="overflow-y-auto"]');
+      if (scrollableParent) {
+        scrollableParent.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+
+    prevPlaygroundIdsRef.current = currentIds;
+  }, [playgrounds]);
 
   if (!playgrounds?.length) {
     // Don't show empty state while loading
@@ -226,7 +244,7 @@ function PlaygroundListContent({
   }
 
   return (
-    <div className="flex flex-col space-y-2">
+    <div ref={containerRef} className="flex flex-col space-y-2">
       {playgrounds.map((playground) => (
         <PlaygroundItem key={playground.id} playground={playground} />
       ))}
