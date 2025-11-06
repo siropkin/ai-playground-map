@@ -124,12 +124,13 @@ export const MapView = React.memo(function MapView() {
           map.current.flyTo({
             center: [longitude, latitude],
             zoom: 14,
+            duration: 800, // Fast animation (800ms instead of default 2000ms)
           });
         }
       },
       (error) => {
         console.error("Error fetching location:", error);
-        alert("Oops! Can’t get your location. Maybe geolocation is blocked?");
+        alert("Oops! Can't get your location. Maybe geolocation is blocked?");
       },
     );
   }, []);
@@ -487,6 +488,7 @@ export const MapView = React.memo(function MapView() {
       map.current.flyTo({
         center: flyToCoords,
         zoom: Math.max(zoom, 16),
+        duration: 800, // Fast animation (800ms instead of default 2000ms)
         essential: true,
       });
       clearFlyToRequest();
