@@ -8,10 +8,12 @@ export default function ClearCacheButton({
   playgroundId,
   lat,
   lon,
+  osmId,
 }: {
   lat: number;
   lon: number;
   playgroundId: string;
+  osmId?: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,6 +37,7 @@ export default function ClearCacheButton({
         playgroundId,
         lat,
         lon,
+        osmId,
       });
 
       if (result.success) {

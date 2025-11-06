@@ -8,11 +8,17 @@ const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME =
   process.env.PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME ||
   "perplexity_insights_cache";
 
+// Schema version for Perplexity cache
+// Increment this when the prompt or response structure changes
+// Old cache entries will be automatically invalidated
+const CURRENT_SCHEMA_VERSION = 1;
+
 // Function to get AI insights from cache
+// cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
 export async function fetchPerplexityInsightsFromCache({
-  address,
+  cacheKey,
 }: {
-  address: string;
+  cacheKey: string;
 }): Promise<PerplexityInsights | null> {
   try {
     const supabase = await createClient();
@@ -20,12 +26,22 @@ export async function fetchPerplexityInsightsFromCache({
     const { data, error } = await supabase
       .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "name, description, features, parking, sources, images, created_at",
+        "name, description, features, parking, sources, images, created_at, schema_version",
       )
-      .eq("address", address)
+      .eq("cache_key", cacheKey)
       .single();
 
     if (error || !data) {
+      return null;
+    }
+
+    // Check schema version first - invalidate if outdated
+    if (data.schema_version !== CURRENT_SCHEMA_VERSION) {
+      await supabase
+        .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+        .delete()
+        .eq("cache_key", cacheKey);
+
       return null;
     }
 
@@ -40,7 +56,7 @@ export async function fetchPerplexityInsightsFromCache({
       await supabase
         .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
         .delete()
-        .eq("address", address);
+        .eq("cache_key", cacheKey);
 
       return null;
     }
@@ -60,11 +76,12 @@ export async function fetchPerplexityInsightsFromCache({
 }
 
 // Function to save AI insights to cache
+// cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
 export async function savePerplexityInsightsToCache({
-  address,
+  cacheKey,
   insights,
 }: {
-  address: string;
+  cacheKey: string;
   insights: PerplexityInsights;
 }): Promise<void> {
   try {
@@ -74,7 +91,7 @@ export async function savePerplexityInsightsToCache({
       .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
       .upsert(
         {
-          address,
+          cache_key: cacheKey,
           name: insights.name,
           description: insights.description,
           features: insights.features,
@@ -82,8 +99,9 @@ export async function savePerplexityInsightsToCache({
           sources: insights.sources,
           images: insights.images,
           created_at: new Date().toISOString(),
+          schema_version: CURRENT_SCHEMA_VERSION,
         },
-        { onConflict: "address" },
+        { onConflict: "cache_key" },
       );
 
     if (error) {
@@ -95,17 +113,18 @@ export async function savePerplexityInsightsToCache({
 }
 
 // Function to clear Perplexity insights cache
+// cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
 export async function clearPerplexityInsightsCache({
-  address,
+  cacheKey,
 }: {
-  address: string;
+  cacheKey: string;
 }): Promise<void> {
   try {
     const supabase = await createClient();
     const { error } = await supabase
       .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
       .delete()
-      .eq("address", address);
+      .eq("cache_key", cacheKey);
 
     if (error) {
       console.error("Error clearing Perplexity insights cache:", error);

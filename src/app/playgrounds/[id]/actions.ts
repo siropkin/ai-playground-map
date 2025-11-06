@@ -43,16 +43,26 @@ export async function clearPlaygroundCacheAction({
   playgroundId,
   lat,
   lon,
+  osmId,
 }: {
   playgroundId: string;
   lat: number;
   lon: number;
+  osmId?: string;
 }) {
   try {
-    // Create cache key from coordinates (matching the format in perplexity.ts)
-    const cacheKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+    // Clear both possible cache keys to handle the inconsistency:
+    // 1. OSM ID-based key (if available)
+    // 2. Coordinate-based key (fallback)
+    // This ensures we clear cached data regardless of which key was used when storing
 
-    await clearPerplexityInsightsCache({ address: cacheKey });
+    if (osmId) {
+      await clearPerplexityInsightsCache({ cacheKey: osmId });
+    }
+
+    // Also clear coordinate-based key for backward compatibility
+    const coordinateCacheKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+    await clearPerplexityInsightsCache({ cacheKey: coordinateCacheKey });
 
     revalidatePath(`/playgrounds/${playgroundId}`);
 

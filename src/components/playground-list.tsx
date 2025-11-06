@@ -58,13 +58,16 @@ function EnrichmentBatchProvider({ children }: { children: React.ReactNode }) {
 
   // Cleanup timer on unmount
   useEffect(() => {
+    const queue = batchQueue.current;
+    const timer = batchTimer.current;
+
     return () => {
-      if (batchTimer.current) {
-        clearTimeout(batchTimer.current);
-        processBatch(); // Process any remaining items
+      if (timer) {
+        clearTimeout(timer);
+        queue.clear(); // Clear any remaining items instead of processing
       }
     };
-  }, [processBatch]);
+  }, []);
 
   return (
     <EnrichmentBatchContext.Provider value={{ requestEnrichment }}>
@@ -89,7 +92,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
 
   const { ref, inView } = useInView({
     threshold: 0.1,
-    rootMargin: "200px",
+    rootMargin: "75px", // Reduced from 200px to minimize wasted API calls
     triggerOnce: true, // Only trigger once per item
   });
 

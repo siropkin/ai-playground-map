@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,10 @@ interface ImageCarouselProps {
   unoptimized?: boolean;
 }
 
+// Swipe configuration constants
+const SWIPE_THRESHOLD = 50; // Minimum distance in pixels to trigger a swipe
+const SWIPE_VELOCITY_THRESHOLD = 0.3; // Minimum velocity to trigger a swipe
+
 export default function ImageCarousel({
   images,
   className,
@@ -23,6 +27,9 @@ export default function ImageCarousel({
 }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const touchStartTime = useRef<number>(0);
 
   const goToNext = useCallback(() => {
     if (isTransitioning || images.length <= 1) return;
@@ -50,6 +57,44 @@ export default function ImageCarousel({
     [currentIndex, isTransitioning],
   );
 
+  // Touch event handlers for swipe gestures
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setTouchEnd(null); // Reset touch end
+    setTouchStart(e.targetTouches[0].clientX);
+    touchStartTime.current = Date.now();
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const touchDuration = Date.now() - touchStartTime.current;
+    const velocity = Math.abs(distance) / touchDuration;
+
+    const isLeftSwipe = distance > SWIPE_THRESHOLD;
+    const isRightSwipe = distance < -SWIPE_THRESHOLD;
+    const isFastSwipe = velocity > SWIPE_VELOCITY_THRESHOLD;
+
+    // Trigger navigation if swipe distance exceeds threshold or swipe is fast enough
+    if ((isLeftSwipe || isRightSwipe) || isFastSwipe) {
+      if (distance > 0) {
+        // Swiped left - go to next image
+        goToNext();
+      } else {
+        // Swiped right - go to previous image
+        goToPrevious();
+      }
+    }
+
+    // Reset touch states
+    setTouchStart(null);
+    setTouchEnd(null);
+  }, [touchStart, touchEnd, goToNext, goToPrevious]);
+
   useEffect(() => {
     // Reset transition state after animation completes
     const timer = setTimeout(() => {
@@ -68,6 +113,9 @@ export default function ImageCarousel({
         "relative overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800",
         className,
       )}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Main image container */}
       <div className="relative aspect-square w-full md:aspect-[4/3]">

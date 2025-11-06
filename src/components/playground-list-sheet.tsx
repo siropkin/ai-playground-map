@@ -30,7 +30,6 @@ export function PlaygroundListSheet() {
         <Button
           variant="outline"
           onClick={() => setOpen(true)}
-          disabled={loading}
         >
           <List className="h-4 w-4" />
           Playgrounds
