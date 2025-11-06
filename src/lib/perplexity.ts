@@ -13,7 +13,7 @@ function removeCitationMarkers(text: string | null): string | null {
   return text.replace(/\[\d+\](\[\d+\])*/g, "").trim();
 }
 
-// Helper function to filter out low-quality or irrelevant images
+// Enhanced helper function to filter out low-quality or irrelevant images
 function filterImages(images: Array<{
   image_url: string;
   origin_url: string;
@@ -30,8 +30,9 @@ function filterImages(images: Array<{
   const filtered = images.filter(img => {
     const url = img.image_url.toLowerCase();
     const originUrl = img.origin_url.toLowerCase();
+    const fullUrl = `${url} ${originUrl}`; // Combined for easier searching
 
-    // Filter out stock photo sites
+    // 1. Filter out stock photo sites (existing + additions)
     const stockPhotoSites = [
       'shutterstock',
       'istockphoto',
@@ -40,13 +41,16 @@ function filterImages(images: Array<{
       'dreamstime',
       'stockphoto',
       '123rf',
-      'alamy'
+      'alamy',
+      'pexels',
+      'unsplash',
+      'pixabay'
     ];
-    if (stockPhotoSites.some(site => url.includes(site) || originUrl.includes(site))) {
+    if (stockPhotoSites.some(site => fullUrl.includes(site))) {
       return false;
     }
 
-    // Filter out blog content, tech articles, and documentation sites
+    // 2. Filter out blog content, tech articles, and documentation sites (existing + additions)
     const blogTechPatterns = [
       '/blog/',
       '/wp-content/',
@@ -60,45 +64,141 @@ function filterImages(images: Array<{
       '/documentation/',
       'github.com',
       'stackoverflow.',
-      'wiki.'
+      'wiki.',
+      'linkedin.com',
+      'twitter.com',
+      'facebook.com',
+      'instagram.com' // Social media often has watermarks/UI
     ];
-    if (blogTechPatterns.some(pattern => url.includes(pattern) || originUrl.includes(pattern))) {
+    if (blogTechPatterns.some(pattern => fullUrl.includes(pattern))) {
       return false;
     }
 
-    // Filter out obvious non-playground keywords in URLs
+    // 3. NEW: Filter out real estate and business listing sites (often wrong-location photos)
+    const realEstateBusinessSites = [
+      'zillow',
+      'trulia',
+      'realtor.com',
+      'redfin',
+      'apartments.com',
+      'loopnet',
+      'yelp',       // Yelp often has business/restaurant photos mixed with playgrounds
+      'foursquare',
+      'tripadvisor'
+    ];
+    if (realEstateBusinessSites.some(site => fullUrl.includes(site))) {
+      return false;
+    }
+
+    // 4. Enhanced: More comprehensive bad keywords
     const badKeywords = [
       'logo',
       'icon',
       'banner',
-      'parking',
-      'sign',
+      'parking',        // Parking lots/signs
+      'sign',           // All types of signs
+      'street-sign',
+      'traffic',
       'advertisement',
       'ad-',
       '/ads/',
       'sponsor',
       'thumbnail',
+      'thumb',
       'diagram',
       'chart',
       'graph',
       'infographic',
       'screenshot',
-      'map-',
+      'screencap',
+      'screen-shot',
+      'map-',           // Maps/diagrams
       '-map.',
-      'spatial'
+      'spatial',
+      'ui-',            // UI elements
+      'interface',
+      'button',
+      'header',
+      'footer',
+      'watermark',
+      'stock-',
+      'placeholder',
+      'template',
+      'clipart',
+      'vector',
+      'floorplan',
+      'floor-plan',
+      'blueprint',
+      'aerial',         // Aerial/satellite views
+      'satellite',
+      'overhead',
+      'rules',          // Rules/warning signs
+      'warning',
+      'caution',
+      'notice',
+      'regulation'
     ];
-    if (badKeywords.some(keyword => url.includes(keyword) || originUrl.includes(keyword))) {
+    if (badKeywords.some(keyword => fullUrl.includes(keyword))) {
       return false;
     }
 
-    // Filter out images that are too small (likely icons/logos)
-    if (img.width < 200 || img.height < 200) {
+    // 5. NEW: Detect likely stock photo IDs (long numbers in filename)
+    const filenameMatch = url.match(/\/([^/]+)$/);
+    if (filenameMatch) {
+      const filename = filenameMatch[1];
+      // Stock photos often have long numeric IDs: 12345678901.jpg
+      if (/\d{10,}/.test(filename)) {
+        return false;
+      }
+    }
+
+    // 6. NEW: Prefer playground-related keywords (scoring system)
+    const goodKeywords = [
+      'playground',
+      'park',
+      'swing',
+      'slide',
+      'play',
+      'kids',
+      'children',
+      'playspace',
+      'playset',
+      'equipment',
+      'recreation',
+      'outdoor-play'
+    ];
+    const hasGoodKeyword = goodKeywords.some(keyword => fullUrl.includes(keyword));
+
+    // 7. Filter out images that are too small (likely icons/logos) - INCREASED threshold
+    if (img.width < 300 || img.height < 300) {
       return false;
     }
 
-    // Filter out extreme aspect ratios (banners/buttons)
+    // 8. Filter out extreme aspect ratios (banners/buttons/panoramas)
     const aspectRatio = img.width / img.height;
-    if (aspectRatio > 4 || aspectRatio < 0.25) {
+    if (aspectRatio > 3 || aspectRatio < 0.33) { // Tightened from 4/0.25
+      return false;
+    }
+
+    // 9. NEW: Boost images from trusted playground-related domains
+    const trustedDomains = [
+      '.gov/parks',
+      '.gov/recreation',
+      'parks.dc.gov',
+      'dpr.dc.gov',
+      'nycgovparks',
+      'parks.nyc.gov',
+      'laparks.org',
+      'flickr.com',         // Flickr has good community photos
+      'googleusercontent', // Google Photos/Maps
+      'wikimedia.org',
+      'commons.wikimedia'
+    ];
+    const isTrustedDomain = trustedDomains.some(domain => fullUrl.includes(domain));
+
+    // 10. Scoring: Require either good keyword OR trusted domain
+    if (!hasGoodKeyword && !isTrustedDomain) {
+      // Image has no playground-related context - likely irrelevant
       return false;
     }
 
@@ -127,60 +227,114 @@ export async function fetchPerplexityInsights({
     throw new Error("Perplexity API key is missing");
   }
 
-  // Structured output schema for playground data
+  // Build explicit location context for prompt (must be before schema definition)
+  const cityState = location.city && location.region
+    ? `${location.city}, ${location.region}`
+    : location.city
+      ? `${location.city}, ${location.country}`
+      : location.region
+        ? `${location.region}, ${location.country}`
+        : location.country;
+
+  const locationContext = location.city || location.region
+    ? ` in ${cityState}`
+    : ` at coordinates ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)} in ${location.country}`;
+
+  // Structured output schema for playground data with confidence tracking
   const playgroundSchema = {
     type: "object",
     properties: {
+      location_confidence: {
+        type: "string",
+        enum: ["high", "medium", "low"],
+        description:
+          "High: Sources explicitly mention the target city/state AND coordinates are within 0.1 miles. Medium: Coordinates match but city not explicitly confirmed in sources. Low: Uncertain, ambiguous, or sources mention different locations.",
+      },
+      location_verification: {
+        type: ["string", "null"],
+        description:
+          `Quote from sources that confirms this playground is in ${cityState}. Must mention the city/state name. Use null if no explicit confirmation found.`,
+      },
       name: {
         type: ["string", "null"],
         description:
-          "The official name of the playground or facility containing it (e.g., 'Sunset Park Playground'). Use null if no playground found.",
+          "The official name of the playground or facility containing it (e.g., 'Sunset Park Playground'). Use null if no playground found or confidence is low.",
       },
       description: {
         type: ["string", "null"],
         description:
-          "A concise 2-3 sentence description covering equipment types, age suitability, safety features, and atmosphere. Use null if no playground found.",
+          "A concise 2-3 sentence description covering equipment types, age suitability, safety features, and atmosphere. Use null if no playground found or confidence is low.",
       },
       features: {
         type: ["array", "null"],
         items: { type: "string" },
         description:
-          "List of playground equipment using OpenStreetMap tags: slide, swing, climbing_frame, sandpit, seesaw, etc. See wiki.openstreetmap.org/wiki/Key:playground. Use null if no playground found.",
+          "List of playground equipment using OpenStreetMap tags: slide, swing, climbing_frame, sandpit, seesaw, etc. See wiki.openstreetmap.org/wiki/Key:playground. Use null if no playground found or confidence is low.",
       },
       parking: {
         type: ["string", "null"],
         description:
-          "Brief parking description (e.g., 'Street parking available' or 'Dedicated lot at entrance'). Use null if no playground found or no info available.",
+          "Brief parking description (e.g., 'Street parking available' or 'Dedicated lot at entrance'). Use null if no playground found, no info available, or confidence is low.",
       },
     },
-    required: ["name", "description", "features", "parking"],
+    required: ["location_confidence", "location_verification", "name", "description", "features", "parking"],
     additionalProperties: false,
   };
 
-  // Optimized prompt following Perplexity best practices
-  const prompt = `Find detailed information about a children's playground${name ? ` named "${name}"` : ""} in this geographic area.
+  // Enhanced prompt with explicit geographic constraints
+  const prompt = `Find detailed information about a children's playground${name ? ` named "${name}"` : ""}${locationContext}.
+
+CRITICAL GEOGRAPHIC CONSTRAINTS:
+- Search ONLY within ${location.city || 'the specified location'}, ${location.region || location.country}
+- Location must be at or within 0.1 miles (160 meters) of coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}
+- DO NOT return results from other cities, states, or countries
+- If "${name || 'a playground'}" exists in multiple locations, return ONLY the one in ${cityState}
+- Verify ALL sources explicitly mention ${location.city || 'the target city'}, ${location.region || location.country}
+- If sources mention any different city/state, return null for all fields
+- If uncertain about location match (less than 90% confident), return null rather than potentially wrong results
 
 SEARCH FOCUS:
-Search within 0.1-mile radius for playgrounds in parks, recreation centers, schools, or public facilities${name ? ` matching the name "${name}"` : ""}.
+Search within 0.1-mile radius from ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} for playgrounds in parks, recreation centers, schools, or public facilities${name ? ` matching the name "${name}"` : ""} located in ${cityState}.
 
-REQUIREMENTS:
+DATA REQUIREMENTS:
 1. Find the playground's official name or facility name
 2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
 3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
 4. Describe parking availability
 
-IMAGE REQUIREMENTS:
-- ONLY return photos showing actual playground equipment, children playing, or playground structures
-- DO NOT return: stock photos, logos, signs, parking areas, maps, or unrelated images
-- Prefer photos showing slides, swings, play structures, or children using playground equipment
-- Images should clearly show outdoor recreational equipment for children
+IMAGE REQUIREMENTS (STRICT - CRITICAL FOR QUALITY):
+ONLY return images that show:
+- Actual playground equipment in use (slides, swings, climbing structures, playsets)
+- Children actively playing on playground equipment
+- Wide shots of playground areas with clearly visible play equipment
+- Close-ups of play structures, slides, or swings
+- Photos clearly taken at an outdoor children's playground
+
+DO NOT return images of:
+- Parking lots, parking signs, street signs, or traffic signs
+- Building exteriors without visible playground equipment
+- Maps, diagrams, floor plans, or location screenshots
+- User interface elements, app screenshots, or website graphics
+- Stock photos with watermarks or copyright text
+- Informational signs, rules signs, warning signs, or text placards
+- Just grass, trees, or open space without equipment visible
+- Group photos or events where equipment isn't the focus
+- Indoor facilities or gyms (unless specifically indoor playground equipment)
+
+VALIDATION: Before including an image, verify:
+1. It shows actual children's recreational equipment
+2. The equipment appears to be located at the correct geographic location (${cityState})
+3. The image source/URL doesn't contain keywords like: sign, parking, screenshot, logo, icon, map
 
 FORMATTING:
 - Do NOT include citation markers, footnotes, or reference numbers (like [1], [2], [3]) in any field
 - Provide clean, readable text without source indicators
 - Sources will be tracked separately
 
-If no playground is found with confidence, return all fields as null.`;
+CONFIDENCE ASSESSMENT:
+- Only return results if you are at least 90% confident this playground exists in ${cityState}
+- If sources are ambiguous or mention other locations, return all fields as null
+- Better to return null than provide incorrect information for a different location`;
 
   const requestBody: Record<string, unknown> = {
     model: process.env.PERPLEXITY_MODEL ?? "sonar-pro",
@@ -262,8 +416,35 @@ If no playground is found with confidence, return all fields as null.`;
 
   const base =
     parsed && typeof parsed === "object"
-      ? (parsed as Partial<PerplexityInsights>)
+      ? (parsed as Partial<PerplexityInsights> & {
+          location_confidence?: string;
+          location_verification?: string;
+        })
       : {};
+
+  // Phase 1 Enhancement: Reject low-confidence results to prevent wrong-location data
+  if (base.location_confidence === "low") {
+    console.warn(
+      `[Perplexity] Low confidence result for ${cityState} - rejecting to avoid wrong-location data`,
+      {
+        name: base.name,
+        verification: base.location_verification,
+        location: cityState
+      }
+    );
+    return null;
+  }
+
+  // Log medium confidence results for monitoring
+  if (base.location_confidence === "medium") {
+    console.info(
+      `[Perplexity] Medium confidence result for ${cityState} - proceeding with caution`,
+      {
+        name: base.name,
+        verification: base.location_verification
+      }
+    );
+  }
 
   // Get images from response
   const rawImages = base.images ?? (Array.isArray(data?.images) ? data.images : null);
