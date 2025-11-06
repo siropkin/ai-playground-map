@@ -92,7 +92,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
 
   const { ref, inView } = useInView({
     threshold: 0.1,
-    rootMargin: "200px",
+    rootMargin: "75px", // Reduced from 200px to minimize wasted API calls
     triggerOnce: true, // Only trigger once per item
   });
 

@@ -179,3 +179,58 @@ export async function fetchMultipleOSMPlaceDetails({
     throw error;
   }
 }
+
+// Function to batch reverse geocode multiple coordinates
+export async function batchReverseGeocode({
+  coordinates,
+  signal,
+}: {
+  coordinates: Array<{ lat: number; lon: number }>;
+  signal?: AbortSignal;
+}): Promise<Array<{ lat: number; lon: number; data: Record<string, unknown> } | null>> {
+  if (signal?.aborted) {
+    return [];
+  }
+
+  if (!Array.isArray(coordinates) || coordinates.length === 0) {
+    return [];
+  }
+
+  // Use Promise.all with rate limiting via nominatimLimiter
+  // Import nominatimLimiter at top of file if needed
+  const results = await Promise.all(
+    coordinates.map(async ({ lat, lon }) => {
+      try {
+        const response = await fetchWithRetry(
+          () =>
+            fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+              {
+                signal,
+                headers: {
+                  "User-Agent": "GoodPlaygroundMap/1.0 (ivan.seredkin@gmail.com)",
+                  Referer: "https://www.goodplaygroundmap.com/",
+                },
+              }
+            ),
+          3, // 3 retries
+          1000
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Nominatim API error: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+        return { lat, lon, data };
+      } catch (error) {
+        console.error(`Reverse geocoding failed for ${lat},${lon}:`, error);
+        return null;
+      }
+    })
+  );
+
+  return results;
+}

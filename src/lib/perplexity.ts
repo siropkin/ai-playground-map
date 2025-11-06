@@ -3,6 +3,8 @@ import {
   savePerplexityInsightsToCache,
 } from "@/lib/cache";
 import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
+import { perplexityLimiter } from "@/lib/rate-limiter";
+import { deduplicatedFetch } from "@/lib/request-dedup";
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -277,7 +279,7 @@ If no playground is found with confidence, return all fields as null.`;
   };
 }
 
-// Function to fetch AI insights from Perplexity with caching
+// Function to fetch AI insights from Perplexity with caching and request deduplication
 export async function fetchPerplexityInsightsWithCache({
   location,
   name,
@@ -297,26 +299,36 @@ export async function fetchPerplexityInsightsWithCache({
   // Using OSM ID ensures each playground has unique cached data
   const cacheKey = osmId || `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`;
 
-  const cachedInsights = await fetchPerplexityInsightsFromCache({
-    cacheKey,
-  });
-  if (cachedInsights) {
-    return cachedInsights;
-  }
+  // Wrap entire cache check + API call in request deduplication
+  // This prevents multiple concurrent users from triggering the same API call
+  return deduplicatedFetch(
+    `perplexity:${cacheKey}`,
+    async () => {
+      // Check cache first
+      const cachedInsights = await fetchPerplexityInsightsFromCache({
+        cacheKey,
+      });
+      if (cachedInsights) {
+        return cachedInsights;
+      }
 
-  const freshInsights = await fetchPerplexityInsights({
-    location,
-    name,
-    signal,
-  });
+      // Cache miss - fetch from API
+      const freshInsights = await fetchPerplexityInsights({
+        location,
+        name,
+        signal,
+      });
 
-  if (signal?.aborted || !freshInsights) {
-    return null;
-  }
+      if (signal?.aborted || !freshInsights) {
+        return null;
+      }
 
-  await savePerplexityInsightsToCache({ cacheKey, insights: freshInsights });
+      // Save to cache for future requests
+      await savePerplexityInsightsToCache({ cacheKey, insights: freshInsights });
 
-  return freshInsights;
+      return freshInsights;
+    }
+  );
 }
 
 // Batch function to fetch insights for multiple playgrounds efficiently
@@ -345,28 +357,30 @@ export async function fetchPerplexityInsightsBatch({
   const batchSize = Math.min(requests.length, 5);
   const batch = requests.slice(0, batchSize);
 
-  // Process all requests in parallel with caching
+  // Process all requests in parallel with caching and rate limiting
   const results = await Promise.all(
-    batch.map(async (req) => {
-      try {
-        const insights = await fetchPerplexityInsightsWithCache({
-          location: req.location,
-          name: req.name,
-          osmId: req.osmId,
-          signal,
-        });
-        return {
-          playgroundId: req.playgroundId,
-          insights,
-        };
-      } catch (error) {
-        console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
-        return {
-          playgroundId: req.playgroundId,
-          insights: null,
-        };
-      }
-    }),
+    batch.map((req) =>
+      perplexityLimiter(async () => {
+        try {
+          const insights = await fetchPerplexityInsightsWithCache({
+            location: req.location,
+            name: req.name,
+            osmId: req.osmId,
+            signal,
+          });
+          return {
+            playgroundId: req.playgroundId,
+            insights,
+          };
+        } catch (error) {
+          console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
+          return {
+            playgroundId: req.playgroundId,
+            insights: null,
+          };
+        }
+      })
+    ),
   );
 
   return results;

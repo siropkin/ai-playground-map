@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PerplexityLocation } from "@/types/perplexity";
 import { fetchPerplexityInsightsBatch } from "@/lib/perplexity";
+import { batchReverseGeocode } from "@/lib/osm";
 
 export async function POST(
   request: NextRequest,
@@ -38,42 +39,37 @@ export async function POST(
       );
     }
 
-    // First, get location data for all playgrounds in parallel
-    const locationPromises = playgrounds.map(async (pg) => {
-      try {
-        const response = await fetch(
-          `${request.nextUrl.origin}/api/osm-location`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-app-origin": "internal",
-            },
-            body: JSON.stringify({ lat: pg.lat, lon: pg.lon }),
-            signal,
-          },
-        );
+    // Get location data for all playgrounds using batch reverse geocoding
+    const coordinates = playgrounds.map((pg) => ({ lat: pg.lat, lon: pg.lon }));
+    const geocodeResults = await batchReverseGeocode({ coordinates, signal });
 
-        if (!response.ok) {
+    // Map geocode results back to playgrounds
+    const locations = playgrounds
+      .map((pg, index) => {
+        const result = geocodeResults[index];
+        if (!result || !result.data) {
           return null;
         }
 
-        const data = await response.json();
+        // Type cast the nominatim response
+        const address = (result.data as { address?: Record<string, string> }).address;
+
+        const location: PerplexityLocation = {
+          latitude: pg.lat,
+          longitude: pg.lon,
+          city: address?.city || address?.town || address?.village,
+          region: address?.state,
+          country: address?.country_code?.toUpperCase() || "US",
+        };
+
         return {
           playgroundId: pg.id,
-          location: data.location as PerplexityLocation,
+          location,
           name: pg.name,
           osmId: pg.osmId,
         };
-      } catch (error) {
-        console.error(`Error fetching location for playground ${pg.id}:`, error);
-        return null;
-      }
-    });
-
-    const locations = (await Promise.all(locationPromises)).filter(
-      (loc): loc is NonNullable<typeof loc> => loc !== null,
-    );
+      })
+      .filter((loc): loc is NonNullable<typeof loc> => loc !== null);
 
     if (locations.length === 0) {
       return NextResponse.json(

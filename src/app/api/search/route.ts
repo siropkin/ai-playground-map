@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { MapBounds } from "@/types/map";
 import { runOSMQuery } from "@/lib/osm";
 import { Playground } from "@/types/playground";
+import {
+  generateOSMCacheKey,
+  fetchOSMFromCache,
+  saveOSMToCache
+} from "@/lib/osm-cache";
 
 // Zoom-based limits for result count (industry best practice)
 const ZOOM_THRESHOLD_LOW = 12; // Threshold for zoomed-out view
@@ -47,13 +52,25 @@ export async function POST(
         ? LIMIT_ZOOMED_IN
         : LIMIT_MEDIUM;
 
-    const osmResults = await runOSMQuery({
-      bounds,
-      leisure: "playground",
-      timeout: parseInt(process.env.OSM_QUERY_TIMEOUT || "25"),
-      limit: zoomBasedLimit,
-      signal,
-    });
+    // Try to fetch from cache first (Phase 1 optimization)
+    const cacheKey = generateOSMCacheKey(bounds, bounds.zoom);
+    let osmResults = await fetchOSMFromCache(cacheKey);
+
+    // Cache miss - fetch from OSM API
+    if (!osmResults) {
+      osmResults = await runOSMQuery({
+        bounds,
+        leisure: "playground",
+        timeout: parseInt(process.env.OSM_QUERY_TIMEOUT || "25"),
+        limit: zoomBasedLimit,
+        signal,
+      });
+
+      // Save to cache for future requests (async, non-blocking)
+      saveOSMToCache(cacheKey, bounds, bounds.zoom, osmResults).catch(err =>
+        console.error("Failed to save OSM cache:", err)
+      );
+    }
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
