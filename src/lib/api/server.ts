@@ -11,9 +11,19 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
     // Parse OSM identifier to ensure it has the correct format (N/W/R prefix)
     const osmId = parseOsmIdentifier(id);
 
-    const [osmPlaceDetails] = await fetchMultipleOSMPlaceDetails({
-      osmIds: [osmId],
-    });
+    let osmPlaceDetails;
+
+    // If ID doesn't have a prefix (just a number), try all three types
+    if (/^\d+$/.test(id)) {
+      // Try Node, Way, and Relation in order (most playgrounds are nodes or ways)
+      const osmIds = [`N${id}`, `W${id}`, `R${id}`];
+      const results = await fetchMultipleOSMPlaceDetails({ osmIds });
+      osmPlaceDetails = results.find(result => result && result.type === "playground");
+    } else {
+      // Has prefix, use it directly
+      const [result] = await fetchMultipleOSMPlaceDetails({ osmIds: [osmId] });
+      osmPlaceDetails = result;
+    }
 
     if (!osmPlaceDetails) {
       return null;
