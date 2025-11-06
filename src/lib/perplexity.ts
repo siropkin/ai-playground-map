@@ -5,6 +5,8 @@ import {
 import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
 import { perplexityLimiter } from "@/lib/rate-limiter";
 import { deduplicatedFetch } from "@/lib/request-dedup";
+import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
+import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -90,13 +92,14 @@ function filterImages(images: Array<{
       return false;
     }
 
-    // 4. Enhanced: More comprehensive bad keywords
+    // 4. Enhanced: More comprehensive bad keywords (including text-heavy image indicators)
     const badKeywords = [
       'logo',
       'icon',
       'banner',
       'parking',        // Parking lots/signs
       'sign',           // All types of signs
+      'signage',
       'street-sign',
       'traffic',
       'advertisement',
@@ -112,6 +115,7 @@ function filterImages(images: Array<{
       'screenshot',
       'screencap',
       'screen-shot',
+      'screen_shot',
       'map-',           // Maps/diagrams
       '-map.',
       'spatial',
@@ -132,13 +136,59 @@ function filterImages(images: Array<{
       'aerial',         // Aerial/satellite views
       'satellite',
       'overhead',
-      'rules',          // Rules/warning signs
+      'drone',
+      'rules',          // Rules/warning signs (text-heavy)
       'warning',
       'caution',
       'notice',
-      'regulation'
+      'regulation',
+      'policy',
+      'hours',          // Hours of operation signs
+      'schedule',
+      'calendar',
+      'pricing',
+      'price',
+      'fee',
+      'admission',
+      'text-',          // Text overlays
+      '-text.',
+      'overlay',
+      'caption',
+      'subtitle',
+      'quote',
+      'meme',           // Memes often have text
+      'permit',
+      'license',
+      'certificate',
+      'document',
+      'form',
+      'application',
+      'flyer',
+      'poster',
+      'brochure',
+      'pamphlet'
     ];
     if (badKeywords.some(keyword => fullUrl.includes(keyword))) {
+      return false;
+    }
+
+    // 4b. Phase 3: Detect text-heavy images by URL patterns suggesting documentation/instructions
+    const textHeavyPatterns = [
+      '/manual/',
+      '/guide/',
+      '/instruction/',
+      '/tutorial/',
+      '/how-to/',
+      '/faq/',
+      '/help/',
+      '/support/',
+      '/doc/',
+      '/pdf/',
+      '/terms/',
+      '/privacy/',
+      '/policy/'
+    ];
+    if (textHeavyPatterns.some(pattern => fullUrl.includes(pattern))) {
       return false;
     }
 
@@ -213,10 +263,12 @@ export async function fetchPerplexityInsights({
   location,
   name,
   signal,
+  priority = 'medium',
 }: {
   location: PerplexityLocation;
   name?: string;
   signal?: AbortSignal;
+  priority?: EnrichmentPriority;
 }): Promise<PerplexityInsights | null> {
   if (signal?.aborted) {
     return null;
@@ -336,10 +388,17 @@ CONFIDENCE ASSESSMENT:
 - If sources are ambiguous or mention other locations, return all fields as null
 - Better to return null than provide incorrect information for a different location`;
 
+  // Phase 4: Apply enrichment strategy based on priority
+  const enrichmentStrategy = getEnrichmentStrategy({
+    isDetailView: priority === 'high',
+    hasName: !!name,
+    priority,
+  });
+
   const requestBody: Record<string, unknown> = {
     model: process.env.PERPLEXITY_MODEL ?? "sonar-pro",
     temperature: Number(process.env.PERPLEXITY_TEMPERATURE ?? 0.2),
-    return_images: true,
+    return_images: enrichmentStrategy.fetchImages, // Phase 4: Skip images for low priority
     response_format: {
       type: "json_schema",
       json_schema: {
@@ -348,7 +407,7 @@ CONFIDENCE ASSESSMENT:
     },
     web_search_options: {
       search_context_size:
-        process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE ?? "medium",
+        process.env.PERPLEXITY_SEARCH_CONTEXT_SIZE ?? enrichmentStrategy.searchContextSize,
       user_location: {
         latitude: location.latitude,
         longitude: location.longitude,
@@ -449,7 +508,8 @@ CONFIDENCE ASSESSMENT:
   // Get images from response
   const rawImages = base.images ?? (Array.isArray(data?.images) ? data.images : null);
 
-  return {
+  // Construct the result object with internal metadata for validation
+  const result = {
     name: removeCitationMarkers(base.name ?? null),
     description: removeCitationMarkers(base.description ?? null),
     features: base.features ?? null,
@@ -457,7 +517,12 @@ CONFIDENCE ASSESSMENT:
     sources:
       base.sources ?? (Array.isArray(data?.citations) ? (data.citations as string[]) : null),
     images: filterImages(rawImages), // Apply image quality filtering
+    // Internal metadata (not part of PerplexityInsights type)
+    _locationConfidence: base.location_confidence || 'low',
+    _locationVerification: base.location_verification || null,
   };
+
+  return result;
 }
 
 // Function to fetch AI insights from Perplexity with caching and request deduplication
@@ -466,11 +531,13 @@ export async function fetchPerplexityInsightsWithCache({
   name,
   osmId,
   signal,
+  priority = 'medium',
 }: {
   location: PerplexityLocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
+  priority?: EnrichmentPriority;
 }): Promise<PerplexityInsights | null> {
   if (signal?.aborted) {
     return null;
@@ -498,16 +565,76 @@ export async function fetchPerplexityInsightsWithCache({
         location,
         name,
         signal,
-      });
+        priority, // Phase 4: Pass priority for enrichment strategy
+      }) as PerplexityInsights & {
+        _locationConfidence?: string;
+        _locationVerification?: string | null;
+      } | null;
 
       if (signal?.aborted || !freshInsights) {
         return null;
       }
 
-      // Save to cache for future requests
-      await savePerplexityInsightsToCache({ cacheKey, insights: freshInsights });
+      // Phase 2 Enhancement: Comprehensive result validation and scoring
+      const cityState = location.city && location.region
+        ? `${location.city}, ${location.region}`
+        : location.city || location.region || location.country;
 
-      return freshInsights;
+      const resultScore = scoreResult(
+        freshInsights,
+        freshInsights._locationConfidence || 'low',
+        freshInsights._locationVerification || null,
+        location.city,
+        location.region
+      );
+
+      // Log scoring details for monitoring and debugging
+      console.info(
+        `[Perplexity] Result score for ${cityState}: ${getScoreSummary(resultScore)}`,
+        {
+          shouldAccept: resultScore.shouldAccept,
+          shouldCache: resultScore.shouldCache,
+          confidence: resultScore.confidence,
+        }
+      );
+
+      // Reject results that don't meet quality standards
+      if (!resultScore.shouldAccept) {
+        console.warn(
+          `[Perplexity] Rejecting low-quality result for ${cityState}`,
+          {
+            score: resultScore.overallScore,
+            flags: resultScore.flags,
+            name: freshInsights.name
+          }
+        );
+        return null;
+      }
+
+      // Remove internal metadata before returning/caching
+      const cleanResult: PerplexityInsights = {
+        name: freshInsights.name,
+        description: freshInsights.description,
+        features: freshInsights.features,
+        parking: freshInsights.parking,
+        sources: freshInsights.sources,
+        images: freshInsights.images,
+      };
+
+      // Save to cache only if quality is high enough
+      if (resultScore.shouldCache) {
+        await savePerplexityInsightsToCache({ cacheKey, insights: cleanResult });
+      } else {
+        console.warn(
+          `[Perplexity] NOT caching result for ${cityState} due to quality concerns`,
+          {
+            score: resultScore.overallScore,
+            flags: resultScore.flags
+          }
+        );
+      }
+
+      return cleanResult;
     }
   );
 }
