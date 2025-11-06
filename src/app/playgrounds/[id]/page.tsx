@@ -118,7 +118,7 @@ export default async function PlaygroundDetail({
                   playgroundId={resolvedParams.id}
                   lat={playground.lat}
                   lon={playground.lon}
-                  osmId={playground.osmId}
+                  osmId={playground.osmId.toString()}
                 />
               </div>
             )}

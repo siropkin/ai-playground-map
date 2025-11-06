@@ -58,10 +58,13 @@ function EnrichmentBatchProvider({ children }: { children: React.ReactNode }) {
 
   // Cleanup timer on unmount
   useEffect(() => {
+    const queue = batchQueue.current;
+    const timer = batchTimer.current;
+
     return () => {
-      if (batchTimer.current) {
-        clearTimeout(batchTimer.current);
-        batchQueue.current.clear(); // Clear any remaining items instead of processing
+      if (timer) {
+        clearTimeout(timer);
+        queue.clear(); // Clear any remaining items instead of processing
       }
     };
   }, []);
