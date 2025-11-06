@@ -298,7 +298,7 @@ export async function fetchPerplexityInsightsWithCache({
   const cacheKey = osmId || `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`;
 
   const cachedInsights = await fetchPerplexityInsightsFromCache({
-    address: cacheKey,
+    cacheKey,
   });
   if (cachedInsights) {
     return cachedInsights;
@@ -314,7 +314,7 @@ export async function fetchPerplexityInsightsWithCache({
     return null;
   }
 
-  await savePerplexityInsightsToCache({ address: cacheKey, insights: freshInsights });
+  await savePerplexityInsightsToCache({ cacheKey, insights: freshInsights });
 
   return freshInsights;
 }
