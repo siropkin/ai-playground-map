@@ -8,6 +8,9 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.openstreetmap.ru/api/interpreter",
 ];
 
+// Overpass API configuration
+const OVERPASS_MAX_SIZE_BYTES = 536870912; // 512MB - prevents memory issues on Overpass servers
+
 // Helper function for retry logic with exponential backoff
 async function fetchWithRetry(
   fetchFn: () => Promise<Response>,
@@ -66,7 +69,7 @@ export async function runOSMQuery({
   // 2. Maxsize parameter to prevent memory issues
   // 3. Efficient query structure with minimal data output
   const query = `
-    [out:json][timeout:${Math.min(timeout, 25)}][maxsize:536870912];
+    [out:json][timeout:${Math.min(timeout, 25)}][maxsize:${OVERPASS_MAX_SIZE_BYTES}];
     (
       node["leisure"="${leisure}"](${box});
       way["leisure"="${leisure}"](${box});

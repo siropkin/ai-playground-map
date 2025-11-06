@@ -61,10 +61,10 @@ function EnrichmentBatchProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (batchTimer.current) {
         clearTimeout(batchTimer.current);
-        processBatch(); // Process any remaining items
+        batchQueue.current.clear(); // Clear any remaining items instead of processing
       }
     };
-  }, [processBatch]);
+  }, []);
 
   return (
     <EnrichmentBatchContext.Provider value={{ requestEnrichment }}>

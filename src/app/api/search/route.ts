@@ -4,6 +4,13 @@ import { MapBounds } from "@/types/map";
 import { runOSMQuery } from "@/lib/osm";
 import { Playground } from "@/types/playground";
 
+// Zoom-based limits for result count (industry best practice)
+const ZOOM_THRESHOLD_LOW = 12; // Threshold for zoomed-out view
+const ZOOM_THRESHOLD_HIGH = 14; // Threshold for zoomed-in view
+const LIMIT_ZOOMED_OUT = 20; // Fewer items for performance when zoomed out
+const LIMIT_MEDIUM = 50; // Balanced view for medium zoom
+const LIMIT_ZOOMED_IN = 100; // Show more detail when zoomed in
+
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<{ error: string }> | NextResponse<Playground[]>> {
@@ -31,14 +38,14 @@ export async function POST(
     }
 
     // Calculate limit based on zoom level (industry best practice)
-    // Zoomed out (zoom < 12): Show fewer items for performance
-    // Medium zoom (12-14): Balanced view
-    // Zoomed in (> 14): Show more detail
-    const zoomBasedLimit = bounds.zoom < 12
-      ? 20
-      : bounds.zoom > 14
-        ? 100
-        : 50;
+    // Zoomed out: Show fewer items for performance
+    // Medium zoom: Balanced view
+    // Zoomed in: Show more detail
+    const zoomBasedLimit = bounds.zoom < ZOOM_THRESHOLD_LOW
+      ? LIMIT_ZOOMED_OUT
+      : bounds.zoom > ZOOM_THRESHOLD_HIGH
+        ? LIMIT_ZOOMED_IN
+        : LIMIT_MEDIUM;
 
     const osmResults = await runOSMQuery({
       bounds,
