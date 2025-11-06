@@ -59,10 +59,14 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       country: osmPlaceDetails.address.country_code?.toUpperCase() || "US",
     };
 
+    // Construct the correct osmId from the found playground (not the initial parsed one)
+    const typePrefix = osmPlaceDetails.osm_type.charAt(0).toUpperCase();
+    const correctOsmId = `${typePrefix}${osmPlaceDetails.osm_id}`;
+
     const insight = await fetchPerplexityInsightsWithCache({
       location,
       name: playground.name || undefined,
-      osmId: osmId,
+      osmId: correctOsmId,
     });
 
     if (insight) {

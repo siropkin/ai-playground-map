@@ -13,7 +13,7 @@ import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
 import SourceCard from "@/components/source-card";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
-import { formatEnumString } from "@/lib/utils";
+import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import ClearCacheButton from "./clear-cache-button";
 import ReportIssueForm from "./report-issue-form";
 
@@ -118,7 +118,7 @@ export default async function PlaygroundDetail({
                   playgroundId={resolvedParams.id}
                   lat={playground.lat}
                   lon={playground.lon}
-                  osmId={playground.osmId.toString()}
+                  osmId={formatOsmIdentifier(playground.osmId, playground.osmType)}
                 />
               </div>
             )}
