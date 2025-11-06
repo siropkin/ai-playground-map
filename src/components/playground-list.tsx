@@ -84,6 +84,17 @@ function useEnrichmentBatch() {
   return context;
 }
 
+// Helper to check if enrichment returned no useful data
+const hasNoEnrichmentData = (playground: Playground): boolean => {
+  return (
+    playground.enriched === true &&
+    !playground.description &&
+    !playground.features?.length &&
+    !playground.images?.length &&
+    (!playground.name || playground.name === UNNAMED_PLAYGROUND)
+  );
+};
+
 // Individual playground item with intersection observer
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
   const { requestFlyTo } = usePlaygrounds();
@@ -105,6 +116,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
 
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
+  const noEnrichmentData = hasNoEnrichmentData(playground);
 
   return (
     <div ref={ref}>
@@ -132,6 +144,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
         </CardHeader>
 
         <CardContent className="flex w-2/3 flex-col gap-2 p-4">
+          {/* Title Section */}
           {!playground.enriched ? (
             <Skeleton className="h-4 w-full" />
           ) : name ? (
@@ -144,7 +157,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
               >
                 <h3 className="font-semibold">{name}</h3>
               </Link>
-              {playground.enriched && (
+              {playground.enriched && !noEnrichmentData && (
                 <span
                   className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
                   title="AI-generated content may contain errors"
@@ -155,14 +168,25 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             </div>
           ) : null}
 
+          {/* Description Section */}
           {!playground.enriched ? (
             <Skeleton className="h-16 w-full" />
+          ) : noEnrichmentData ? (
+            <div className="text-muted-foreground flex flex-col gap-1 text-xs italic">
+              <p>No AI information available for this playground.</p>
+              {playground.osmTags && Object.keys(playground.osmTags).length > 0 && (
+                <p className="text-[10px]">
+                  OpenStreetMap data: {Object.entries(playground.osmTags).slice(0, 3).map(([k, v]) => `${k}=${v}`).join(', ')}
+                </p>
+              )}
+            </div>
           ) : playground.description ? (
             <div className="text-muted-foreground text-xs">
               {playground.description}
             </div>
           ) : null}
 
+          {/* Features Section */}
           {!playground.enriched ? (
             <Skeleton className="h-4 w-full" />
           ) : playground.features?.length ? (
@@ -181,6 +205,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             </div>
           ) : null}
 
+          {/* Address Section */}
           {!playground.enriched ? (
             <Skeleton className="h-4 w-full" />
           ) : playground.address ? (
