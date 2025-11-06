@@ -196,17 +196,18 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         setPlaygrounds((prev) =>
           prev.map((p) => {
             const result = results.find((r) => r.playgroundId === p.osmId);
-            if (!result || !result.insights) return p;
+            if (!result) return p; // No result for this playground
 
+            // Mark as enriched even if insights is null (enrichment completed but found nothing)
             return {
               ...p,
-              name: result.insights.name || p.name,
-              description: result.insights.description || p.description,
-              features: result.insights.features || p.features,
-              parking: result.insights.parking || p.parking,
-              sources: result.insights.sources || p.sources,
-              images: result.insights.images || p.images,
-              enriched: true,
+              name: result.insights?.name || p.name,
+              description: result.insights?.description || p.description,
+              features: result.insights?.features || p.features,
+              parking: result.insights?.parking || p.parking,
+              sources: result.insights?.sources || p.sources,
+              images: result.insights?.images || p.images,
+              enriched: true, // Always mark as enriched, even if insights is null
             };
           }),
         );
