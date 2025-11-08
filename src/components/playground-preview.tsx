@@ -48,7 +48,7 @@ export function PlaygroundPreview({
             unoptimized={true}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-amber-50/80 text-sm text-amber-700/70 dark:bg-amber-950/40 dark:text-amber-200/60">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-emerald-100 text-sm text-emerald-700/80 dark:from-sky-950/50 dark:to-emerald-950/50 dark:text-emerald-200/70">
             No image
           </div>
         )}
