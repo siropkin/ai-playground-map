@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npm run build:*)",
+      "Bash(pnpm build:*)",
+      "WebFetch(domain:docs.perplexity.ai)",
+      "WebFetch(domain:wiki.openstreetmap.org)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dev)",
+      "Bash(lsof:*)",
+      "Bash(npm run lint:*)",
+      "Bash(curl:*)",
+      "Bash(kill:*)",
+      "Bash(pnpm start)",
+      "Bash(xargs kill -9)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(wc:*)",
+      "Bash(git log:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh api:*)",
+      "Bash(pnpm update:*)",
+      "Bash(python3 -m json.tool:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
