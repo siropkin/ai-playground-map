@@ -61,11 +61,13 @@ export async function fetchOSMFromCache(
       .single();
 
     if (error || !data) {
+      console.log(`[OSM Cache] Miss: ${cacheKey}`);
       return null;
     }
 
     // Check if cache has expired
     if (isCacheExpired(data.created_at)) {
+      console.log(`[OSM Cache] Expired: ${cacheKey}`);
       // Delete expired entry
       await supabase
         .from(OSM_CACHE_TABLE_NAME)
@@ -84,9 +86,12 @@ export async function fetchOSMFromCache(
       })
       .eq("cache_key", cacheKey);
 
+    const playgroundCount = (data.playgrounds as OSMQueryResults[]).length;
+    console.log(`[OSM Cache] Hit: ${cacheKey} (${playgroundCount} playgrounds, accessed ${data.query_count + 1} times)`);
+
     return data.playgrounds as OSMQueryResults[];
   } catch (error) {
-    console.error("Error fetching OSM from cache:", error);
+    console.error("[OSM Cache] Error fetching from cache:", error);
     return null;
   }
 }
@@ -109,7 +114,7 @@ export async function saveOSMToCache(
     const supabase = await createClient();
 
     // Upsert cache entry
-    await supabase
+    const { error } = await supabase
       .from(OSM_CACHE_TABLE_NAME)
       .upsert({
         cache_key: cacheKey,
@@ -121,13 +126,26 @@ export async function saveOSMToCache(
         last_accessed_at: new Date().toISOString()
       }, { onConflict: "cache_key" });
 
+    if (error) {
+      console.error("[OSM Cache] Failed to save cache entry:", {
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        cacheKey
+      });
+      return;
+    }
+
+    console.log(`[OSM Cache] Saved entry: ${cacheKey} (${playgrounds.length} playgrounds)`);
+
     // Trigger LRU eviction if cache is too large (async, non-blocking)
     evictLRUIfNeeded().catch(err =>
-      console.error("Error evicting LRU cache:", err)
+      console.error("[OSM Cache] Error evicting LRU cache:", err)
     );
   } catch (error) {
     // Don't throw - cache failures shouldn't break the app
-    console.error("Error saving OSM to cache:", error);
+    console.error("[OSM Cache] Error saving OSM to cache:", error);
   }
 }
 
