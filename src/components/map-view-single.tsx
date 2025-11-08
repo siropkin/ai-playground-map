@@ -210,7 +210,8 @@ export default function MapViewSingle({
           closeButton: false,
           closeOnClick: false,
           offset: 12,
-          maxWidth: "none", // Allow auto width
+          maxWidth: "none",
+          className: "playground-hover-tooltip", // Custom class for styling
         });
 
         map.current!.on("mouseenter", "nearby-points", (e) => {
@@ -221,17 +222,7 @@ export default function MapViewSingle({
           const coordinates: [number, number] = [geometry.coordinates[0], geometry.coordinates[1]];
           const name = feature.properties?.name || UNNAMED_PLAYGROUND;
 
-          popup
-            .setLngLat(coordinates)
-            .setHTML(`<div style="text-align: center; white-space: nowrap; padding: 4px 8px; font-size: 12px; font-weight: 500; min-width: auto !important; width: fit-content !important;">${name}</div>`)
-            .addTo(map.current!);
-
-          // Override the min-width from global CSS
-          const popupContent = popup.getElement()?.querySelector('.mapboxgl-popup-content') as HTMLElement;
-          if (popupContent) {
-            popupContent.style.minWidth = 'auto';
-            popupContent.style.width = 'fit-content';
-          }
+          popup.setLngLat(coordinates).setHTML(name).addTo(map.current!);
         });
 
         map.current!.on("mouseleave", "nearby-points", () => {

@@ -154,3 +154,14 @@
 .dark .mapboxgl-popup-close-button:hover {
   background-color: oklch(0.35 0 0) !important;
 }
+
+/* Hover tooltip for nearby playgrounds - compact style */
+.playground-hover-tooltip .mapboxgl-popup-content {
+  min-width: auto !important;
+  width: fit-content !important;
+  padding: 4px 8px !important;
+  text-align: center !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
