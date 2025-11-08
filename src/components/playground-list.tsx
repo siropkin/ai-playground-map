@@ -203,7 +203,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
               <div className="flex flex-wrap gap-1">
                 {playground.features.slice(0, 5).map((value, i) => (
                   <Badge
-                    className="max-w-full truncate"
+                    className="max-w-[calc(100%-0.25rem)] truncate sm:max-w-full"
                     variant="outline"
                     key={i}
                   >

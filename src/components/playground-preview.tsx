@@ -104,7 +104,7 @@ export function PlaygroundPreview({
           ) : playground.features?.length ? (
             <div className="flex flex-wrap gap-1">
               {playground.features.slice(0, 5).map((value, i) => (
-                <Badge className="max-w-full truncate" variant="outline" key={i}>
+                <Badge className="max-w-[calc(100%-0.25rem)] truncate sm:max-w-full" variant="outline" key={i}>
                   <span className="truncate">{formatEnumString(value)}</span>
                 </Badge>
               ))}

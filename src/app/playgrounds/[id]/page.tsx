@@ -168,8 +168,8 @@ export default async function PlaygroundDetail({
         {playground.features && playground.features.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {playground.features.map((feature: string) => (
-              <Badge key={feature} variant="outline" className="text-xs">
-                {formatEnumString(feature)}
+              <Badge key={feature} variant="outline" className="max-w-[calc(100%-0.5rem)] truncate text-xs sm:max-w-full">
+                <span className="truncate">{formatEnumString(feature)}</span>
               </Badge>
             ))}
           </div>
