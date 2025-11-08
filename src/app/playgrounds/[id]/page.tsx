@@ -13,6 +13,7 @@ import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
 import SourceCard from "@/components/source-card";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
+import StructuredData from "@/components/structured-data";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import ClearCacheButton from "./clear-cache-button";
 import ReportIssueForm from "./report-issue-form";
@@ -54,6 +55,12 @@ export async function generateMetadata({
       locale: "en_US",
       url: `${SITE_URL}/playgrounds/${resolvedParams.id}`,
     },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`/api/og/playgrounds/${resolvedParams.id}`],
+    },
   };
 }
 
@@ -81,7 +88,9 @@ export default async function PlaygroundDetail({
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
 
   return (
-    <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden px-6 py-10">
+    <>
+      <StructuredData playground={playground} />
+      <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden px-6 py-10">
       {/* Main details */}
       <div className="flex flex-col gap-6 md:flex-row">
         {/* Left side - Image Carousel */}
@@ -235,6 +244,7 @@ export default async function PlaygroundDetail({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

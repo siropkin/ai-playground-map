@@ -33,6 +33,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE_URL,
   },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: ["/api/og/home"],
+  },
 };
 
 export default function RootLayout({
