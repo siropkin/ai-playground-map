@@ -119,9 +119,9 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
         onClick={() => requestFlyTo([playground.lon, playground.lat])}
       >
         <CardHeader className="relative flex w-1/3 gap-0 p-0">
-          <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
+          <div className="h-full w-full flex-1 items-center justify-center">
             {!playground.enriched ? (
-              <div className="relative h-full w-full">
+              <div className="relative h-full w-full bg-zinc-200 dark:bg-zinc-700">
                 <Skeleton className="h-full w-full rounded-r-none" />
                 <div className="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm">
                   Thinking...
@@ -137,7 +137,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
                 unoptimized={true}
               />
             ) : (
-              <div className="text-muted-foreground flex h-full w-full items-center justify-center text-sm">
+              <div className="flex h-full w-full items-center justify-center bg-amber-50/80 text-sm text-amber-700/70 dark:bg-amber-950/40 dark:text-amber-200/60">
                 No image
               </div>
             )}

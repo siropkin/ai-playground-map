@@ -30,9 +30,9 @@ export function PlaygroundPreview({
   return (
     <div className="flex h-full flex-col gap-3">
       {/* Image Section */}
-      <div className="relative h-48 w-full flex-shrink-0 overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-700">
+      <div className="relative h-48 w-full flex-shrink-0 overflow-hidden rounded-lg">
         {!playground.enriched ? (
-          <div className="relative h-full w-full">
+          <div className="relative h-full w-full bg-zinc-200 dark:bg-zinc-700">
             <Skeleton className="h-full w-full" />
             <div className="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm">
               Thinking...
@@ -48,7 +48,7 @@ export function PlaygroundPreview({
             unoptimized={true}
           />
         ) : (
-          <div className="text-muted-foreground flex h-full w-full items-center justify-center text-sm">
+          <div className="flex h-full w-full items-center justify-center bg-amber-50/80 text-sm text-amber-700/70 dark:bg-amber-950/40 dark:text-amber-200/60">
             No image
           </div>
         )}
