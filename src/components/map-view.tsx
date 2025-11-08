@@ -533,6 +533,9 @@ export const MapView = React.memo(function MapView() {
 
     // Create popup if playground selected
     if (selectedPlayground) {
+      // Get the latest playground data from the array (in case it was enriched)
+      const currentPlayground = playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground;
+
       const popupNode = document.createElement("div");
 
       // Create popup at playground location
@@ -543,7 +546,7 @@ export const MapView = React.memo(function MapView() {
         className: "playground-popup",
         offset: 12, // Offset upward from marker center
       })
-        .setLngLat([selectedPlayground.lon, selectedPlayground.lat])
+        .setLngLat([currentPlayground.lon, currentPlayground.lat])
         .setDOMContent(popupNode)
         .addTo(map.current);
 
@@ -557,7 +560,7 @@ export const MapView = React.memo(function MapView() {
       root.render(
         <div className="p-2">
           <PlaygroundPreview
-            playground={selectedPlayground}
+            playground={currentPlayground}
             onViewDetails={clearSelectedPlayground}
             onFlyTo={(coords) => {
               requestFlyTo(coords);
@@ -581,7 +584,7 @@ export const MapView = React.memo(function MapView() {
         popupRootRef.current.unmount();
       }
     };
-  }, [selectedPlayground, isMapLoaded, clearSelectedPlayground, requestFlyTo]);
+  }, [selectedPlayground, playgrounds, isMapLoaded, clearSelectedPlayground, requestFlyTo]);
 
   useEffect(() => {
     return () => {

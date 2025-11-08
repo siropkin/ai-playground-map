@@ -16,15 +16,22 @@ export function PlaygroundPreviewSheet() {
     selectedPlayground,
     clearSelectedPlayground,
     requestFlyTo,
+    playgrounds,
   } = usePlaygrounds();
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const isOpen = selectedPlayground !== null;
-  const name = selectedPlayground?.name || UNNAMED_PLAYGROUND;
 
-  const previewContent = selectedPlayground ? (
+  // Get the latest playground data from the array (in case it was enriched)
+  const currentPlayground = selectedPlayground
+    ? playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground
+    : null;
+
+  const name = currentPlayground?.name || UNNAMED_PLAYGROUND;
+
+  const previewContent = currentPlayground ? (
     <PlaygroundPreview
-      playground={selectedPlayground}
+      playground={currentPlayground}
       onViewDetails={clearSelectedPlayground}
       onFlyTo={(coords) => {
         requestFlyTo(coords);
