@@ -1,6 +1,7 @@
 import {
   fetchPerplexityInsightsFromCache,
   savePerplexityInsightsToCache,
+  batchFetchPerplexityInsightsFromCache,
 } from "@/lib/cache";
 import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
 import { perplexityLimiter } from "@/lib/rate-limiter";
@@ -713,6 +714,8 @@ export async function fetchPerplexityInsightsWithCache({
 }
 
 // Batch function to fetch insights for multiple playgrounds efficiently
+// Optimized with cache-first approach: fetches all cache entries at once,
+// then only queries AI for cache misses
 export async function fetchPerplexityInsightsBatch({
   requests,
   signal,
@@ -738,31 +741,79 @@ export async function fetchPerplexityInsightsBatch({
   const batchSize = Math.min(requests.length, 5);
   const batch = requests.slice(0, batchSize);
 
-  // Process all requests in parallel with caching and rate limiting
-  const results = await Promise.all(
-    batch.map((req) =>
-      perplexityLimiter(async () => {
-        try {
-          const insights = await fetchPerplexityInsightsWithCache({
-            location: req.location,
-            name: req.name,
-            osmId: req.osmId,
-            signal,
-          });
-          return {
-            playgroundId: req.playgroundId,
-            insights,
-          };
-        } catch (error) {
-          console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
-          return {
-            playgroundId: req.playgroundId,
-            insights: null,
-          };
-        }
-      })
-    ),
-  );
+  // PHASE 1: Generate cache keys and batch fetch from cache
+  const cacheKeyMap = new Map<number, string>(); // playgroundId -> cacheKey
+  const cacheKeys: string[] = [];
+
+  for (const req of batch) {
+    // Create cache key from OSM ID (preferred) or location coordinates (fallback)
+    const cacheKey = req.osmId ||
+      (req.location ? `${req.location.latitude.toFixed(6)},${req.location.longitude.toFixed(6)}` : null);
+
+    if (cacheKey) {
+      cacheKeyMap.set(req.playgroundId, cacheKey);
+      cacheKeys.push(cacheKey);
+    }
+  }
+
+  // Batch fetch all cache entries at once (single query)
+  const cachedResults = await batchFetchPerplexityInsightsFromCache({
+    cacheKeys,
+  });
+
+  console.log(`[Batch Enrichment] Cache hit: ${cachedResults.size}/${batch.length}`);
+
+  // PHASE 2: Build results array and identify cache misses
+  const results: Array<{ playgroundId: number; insights: PerplexityInsights | null }> = [];
+  const misses: typeof batch = [];
+
+  for (const req of batch) {
+    const cacheKey = cacheKeyMap.get(req.playgroundId);
+    const cachedInsight = cacheKey ? cachedResults.get(cacheKey) : null;
+
+    if (cachedInsight) {
+      // Cache hit - use cached data
+      results.push({
+        playgroundId: req.playgroundId,
+        insights: cachedInsight,
+      });
+    } else {
+      // Cache miss - need to fetch from API
+      misses.push(req);
+    }
+  }
+
+  // PHASE 3: Fetch cache misses from Perplexity API
+  if (misses.length > 0) {
+    console.log(`[Batch Enrichment] Fetching ${misses.length} from AI`);
+
+    const apiResults = await Promise.all(
+      misses.map((req) =>
+        perplexityLimiter(async () => {
+          try {
+            const insights = await fetchPerplexityInsightsWithCache({
+              location: req.location,
+              name: req.name,
+              osmId: req.osmId,
+              signal,
+            });
+            return {
+              playgroundId: req.playgroundId,
+              insights,
+            };
+          } catch (error) {
+            console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
+            return {
+              playgroundId: req.playgroundId,
+              insights: null,
+            };
+          }
+        })
+      ),
+    );
+
+    results.push(...apiResults);
+  }
 
   return results;
 }
