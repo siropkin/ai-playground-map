@@ -223,8 +223,15 @@ export default function MapViewSingle({
 
           popup
             .setLngLat(coordinates)
-            .setHTML(`<div style="text-align: center; white-space: nowrap; padding: 4px 8px; font-size: 12px; font-weight: 500;">${name}</div>`)
+            .setHTML(`<div style="text-align: center; white-space: nowrap; padding: 4px 8px; font-size: 12px; font-weight: 500; min-width: auto !important; width: fit-content !important;">${name}</div>`)
             .addTo(map.current!);
+
+          // Override the min-width from global CSS
+          const popupContent = popup.getElement()?.querySelector('.mapboxgl-popup-content') as HTMLElement;
+          if (popupContent) {
+            popupContent.style.minWidth = 'auto';
+            popupContent.style.width = 'fit-content';
+          }
         });
 
         map.current!.on("mouseleave", "nearby-points", () => {
