@@ -2,6 +2,7 @@
   "name": "playground-map",
   "version": "3.2.1",
   "private": true,
+  "packageManager": "pnpm@9.15.1",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

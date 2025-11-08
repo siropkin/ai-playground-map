@@ -61,10 +61,11 @@ This streamlined process transforms simple map markers into comprehensive resour
 Follow these steps to set up the project locally:
 
 1. Clone the repository.
-2. Install dependencies:
+2. Install dependencies using **pnpm** (required):
    ```bash
-    pnpm install
+   pnpm install
    ```
+   > ⚠️ **Important**: This project uses pnpm as its package manager. Using npm or yarn may cause issues. The package manager is enforced via `packageManager` field in package.json.
 3. Set up environment variables:
 
    - Create a `.env.local` file in the root directory and add the following variables:
