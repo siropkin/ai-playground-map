@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_ICON } from "@/lib/constants";
 
 // Image metadata
 export const size = {
@@ -23,7 +24,7 @@ export default function Icon() {
           justifyContent: "center",
         }}
       >
-        🛝
+        {SITE_ICON}
       </div>
     ),
     {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { SITE_DESCRIPTION } from "@/lib/constants";
+import { SITE_DESCRIPTION, SITE_NAME, SHORT_SITE_NAME, SITE_ICON } from "@/lib/constants";
 // import { ThemeToggle } from "@/components/theme-toggle";
 
 export function NavBar() {
@@ -12,11 +12,11 @@ export function NavBar() {
       <div>
         <Link href="/">
           <div className="hidden items-center gap-1 md:flex">
-            <h1 className="text-4xl font-bold uppercase">🛝</h1>
+            <h1 className="text-4xl font-bold uppercase">{SITE_ICON}</h1>
 
             <div>
               <h1 className="text-xl font-bold whitespace-nowrap uppercase">
-                Good Playground Map
+                {SITE_NAME}
               </h1>
               <h4 className="text-muted-foreground text-xs whitespace-nowrap">
                 {SITE_DESCRIPTION}
@@ -25,7 +25,7 @@ export function NavBar() {
           </div>
 
           <h1 className="text-3xl font-bold whitespace-nowrap uppercase md:hidden">
-            🛝 GPM
+            {SITE_ICON} {SHORT_SITE_NAME}
           </h1>
         </Link>
       </div>

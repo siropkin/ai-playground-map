@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/constants";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_ICON } from "@/lib/constants";
 import { NextResponse } from "next/server";
 
 export const runtime = "edge";
@@ -63,7 +63,7 @@ export async function GET() {
                   marginBottom: 20,
                 }}
               >
-                🛝
+                {SITE_ICON}
               </div>
               <div
                 style={{
