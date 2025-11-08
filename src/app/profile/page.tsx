@@ -1,26 +1,43 @@
-import { redirect } from "next/navigation";
-import { Metadata } from "next";
+"use client";
 
-import { createClient } from "@/lib/supabase/server";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { LogOut } from "lucide-react";
 
-export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
+export default function PrivatePage() {
+  const { user, signOut, isLoading } = useAuth();
+  const router = useRouter();
 
-export default async function PrivatePage() {
-  const supabase = await createClient();
+  useEffect(() => {
+    if (!user && !isLoading) {
+      router.push("/");
+    }
+  }, [user, isLoading, router]);
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) {
-    redirect("/");
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-      <p>Hello {data.user.email}</p>
+      <div className="flex flex-col items-center gap-4">
+        <h1 className="text-2xl font-bold">Profile</h1>
+        <p className="text-muted-foreground">Hello {user.email}</p>
+        <Button onClick={signOut} variant="outline" className="mt-4">
+          <LogOut className="mr-2 h-4 w-4" />
+          Log out
+        </Button>
+      </div>
     </div>
   );
 }
