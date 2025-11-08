@@ -127,7 +127,14 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
         <CardHeader className="flex w-1/3 gap-0 p-0">
           <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
             {!playground.enriched ? (
-              <Skeleton className="h-full w-full rounded-r-none" />
+              <div className="relative h-full w-full">
+                <Skeleton className="h-full w-full rounded-r-none" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-muted-foreground text-xs">
+                    Thinking...
+                  </span>
+                </div>
+              </div>
             ) : displayImage ? (
               <Image
                 className="h-full w-full object-cover"

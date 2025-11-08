@@ -13,6 +13,7 @@ import { MapBounds } from "@/types/map";
 import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatOsmIdentifier } from "@/lib/utils";
 
@@ -530,8 +531,11 @@ export const MapView = React.memo(function MapView() {
         </Button>
       </div>
       {loading && (
-        <div className="text-muted-foreground bg-background/80 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2 py-1 text-xs whitespace-nowrap backdrop-blur-sm">
-          Loading playgrounds...
+        <div className="text-muted-foreground bg-background/90 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2.5 py-1.5 text-xs backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <Spinner className="size-3" />
+            <span>Loading playgrounds...</span>
+          </div>
         </div>
       )}
     </div>
