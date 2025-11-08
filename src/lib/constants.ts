@@ -11,4 +11,4 @@ export const SITE_DESCRIPTION =
 
 export const APP_ADMIN_ROLE = "app_admin";
 
-export const UNNAMED_PLAYGROUND = "Unnamed Playground";
+export const UNNAMED_PLAYGROUND = "Local Playground";
