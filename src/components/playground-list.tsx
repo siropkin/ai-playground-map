@@ -184,7 +184,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
                       e.stopPropagation();
                       setIsDescriptionExpanded(!isDescriptionExpanded);
                     }}
-                    className="text-foreground mt-1 text-xs underline hover:no-underline"
+                    className="text-foreground mt-1 cursor-pointer text-xs underline hover:no-underline"
                   >
                     {isDescriptionExpanded ? "Show less" : "Show more"}
                   </button>
@@ -197,7 +197,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
               <Skeleton className="h-4 w-full" />
             ) : playground.features?.length ? (
               <div className="flex flex-wrap gap-1">
-                {playground.features.map((value, i) => (
+                {playground.features.slice(0, 5).map((value, i) => (
                   <Badge
                     className="max-w-full truncate"
                     variant="outline"
@@ -208,6 +208,9 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
                     </span>
                   </Badge>
                 ))}
+                {playground.features.length > 5 && (
+                  <Badge variant="outline">+{playground.features.length - 5}</Badge>
+                )}
               </div>
             ) : null}
 
@@ -227,7 +230,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             <Link
               href="/playgrounds/[id]"
               as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
-              className="mt-auto"
+              className="mt-auto pt-4"
               onClick={(e) => e.stopPropagation()}
             >
               <Button variant="outline" size="sm" className="w-full">
