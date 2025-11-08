@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
@@ -227,6 +227,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             >
               <Button variant="outline" size="sm" className="w-full">
                 View Details
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           )}

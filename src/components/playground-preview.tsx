@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Playground } from "@/types/playground";
-import { MapPin } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 
 interface PlaygroundPreviewProps {
   playground: Playground;
@@ -131,6 +131,7 @@ export function PlaygroundPreview({
           <Link href={detailsUrl} onClick={onViewDetails} className="mt-4">
             <Button variant="outline" className="w-full" size="lg">
               View Details
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
         )}
