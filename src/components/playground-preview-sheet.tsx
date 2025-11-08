@@ -1,12 +1,6 @@
 "use client";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -40,18 +34,9 @@ export function PlaygroundPreviewSheet() {
     />
   ) : null;
 
-  // Desktop: Use Dialog (centered modal)
+  // Desktop: Map handles popup (don't render anything here)
   if (isDesktop) {
-    return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && clearSelectedPlayground()}>
-        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{name}</DialogTitle>
-          </DialogHeader>
-          {previewContent}
-        </DialogContent>
-      </Dialog>
-    );
+    return null;
   }
 
   // Mobile: Use Sheet (bottom drawer)

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { useTheme } from "next-themes";
 import { MapPin } from "lucide-react";
 import mapboxgl from "mapbox-gl";
@@ -13,6 +14,7 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { PlaygroundPreview } from "@/components/playground-preview";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 // Safely set Mapbox access token with proper error handling
@@ -101,12 +103,14 @@ const createGeoJson = (
 export const MapView = React.memo(function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading, selectPlayground, enrichPlayground } =
+  const { playgrounds, flyToCoords, clearFlyToRequest, loading, selectPlayground, enrichPlayground, selectedPlayground, clearSelectedPlayground, requestFlyTo } =
     usePlaygrounds();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const popupRootRef = useRef<Root | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleNearMeClick = useCallback(() => {
@@ -508,6 +512,75 @@ export const MapView = React.memo(function MapView() {
       clearFlyToRequest();
     }
   }, [flyToCoords, clearFlyToRequest]);
+
+  // Desktop popup management
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) return;
+
+    // Check if desktop (768px+)
+    const isDesktop = window.innerWidth >= 768;
+    if (!isDesktop) return; // Mobile uses Sheet instead
+
+    // Clean up existing popup
+    if (popupRef.current) {
+      popupRef.current.remove();
+      if (popupRootRef.current) {
+        popupRootRef.current.unmount();
+        popupRootRef.current = null;
+      }
+      popupRef.current = null;
+    }
+
+    // Create popup if playground selected
+    if (selectedPlayground) {
+      const popupNode = document.createElement("div");
+
+      // Create popup at playground location
+      const popup = new mapboxgl.Popup({
+        closeButton: true,
+        closeOnClick: false,
+        maxWidth: "400px",
+        className: "playground-popup",
+      })
+        .setLngLat([selectedPlayground.lon, selectedPlayground.lat])
+        .setDOMContent(popupNode)
+        .addTo(map.current);
+
+      // Handle popup close
+      popup.on("close", () => {
+        clearSelectedPlayground();
+      });
+
+      // Render React component into popup
+      const root = createRoot(popupNode);
+      root.render(
+        <div className="p-2">
+          <PlaygroundPreview
+            playground={selectedPlayground}
+            onViewDetails={clearSelectedPlayground}
+            onFlyTo={(coords) => {
+              requestFlyTo(coords);
+              clearSelectedPlayground();
+            }}
+            hideTitle
+          />
+        </div>
+      );
+
+      popupRef.current = popup;
+      popupRootRef.current = root;
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (popupRef.current) {
+        popupRef.current.remove();
+      }
+      if (popupRootRef.current) {
+        popupRootRef.current.unmount();
+      }
+    };
+  }, [selectedPlayground, isMapLoaded, clearSelectedPlayground, requestFlyTo]);
 
   useEffect(() => {
     return () => {
