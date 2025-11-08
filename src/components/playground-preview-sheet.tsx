@@ -51,7 +51,7 @@ export function PlaygroundPreviewSheet() {
     <Sheet open={isOpen} onOpenChange={(open) => !open && clearSelectedPlayground()}>
       <SheetContent
         side="bottom"
-        className="flex max-h-[85vh] flex-col rounded-t-2xl p-4"
+        className="flex max-h-[65vh] flex-col rounded-t-2xl p-4"
       >
         <SheetHeader className="mb-4">
           <SheetTitle>{name}</SheetTitle>
