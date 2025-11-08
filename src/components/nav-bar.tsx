@@ -56,7 +56,7 @@ export function NavBar() {
           href="https://buymeacoffee.com/ivan.seredkin"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Buy me a coffee"
+          aria-label="Support"
           title="This project relies on paid APIs, so your support helps keep it running"
         >
           <Button variant="outline">
@@ -78,7 +78,7 @@ export function NavBar() {
                 ></path>
               </svg>
             </div>
-            <span className="hidden md:block">Buy me a coffee</span>
+            <span className="hidden md:block">Support</span>
           </Button>
         </Link>
         {/*<ThemeToggle />*/}
