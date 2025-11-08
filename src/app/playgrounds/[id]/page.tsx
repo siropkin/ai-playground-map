@@ -10,6 +10,7 @@ import {
 } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
+import { fetchNearbyPlaygrounds } from "@/lib/api/nearby-playgrounds";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
 import StructuredData from "@/components/structured-data";
@@ -86,6 +87,15 @@ export default async function PlaygroundDetail({
   const isAdmin = data?.user?.role === APP_ADMIN_ROLE;
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
+
+  // Fetch nearby playgrounds (within 2km radius)
+  const nearbyPlaygrounds = await fetchNearbyPlaygrounds({
+    lat: playground.lat,
+    lon: playground.lon,
+    radiusKm: 2,
+    limit: 10,
+    excludeOsmId: playground.osmId,
+  });
 
   return (
     <>
@@ -184,7 +194,10 @@ export default async function PlaygroundDetail({
             {/* Map */}
             <div className="overflow-hidden rounded-b-lg">
               <div className="h-80 w-full">
-                <MapViewSingle playground={playground} />
+                <MapViewSingle
+                  playground={playground}
+                  nearbyPlaygrounds={nearbyPlaygrounds}
+                />
               </div>
             </div>
           </div>
@@ -194,7 +207,10 @@ export default async function PlaygroundDetail({
         {!playground.address && (
           <div className="overflow-hidden rounded-lg">
             <div className="h-80 w-full">
-              <MapViewSingle playground={playground} />
+              <MapViewSingle
+                playground={playground}
+                nearbyPlaygrounds={nearbyPlaygrounds}
+              />
             </div>
           </div>
         )}
