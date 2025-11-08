@@ -10,13 +10,17 @@ import {
 } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
-import SourceCard from "@/components/source-card";
 import MapViewSingle from "@/components/map-view-single";
 import ImageCarousel from "@/components/image-carousel";
 import StructuredData from "@/components/structured-data";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MapPin, Navigation, ParkingCircle } from "lucide-react";
 import ClearCacheButton from "./clear-cache-button";
 import ReportIssueForm from "./report-issue-form";
+import ExpandableDescription from "./expandable-description";
+import CollapsibleSources from "./collapsible-sources";
 
 export async function generateMetadata({
   params,
@@ -82,30 +86,25 @@ export default async function PlaygroundDetail({
   const { data } = await supabase.auth.getUser();
   const isAdmin = data?.user?.role === APP_ADMIN_ROLE;
 
-  // const googleMapsUrl = playground.address
-  //   ? `https://www.google.com/maps/search/${encodeURIComponent(playground.address)}`
-  //   : `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${playground.lat},${playground.lon}`;
 
   return (
     <>
       <StructuredData playground={playground} />
-      <div className="mx-auto flex h-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden px-6 py-10">
-      {/* Main details */}
-      <div className="flex flex-col gap-6 md:flex-row">
-        {/* Left side - Image Carousel */}
-        <div className="w-full md:w-1/2">
+      <div className="mx-auto flex h-full max-w-4xl flex-1 flex-col gap-6 overflow-hidden px-4 py-8 sm:px-6 sm:py-10">
+        {/* Image Carousel - Full Width on Top */}
+        <div className="w-full">
           {playground.images && playground.images.length > 0 ? (
             <ImageCarousel
               images={playground.images.map((image) => ({
                 filename: image.image_url,
                 alt: `${playground.name || UNNAMED_PLAYGROUND} photo`,
               }))}
-              className="aspect-square md:aspect-[4/3]"
+              className="aspect-video w-full"
               unoptimized={true}
             />
           ) : (
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-zinc-100 md:aspect-[4/3] dark:bg-zinc-800">
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
               <div className="flex h-full w-full items-center justify-center">
                 <span className="text-muted-foreground">No image</span>
               </div>
@@ -113,137 +112,115 @@ export default async function PlaygroundDetail({
           )}
         </div>
 
-        {/* Right side - Details */}
-        <div className="flex w-full flex-col gap-4 md:w-1/2">
-          {/* Name */}
-          <div className="mb-2 flex items-start justify-between gap-2">
-            <h1 className="text-3xl font-bold">
+        {/* Header with Title and Actions */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold sm:text-4xl">
               {playground.name || UNNAMED_PLAYGROUND}
             </h1>
+          </div>
 
+          <div className="flex flex-wrap gap-2">
+            {/* Get Directions Button */}
+            <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+              <Button size="default" className="gap-2">
+                <Navigation className="h-4 w-4" />
+                Get Directions
+              </Button>
+            </Link>
+
+            {/* Admin Actions */}
             {isAdmin && (
-              <div className="flex gap-2">
-                <ClearCacheButton
-                  playgroundId={resolvedParams.id}
-                  lat={playground.lat}
-                  lon={playground.lon}
-                  osmId={formatOsmIdentifier(playground.osmId, playground.osmType)}
-                />
-              </div>
+              <ClearCacheButton
+                playgroundId={resolvedParams.id}
+                lat={playground.lat}
+                lon={playground.lon}
+                osmId={formatOsmIdentifier(playground.osmId, playground.osmType)}
+              />
             )}
           </div>
-
-          {/* Description */}
-          <div>
-            <h3 className="text-muted-foreground text-sm font-medium">
-              Description
-            </h3>
-            <p className="text-sm leading-relaxed">
-              {playground.description || "No description available"}
-            </p>
-          </div>
-
-          {/* Parking */}
-          <div>
-            <h3 className="text-muted-foreground mb-1 text-sm font-medium">
-              Parking
-            </h3>
-            <p className="text-sm leading-relaxed">
-              {playground.parking || "No parking information available"}
-            </p>
-          </div>
-
-          {/* Features */}
-          <div>
-            <h3 className="text-muted-foreground mb-1 text-sm font-medium">
-              Features
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {!playground.features || playground.features.length === 0 ? (
-                <p className="text-sm leading-relaxed">No features listed</p>
-              ) : (
-                playground.features.map((feature: string) => (
-                  <span
-                    key={feature}
-                    className="bg-primary/10 text-primary border-primary/20 rounded-full border px-3 py-1 text-xs font-medium"
-                  >
-                    {formatEnumString(feature)}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Address */}
-          <div>
-            <h3 className="text-muted-foreground text-sm font-medium">
-              Address
-            </h3>
-            <p className="text-sm leading-relaxed">
-              {playground.address || "Address not available"}
-            </p>
-          </div>
         </div>
-      </div>
 
-      {/* Location section */}
-      <div>
-        <h2 className="flex items-center justify-between text-xl font-semibold">
-          Location{" "}
-          {playground.address && (
-            <span className="text-muted-foreground text-sm">
-              {" "}
-              <Link
-                href={googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Get directions to this playground"
-                className="underline"
-              >
-                Show on Google Maps
-              </Link>
-            </span>
-          )}
-        </h2>
-        <div className="h-64 w-full overflow-hidden rounded-lg">
-          <MapViewSingle playground={playground} />
-        </div>
-      </div>
+        {/* Description */}
+        {playground.description ? (
+          <ExpandableDescription description={playground.description} />
+        ) : (
+          <p className="text-muted-foreground text-sm italic">
+            No description available
+          </p>
+        )}
 
-      {/* Sources Section */}
-      {playground.sources && playground.sources.length > 0 && (
-        <div>
-          <h2 className="mb-3 text-xl font-semibold">Sources</h2>
+        {/* Features */}
+        {playground.features && playground.features.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {playground.sources.map((source, index) => (
-              <SourceCard key={index} url={source} />
+            {playground.features.map((feature: string) => (
+              <Badge key={feature} variant="outline" className="text-xs">
+                {formatEnumString(feature)}
+              </Badge>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* AI Disclaimer and Report Issue */}
-      {playground.enriched && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400">
-          <div className="flex flex-col space-y-2 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
-            <p className="mb-2 sm:mb-0">
-              <strong>Disclaimer:</strong> Some information on this page was
-              generated by Perplexity AI. While we strive for accuracy,
-              AI-generated content may contain errors or inaccuracies.
-            </p>
-            <div className="flex-shrink-0">
+        {/* Parking Info */}
+        {playground.parking && (
+          <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+            <ParkingCircle className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Parking</p>
+              <p className="text-muted-foreground text-sm">{playground.parking}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Address */}
+        {playground.address && (
+          <div className="flex items-start gap-2">
+            <MapPin className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Address</p>
+              <p className="text-muted-foreground text-sm">{playground.address}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Map */}
+        <div className="overflow-hidden rounded-lg">
+          <div className="h-80 w-full">
+            <MapViewSingle playground={playground} />
+          </div>
+        </div>
+
+        {/* Sources Section */}
+        {playground.sources && playground.sources.length > 0 && (
+          <div className="border-t pt-6">
+            <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+              Sources
+            </h2>
+            <CollapsibleSources sources={playground.sources} />
+          </div>
+        )}
+
+        {/* AI Disclaimer - More Subtle */}
+        {playground.enriched && (
+          <div className="border-t pt-6">
+            <div className="bg-muted/30 flex flex-col gap-3 rounded-lg p-4 text-xs text-muted-foreground sm:flex-row sm:items-start sm:justify-between">
+              <p className="flex-1">
+                Some information on this page was generated by AI and may contain
+                inaccuracies.
+              </p>
               <ReportIssueForm playgroundId={resolvedParams.id} />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Report Issue (when no AI disclaimer) */}
-      {!playground.enriched && (
-        <div className="flex justify-end">
-          <ReportIssueForm playgroundId={resolvedParams.id} />
-        </div>
-      )}
+        {/* Report Issue (when no AI disclaimer) */}
+        {!playground.enriched && (
+          <div className="border-t pt-6">
+            <div className="flex justify-end">
+              <ReportIssueForm playgroundId={resolvedParams.id} />
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
