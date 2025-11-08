@@ -36,9 +36,9 @@ export function PlaygroundPreview({
   const detailsUrl = `/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`;
 
   return (
-    <div className="flex min-h-[400px] flex-col gap-3">
+    <div className="flex h-full min-h-[500px] flex-col gap-3">
       {/* Image Section */}
-      <div className="relative h-48 w-full overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-700">
+      <div className="relative h-48 w-full flex-shrink-0 overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-700">
         {!playground.enriched ? (
           <div className="relative h-full w-full">
             <Skeleton className="h-full w-full" />
@@ -61,9 +61,9 @@ export function PlaygroundPreview({
       </div>
 
       {/* Content Section */}
-      <div className="flex flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
         {/* Content Area - grows to push button to bottom */}
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-1 flex-col gap-2 pb-2">
           {/* Title */}
           {!hideTitle && (
             <>

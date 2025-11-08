@@ -44,12 +44,14 @@ export function PlaygroundPreviewSheet() {
     <Sheet open={isOpen} onOpenChange={(open) => !open && clearSelectedPlayground()}>
       <SheetContent
         side="bottom"
-        className="max-h-[85vh] overflow-y-auto rounded-t-2xl p-4"
+        className="flex max-h-[85vh] flex-col rounded-t-2xl p-4"
       >
         <SheetHeader className="mb-4">
           <SheetTitle>{name}</SheetTitle>
         </SheetHeader>
-        {previewContent}
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          {previewContent}
+        </div>
       </SheetContent>
     </Sheet>
   );
