@@ -85,14 +85,19 @@ COMMENT ON TABLE playground_issues IS 'User-reported issues with playground data
 -- Enable RLS for issues table (contains user submissions)
 ALTER TABLE playground_issues ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (to allow re-running this script)
+DROP POLICY IF EXISTS "Anyone can submit issues" ON playground_issues;
+DROP POLICY IF EXISTS "Only admins can view issues" ON playground_issues;
+DROP POLICY IF EXISTS "Only admins can delete issues" ON playground_issues;
+
 -- Allow anyone to submit issues (insert)
-CREATE POLICY IF NOT EXISTS "Anyone can submit issues"
+CREATE POLICY "Anyone can submit issues"
 ON playground_issues FOR INSERT
 TO public
 WITH CHECK (true);
 
 -- Only admins can view all issues (for moderation)
-CREATE POLICY IF NOT EXISTS "Only admins can view issues"
+CREATE POLICY "Only admins can view issues"
 ON playground_issues FOR SELECT
 TO authenticated
 USING (
@@ -100,7 +105,7 @@ USING (
 );
 
 -- Only admins can delete issues
-CREATE POLICY IF NOT EXISTS "Only admins can delete issues"
+CREATE POLICY "Only admins can delete issues"
 ON playground_issues FOR DELETE
 TO authenticated
 USING (
