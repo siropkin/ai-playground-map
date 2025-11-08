@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -15,7 +14,6 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
-import { formatOsmIdentifier } from "@/lib/utils";
 
 // Safely set Mapbox access token with proper error handling
 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -103,9 +101,8 @@ const createGeoJson = (
 export const MapView = React.memo(function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading } =
+  const { playgrounds, flyToCoords, clearFlyToRequest, loading, selectPlayground } =
     usePlaygrounds();
-  const router = useRouter();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -356,10 +353,13 @@ export const MapView = React.memo(function MapView() {
     ) => {
       e.originalEvent.stopPropagation();
       const feature = e.features?.[0];
-      if (feature?.properties?.id) {
-        router.push(
-          `/playgrounds/${formatOsmIdentifier(feature.properties.id, feature.properties.type)}`,
+      if (feature?.properties && feature.properties.id) {
+        const playground = playgrounds.find(
+          (p) => p.osmId === feature.properties!.id
         );
+        if (playground) {
+          selectPlayground(playground);
+        }
       }
     };
 
@@ -370,8 +370,13 @@ export const MapView = React.memo(function MapView() {
     ) => {
       e.originalEvent.stopPropagation();
       const feature = e.features?.[0];
-      if (feature?.properties?.id) {
-        router.push(`/playgrounds/${feature.properties.id}`);
+      if (feature?.properties && feature.properties.id) {
+        const playground = playgrounds.find(
+          (p) => p.osmId === feature.properties!.id
+        );
+        if (playground) {
+          selectPlayground(playground);
+        }
       }
     };
 
@@ -475,7 +480,7 @@ export const MapView = React.memo(function MapView() {
         map.current.getCanvas().style.cursor = "";
       }
     };
-  }, [isMapLoaded, router]);
+  }, [isMapLoaded, playgrounds, selectPlayground]);
 
   useEffect(() => {
     if (map.current) {

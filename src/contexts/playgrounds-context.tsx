@@ -32,6 +32,9 @@ interface PlaygroundsContextType {
   clearFlyToRequest: () => void;
   enrichPlayground: (playgroundId: number) => Promise<void>;
   enrichPlaygroundsBatch: (playgroundIds: number[]) => Promise<void>;
+  selectedPlayground: Playground | null;
+  selectPlayground: (playground: Playground) => void;
+  clearSelectedPlayground: () => void;
 }
 
 const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
@@ -45,6 +48,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
+  const [selectedPlayground, setSelectedPlayground] = useState<Playground | null>(null);
 
   // Abort controller for canceling enrichment requests
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -247,6 +251,14 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     setFlyToCoords(null);
   }, []);
 
+  const selectPlayground = useCallback((playground: Playground) => {
+    setSelectedPlayground(playground);
+  }, []);
+
+  const clearSelectedPlayground = useCallback(() => {
+    setSelectedPlayground(null);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
     () => ({
@@ -258,6 +270,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       clearFlyToRequest,
       enrichPlayground,
       enrichPlaygroundsBatch,
+      selectedPlayground,
+      selectPlayground,
+      clearSelectedPlayground,
     }),
     [
       playgrounds,
@@ -268,6 +283,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       clearFlyToRequest,
       enrichPlayground,
       enrichPlaygroundsBatch,
+      selectedPlayground,
+      selectPlayground,
+      clearSelectedPlayground,
     ],
   );
 

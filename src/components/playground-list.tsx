@@ -97,7 +97,7 @@ const hasNoEnrichmentData = (playground: Playground): boolean => {
 
 // Individual playground item with intersection observer
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
-  const { requestFlyTo } = usePlaygrounds();
+  const { requestFlyTo, selectPlayground } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
 
@@ -122,7 +122,8 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
     <div ref={ref}>
       <Card
         key={playground.id}
-        className="bg-background/95 flex min-h-[200px] flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+        className="bg-background/95 flex min-h-[200px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+        onClick={() => selectPlayground(playground)}
       >
         <CardHeader className="flex w-1/3 gap-0 p-0">
           <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
@@ -161,6 +162,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
                 as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
                 className="underline"
                 aria-label={`Go to ${name} page`}
+                onClick={(e) => e.stopPropagation()}
               >
                 <h3 className="font-semibold">{name}</h3>
               </Link>
@@ -218,7 +220,8 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
           ) : playground.address ? (
             <div
               className="text-muted-foreground mr-1 flex cursor-pointer items-center text-xs underline"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 requestFlyTo([playground.lon, playground.lat]);
               }}
               aria-label={`See ${name} on the map`}

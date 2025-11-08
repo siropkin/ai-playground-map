@@ -1,5 +1,6 @@
 import { PlaygroundList } from "@/components/playground-list";
 import { PlaygroundListSheet } from "@/components/playground-list-sheet";
+import { PlaygroundPreviewSheet } from "@/components/playground-preview-sheet";
 import { MapView } from "@/components/map-view";
 import StructuredDataHome from "@/components/structured-data-home";
 
@@ -19,6 +20,9 @@ export default function Home() {
       <div className="absolute bottom-10 left-1/2 z-1 -translate-x-1/2 md:hidden">
         <PlaygroundListSheet />
       </div>
+
+      {/* Playground preview sheet (mobile & desktop) */}
+      <PlaygroundPreviewSheet />
 
       {/* Map */}
       <div className="absolute inset-0">
