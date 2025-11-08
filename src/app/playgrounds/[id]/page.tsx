@@ -17,7 +17,12 @@ import StructuredData from "@/components/structured-data";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, ParkingCircle } from "lucide-react";
+import {
+  MapPin,
+  Navigation,
+  ParkingCircle,
+  Accessibility,
+} from "lucide-react";
 import ClearCacheButton from "./clear-cache-button";
 import ReportIssueForm from "./report-issue-form";
 import CollapsibleSources from "./collapsible-sources";
@@ -155,7 +160,7 @@ export default async function PlaygroundDetail({
           <p className="text-sm leading-relaxed">{playground.description}</p>
         ) : (
           <p className="text-muted-foreground text-sm italic">
-            No description available
+            This playground&apos;s keeping its secrets (even from AI) 🤷
           </p>
         )}
 
@@ -170,16 +175,122 @@ export default async function PlaygroundDetail({
           </div>
         )}
 
-        {/* Parking Info */}
-        {playground.parking && (
-          <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
-            <ParkingCircle className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">Parking</p>
-              <p className="text-muted-foreground text-sm">{playground.parking}</p>
-            </div>
+        {/* Accessibility Section */}
+        <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+          <Accessibility className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Accessibility Features</p>
+            {playground.accessibility ? (
+              <div className="text-muted-foreground mt-2 space-y-2 text-sm">
+                {/* Wheelchair Access */}
+                <div>
+                  <span className="font-medium">Wheelchair Access: </span>
+                  {playground.accessibility.wheelchair_accessible
+                    ? "Yes - includes ramps, accessible routes, or transfer stations"
+                    : "No wheelchair-accessible features identified"}
+                </div>
+
+                {/* Surface Type */}
+                {playground.accessibility.surface_type && (
+                  <div>
+                    <span className="font-medium">Surface: </span>
+                    {playground.accessibility.surface_type}
+                  </div>
+                )}
+
+                {/* Transfer Stations */}
+                {playground.accessibility.transfer_stations && (
+                  <div>
+                    <span className="font-medium">Transfer Stations: </span>
+                    Available for easier access to play equipment
+                  </div>
+                )}
+
+                {/* Ground-Level Activities */}
+                {playground.accessibility.ground_level_activities !== null &&
+                  playground.accessibility.ground_level_activities > 0 && (
+                    <div>
+                      <span className="font-medium">Ground-Level Activities: </span>
+                      {playground.accessibility.ground_level_activities} accessible{" "}
+                      {playground.accessibility.ground_level_activities === 1
+                        ? "activity"
+                        : "activities"}{" "}
+                      (panels, sandboxes, music stations)
+                    </div>
+                  )}
+
+                {/* Sensory-Friendly Features */}
+                {playground.accessibility.sensory_friendly &&
+                  (playground.accessibility.sensory_friendly.quiet_zones ||
+                    playground.accessibility.sensory_friendly.tactile_elements ||
+                    playground.accessibility.sensory_friendly.visual_aids) && (
+                    <div>
+                      <span className="font-medium">Sensory-Friendly: </span>
+                      {[
+                        playground.accessibility.sensory_friendly.quiet_zones && "Quiet zones",
+                        playground.accessibility.sensory_friendly.tactile_elements &&
+                          "Tactile elements",
+                        playground.accessibility.sensory_friendly.visual_aids && "Visual aids",
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </div>
+                  )}
+
+                {/* Shade Coverage */}
+                {playground.accessibility.shade_coverage && (
+                  <div>
+                    <span className="font-medium">Shade Coverage: </span>
+                    {playground.accessibility.shade_coverage}
+                  </div>
+                )}
+
+                {/* Accessible Parking */}
+                {playground.accessibility.accessible_parking &&
+                  playground.accessibility.accessible_parking.available && (
+                    <div>
+                      <span className="font-medium">Accessible Parking: </span>
+                      Available
+                      {playground.accessibility.accessible_parking.van_accessible &&
+                        " (including van-accessible)"}
+                      {playground.accessibility.accessible_parking.distance_to_playground &&
+                        ` - ${playground.accessibility.accessible_parking.distance_to_playground} from playground`}
+                    </div>
+                  )}
+
+                {/* Accessible Restrooms */}
+                {playground.accessibility.accessible_restrooms &&
+                  playground.accessibility.accessible_restrooms.available && (
+                    <div>
+                      <span className="font-medium">Accessible Restrooms: </span>
+                      Available
+                      {playground.accessibility.accessible_restrooms.adult_changing_table &&
+                        " (with adult changing table)"}
+                    </div>
+                  )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground mt-2 text-sm italic">
+                No accessibility information available
+              </p>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Parking Info */}
+        <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+          <ParkingCircle className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Parking</p>
+            {playground.parking ? (
+              <p className="text-muted-foreground text-sm">{playground.parking}</p>
+            ) : (
+              <p className="text-muted-foreground text-sm italic">
+                No parking information available
+              </p>
+            )}
+          </div>
+        </div>
 
         {/* Address & Map - Connected Section */}
         {playground.address && (

@@ -26,7 +26,7 @@ export async function fetchPerplexityInsightsFromCache({
     const { data, error } = await supabase
       .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "name, description, features, parking, sources, images, created_at, schema_version",
+        "name, description, features, parking, sources, images, accessibility, created_at, schema_version",
       )
       .eq("cache_key", cacheKey)
       .single();
@@ -68,6 +68,7 @@ export async function fetchPerplexityInsightsFromCache({
       parking: data.parking,
       sources: data.sources,
       images: data.images,
+      accessibility: data.accessibility,
     };
   } catch (error) {
     console.error("Error getting AI insights from cache:", error);

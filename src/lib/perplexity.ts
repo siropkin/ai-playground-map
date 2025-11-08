@@ -328,8 +328,60 @@ export async function fetchPerplexityInsights({
         description:
           "Brief parking description (e.g., 'Street parking available' or 'Dedicated lot at entrance'). Use null if no playground found, no info available, or confidence is low.",
       },
+      accessibility: {
+        type: ["object", "null"],
+        properties: {
+          wheelchair_accessible: {
+            type: "boolean",
+            description: "True if playground has ramps, accessible routes, or transfer stations to play equipment"
+          },
+          surface_type: {
+            type: ["string", "null"],
+            description: "Primary surface type: 'pour-in-place rubber', 'engineered wood fiber', 'rubber tiles', 'loose-fill' (not wheelchair accessible), 'concrete', 'grass', 'mulch'. Null if unknown."
+          },
+          transfer_stations: {
+            type: "boolean",
+            description: "Presence of transfer stations/platforms for moving from wheelchair to equipment"
+          },
+          ground_level_activities: {
+            type: ["number", "null"],
+            description: "Count of ground-level play activities accessible without transfers (e.g., panels, sandboxes, music stations). Null if unknown."
+          },
+          sensory_friendly: {
+            type: ["object", "null"],
+            properties: {
+              quiet_zones: { type: "boolean", description: "Quiet zones or calm areas for sensory breaks" },
+              tactile_elements: { type: "boolean", description: "Textured surfaces, sensory walls, or tactile play elements" },
+              visual_aids: { type: "boolean", description: "Visual aids, clear signage, or wayfinding elements" }
+            },
+            description: "Sensory-friendly features for children with autism or sensory processing needs. Null if unknown."
+          },
+          shade_coverage: {
+            type: ["string", "null"],
+            description: "Shade description: 'full' (80%+), 'partial' (30-80%), 'minimal' (10-30%), or 'none' (<10%). Null if unknown."
+          },
+          accessible_parking: {
+            type: ["object", "null"],
+            properties: {
+              available: { type: "boolean", description: "Accessible/handicapped parking spaces available" },
+              van_accessible: { type: "boolean", description: "Van-accessible spaces (wider) available" },
+              distance_to_playground: { type: ["string", "null"], description: "Distance description: 'adjacent', 'within 100 feet', 'within 200 feet', 'over 200 feet'. Null if unknown." }
+            },
+            description: "Accessible parking information. Null if unknown."
+          },
+          accessible_restrooms: {
+            type: ["object", "null"],
+            properties: {
+              available: { type: "boolean", description: "Wheelchair-accessible restrooms available" },
+              adult_changing_table: { type: "boolean", description: "Adult-sized changing table available (critical for older children with disabilities)" }
+            },
+            description: "Accessible restroom information. Null if unknown."
+          }
+        },
+        description: "Accessibility features for children with disabilities. Include all available information. Use false for boolean fields if feature is explicitly absent, use null for entire object if no accessibility info found."
+      },
     },
-    required: ["location_confidence", "location_verification", "name", "description", "features", "parking"],
+    required: ["location_confidence", "location_verification", "name", "description", "features", "parking", "accessibility"],
     additionalProperties: false,
   };
 
@@ -353,6 +405,14 @@ DATA REQUIREMENTS:
 2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
 3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
 4. Describe parking availability
+5. ACCESSIBILITY FEATURES (CRITICAL FOR FAMILIES WITH DISABLED CHILDREN):
+   - Wheelchair access: ramps, transfer stations, or accessible routes to equipment
+   - Surface type: pour-in-place rubber (best), engineered wood fiber, rubber tiles, loose-fill (NOT accessible), concrete, grass
+   - Ground-level activities: panels, sandboxes, music stations accessible without transfers
+   - Sensory-friendly: quiet zones, tactile elements, visual aids for autism/sensory needs
+   - Shade coverage: full/partial/minimal/none (critical for medical conditions)
+   - Accessible parking: availability, van-accessible spaces, distance from playground
+   - Accessible restrooms: wheelchair-accessible, adult changing tables
 
 IMAGE REQUIREMENTS (STRICT - CRITICAL FOR QUALITY):
 ONLY return images that show:
@@ -517,6 +577,7 @@ CONFIDENCE ASSESSMENT:
     sources:
       base.sources ?? (Array.isArray(data?.citations) ? (data.citations as string[]) : null),
     images: filterImages(rawImages), // Apply image quality filtering
+    accessibility: base.accessibility ?? null,
     // Internal metadata (not part of PerplexityInsights type)
     _locationConfidence: base.location_confidence || 'low',
     _locationVerification: base.location_verification || null,
@@ -630,6 +691,7 @@ export async function fetchPerplexityInsightsWithCache({
         parking: freshInsights.parking,
         sources: freshInsights.sources,
         images: freshInsights.images,
+        accessibility: freshInsights.accessibility,
       };
 
       // Save to cache only if quality is high enough

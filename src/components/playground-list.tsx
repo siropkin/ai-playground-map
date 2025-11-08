@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
-import { MapPin, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight, Accessibility, ParkingCircle } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
@@ -85,17 +85,6 @@ function useEnrichmentBatch() {
   return context;
 }
 
-// Helper to check if enrichment returned no useful data
-const hasNoEnrichmentData = (playground: Playground): boolean => {
-  return (
-    playground.enriched === true &&
-    !playground.description &&
-    !playground.features?.length &&
-    !playground.images?.length &&
-    (!playground.name || playground.name === UNNAMED_PLAYGROUND)
-  );
-};
-
 // Individual playground item with intersection observer
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
   const { requestFlyTo } = usePlaygrounds();
@@ -118,7 +107,6 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
 
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
-  const noEnrichmentData = hasNoEnrichmentData(playground);
 
   // Check if description is long enough to need expansion
   const isDescriptionLong = playground.description && playground.description.length > 150;
@@ -130,7 +118,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
         className="bg-background/95 flex min-h-[260px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
         onClick={() => requestFlyTo([playground.lon, playground.lat])}
       >
-        <CardHeader className="flex w-1/3 gap-0 p-0">
+        <CardHeader className="relative flex w-1/3 gap-0 p-0">
           <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
             {!playground.enriched ? (
               <div className="relative h-full w-full">
@@ -151,9 +139,27 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
                 unoptimized={true}
               />
             ) : (
-              <div className="text-muted-foreground flex h-full w-full items-center justify-center text-4xl" />
+              <div className="text-muted-foreground flex h-full w-full items-center justify-center text-sm">
+                No image
+              </div>
             )}
           </div>
+
+          {/* Info Indicators - Only show when enriched */}
+          {playground.enriched && (playground.parking || playground.accessibility) && (
+            <div className="absolute bottom-2 left-2 flex gap-1.5">
+              {playground.parking && (
+                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                  <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              )}
+              {playground.accessibility && (
+                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                  <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          )}
         </CardHeader>
 
         <CardContent className="flex w-2/3 flex-col gap-2 p-4">
@@ -169,10 +175,6 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             {/* Description Section */}
             {!playground.enriched ? (
               <Skeleton className="h-16 w-full" />
-            ) : noEnrichmentData ? (
-              <div className="text-muted-foreground text-xs italic">
-                <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
-              </div>
             ) : playground.description ? (
               <div className="text-muted-foreground text-xs">
                 <p className={!isDescriptionExpanded && isDescriptionLong ? "line-clamp-3" : ""}>
@@ -190,7 +192,11 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
                   </button>
                 )}
               </div>
-            ) : null}
+            ) : (
+              <div className="text-muted-foreground text-xs italic">
+                <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
+              </div>
+            )}
 
             {/* Features Section */}
             {!playground.enriched ? (

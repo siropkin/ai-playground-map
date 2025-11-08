@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Playground } from "@/types/playground";
-import { MapPin, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight, Accessibility, Umbrella, Volume2, ParkingCircle } from "lucide-react";
 
 interface PlaygroundPreviewProps {
   playground: Playground;
@@ -25,14 +25,6 @@ export function PlaygroundPreview({
 }: PlaygroundPreviewProps) {
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
-
-  const hasNoEnrichmentData =
-    playground.enriched === true &&
-    !playground.description &&
-    !playground.features?.length &&
-    !playground.images?.length &&
-    (!playground.name || playground.name === UNNAMED_PLAYGROUND);
-
   const detailsUrl = `/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`;
 
   return (
@@ -56,7 +48,25 @@ export function PlaygroundPreview({
             unoptimized={true}
           />
         ) : (
-          <div className="text-muted-foreground flex h-full w-full items-center justify-center text-5xl" />
+          <div className="text-muted-foreground flex h-full w-full items-center justify-center text-sm">
+            No image
+          </div>
+        )}
+
+        {/* Info Indicators - Only show when enriched */}
+        {playground.enriched && (playground.parking || playground.accessibility) && (
+          <div className="absolute bottom-2 left-2 flex gap-1.5">
+            {playground.parking && (
+              <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+            )}
+            {playground.accessibility && (
+              <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -78,15 +88,15 @@ export function PlaygroundPreview({
           {/* Description */}
           {!playground.enriched ? (
             <Skeleton className="h-16 w-full" />
-          ) : hasNoEnrichmentData ? (
-            <div className="text-muted-foreground text-sm italic">
-              <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
-            </div>
           ) : playground.description ? (
             <p className="text-muted-foreground line-clamp-3 text-sm">
               {playground.description}
             </p>
-          ) : null}
+          ) : (
+            <div className="text-muted-foreground text-sm italic">
+              <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
+            </div>
+          )}
 
           {/* Features */}
           {!playground.enriched ? (
@@ -103,6 +113,78 @@ export function PlaygroundPreview({
               )}
             </div>
           ) : null}
+
+          {/* Accessibility Info */}
+          {!playground.enriched ? (
+            <Skeleton className="h-6 w-full" />
+          ) : (
+            <div className="text-muted-foreground text-xs">
+              <div className="font-medium">Accessibility:</div>
+              {playground.accessibility ? (
+                <div className="mt-1 space-y-0.5">
+                  {playground.accessibility.wheelchair_accessible && (
+                    <div className="flex items-center gap-1">
+                      <Accessibility className="h-3 w-3 flex-shrink-0" />
+                      <span>Wheelchair accessible</span>
+                    </div>
+                  )}
+                  {playground.accessibility.sensory_friendly &&
+                    (playground.accessibility.sensory_friendly.quiet_zones ||
+                      playground.accessibility.sensory_friendly.tactile_elements ||
+                      playground.accessibility.sensory_friendly.visual_aids) && (
+                      <div className="flex items-center gap-1">
+                        <Volume2 className="h-3 w-3 flex-shrink-0" />
+                        <span>Sensory-friendly features</span>
+                      </div>
+                    )}
+                  {playground.accessibility.shade_coverage &&
+                    playground.accessibility.shade_coverage !== "none" &&
+                    playground.accessibility.shade_coverage !== "minimal" && (
+                      <div className="flex items-center gap-1">
+                        <Umbrella className="h-3 w-3 flex-shrink-0" />
+                        <span>
+                          {playground.accessibility.shade_coverage
+                            .split("-")
+                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(" ")}{" "}
+                          shade
+                        </span>
+                      </div>
+                    )}
+                  {!playground.accessibility.wheelchair_accessible &&
+                    !(
+                      playground.accessibility.sensory_friendly &&
+                      (playground.accessibility.sensory_friendly.quiet_zones ||
+                        playground.accessibility.sensory_friendly.tactile_elements ||
+                        playground.accessibility.sensory_friendly.visual_aids)
+                    ) &&
+                    (!playground.accessibility.shade_coverage ||
+                      playground.accessibility.shade_coverage === "none" ||
+                      playground.accessibility.shade_coverage === "minimal") && (
+                      <div className="italic">No accessibility information available</div>
+                    )}
+                </div>
+              ) : (
+                <div className="mt-1 italic">No accessibility information available</div>
+              )}
+            </div>
+          )}
+
+          {/* Parking Info */}
+          {!playground.enriched ? (
+            <Skeleton className="h-6 w-full" />
+          ) : (
+            <div className="text-muted-foreground text-xs">
+              <div className="font-medium">Parking:</div>
+              <div className="mt-1">
+                {playground.parking ? (
+                  <div>{playground.parking}</div>
+                ) : (
+                  <div className="italic">No parking information available</div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Address */}
           {!playground.enriched ? (
