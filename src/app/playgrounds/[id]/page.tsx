@@ -118,9 +118,9 @@ export default async function PlaygroundDetail({
               unoptimized={true}
             />
           ) : (
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-              <div className="flex h-full w-full items-center justify-center">
-                <span className="text-muted-foreground">No image</span>
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-emerald-100 dark:from-sky-950/50 dark:to-emerald-950/50">
+                <span className="text-sm text-emerald-700/80 dark:text-emerald-200/70">No image</span>
               </div>
             </div>
           )}
