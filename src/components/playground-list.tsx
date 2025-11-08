@@ -156,7 +156,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
           </div>
         </CardHeader>
 
-        <CardContent className="flex h-full w-2/3 flex-col gap-2 p-4">
+        <CardContent className="flex w-2/3 flex-col gap-2 p-4">
           {/* Content Area - grows to push button to bottom */}
           <div className="flex flex-1 flex-col gap-2">
             {/* Title Section */}
