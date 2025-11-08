@@ -36,7 +36,7 @@ export function PlaygroundPreview({
   const detailsUrl = `/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-[400px] flex-col gap-3">
       {/* Image Section */}
       <div className="relative h-48 w-full overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-700">
         {!playground.enriched ? (
@@ -61,64 +61,67 @@ export function PlaygroundPreview({
       </div>
 
       {/* Content Section */}
-      <div className="flex flex-col gap-2">
-        {/* Title */}
-        {!hideTitle && (
-          <>
-            {!playground.enriched ? (
-              <Skeleton className="h-6 w-3/4" />
-            ) : (
-              <h3 className="text-lg font-semibold">{name}</h3>
-            )}
-          </>
-        )}
+      <div className="flex flex-1 flex-col gap-2">
+        {/* Content Area - grows to push button to bottom */}
+        <div className="flex flex-1 flex-col gap-2">
+          {/* Title */}
+          {!hideTitle && (
+            <>
+              {!playground.enriched ? (
+                <Skeleton className="h-6 w-3/4" />
+              ) : (
+                <h3 className="text-lg font-semibold">{name}</h3>
+              )}
+            </>
+          )}
 
-        {/* Description */}
-        {!playground.enriched ? (
-          <Skeleton className="h-16 w-full" />
-        ) : hasNoEnrichmentData ? (
-          <div className="text-muted-foreground text-sm italic">
-            <p>No AI information available for this playground.</p>
-          </div>
-        ) : playground.description ? (
-          <p className="text-muted-foreground line-clamp-3 text-sm">
-            {playground.description}
-          </p>
-        ) : null}
+          {/* Description */}
+          {!playground.enriched ? (
+            <Skeleton className="h-16 w-full" />
+          ) : hasNoEnrichmentData ? (
+            <div className="text-muted-foreground text-sm italic">
+              <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
+            </div>
+          ) : playground.description ? (
+            <p className="text-muted-foreground line-clamp-3 text-sm">
+              {playground.description}
+            </p>
+          ) : null}
 
-        {/* Features */}
-        {!playground.enriched ? (
-          <Skeleton className="h-6 w-full" />
-        ) : playground.features?.length ? (
-          <div className="flex flex-wrap gap-1">
-            {playground.features.slice(0, 5).map((value, i) => (
-              <Badge className="max-w-full truncate" variant="outline" key={i}>
-                <span className="truncate">{formatEnumString(value)}</span>
-              </Badge>
-            ))}
-            {playground.features.length > 5 && (
-              <Badge variant="outline">+{playground.features.length - 5}</Badge>
-            )}
-          </div>
-        ) : null}
+          {/* Features */}
+          {!playground.enriched ? (
+            <Skeleton className="h-6 w-full" />
+          ) : playground.features?.length ? (
+            <div className="flex flex-wrap gap-1">
+              {playground.features.slice(0, 5).map((value, i) => (
+                <Badge className="max-w-full truncate" variant="outline" key={i}>
+                  <span className="truncate">{formatEnumString(value)}</span>
+                </Badge>
+              ))}
+              {playground.features.length > 5 && (
+                <Badge variant="outline">+{playground.features.length - 5}</Badge>
+              )}
+            </div>
+          ) : null}
 
-        {/* Address */}
-        {!playground.enriched ? (
-          <Skeleton className="h-6 w-full" />
-        ) : playground.address && onFlyTo ? (
-          <button
-            className="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm underline hover:text-foreground"
-            onClick={() => onFlyTo([playground.lon, playground.lat])}
-            aria-label={`See ${name} on the map`}
-          >
-            <MapPin className="h-4 w-4 shrink-0" />
-            <span className="truncate">{playground.address}</span>
-          </button>
-        ) : null}
+          {/* Address */}
+          {!playground.enriched ? (
+            <Skeleton className="h-6 w-full" />
+          ) : playground.address && onFlyTo ? (
+            <button
+              className="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm underline hover:text-foreground"
+              onClick={() => onFlyTo([playground.lon, playground.lat])}
+              aria-label={`See ${name} on the map`}
+            >
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span className="truncate">{playground.address}</span>
+            </button>
+          ) : null}
+        </div>
 
-        {/* View Details Button */}
+        {/* View Details Button - stays at bottom */}
         {playground.enriched && (
-          <Link href={detailsUrl} onClick={onViewDetails} className="mt-4">
+          <Link href={detailsUrl} onClick={onViewDetails} className="mt-auto pt-4">
             <Button variant="outline" className="w-full" size="lg">
               View Details
               <ArrowRight className="ml-2 h-4 w-4" />
