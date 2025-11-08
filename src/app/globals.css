@@ -130,30 +130,17 @@
 .mapboxgl-popup-close-button {
   width: 32px !important;
   height: 32px !important;
-  font-size: 24px !important;
+  font-size: 20px !important;
   line-height: 32px !important;
   padding: 0 !important;
   margin: 8px !important;
-  border-radius: 4px !important;
+  border-radius: var(--radius-md) !important;
   color: hsl(var(--foreground)) !important;
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(8px) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  opacity: 0.95 !important;
-  transition: all 0.2s !important;
+  background-color: transparent !important;
+  transition: background-color 0.2s, color 0.2s !important;
 }
 
 .mapboxgl-popup-close-button:hover {
-  opacity: 1 !important;
-  background-color: rgba(255, 255, 255, 1) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25) !important;
-}
-
-.dark .mapboxgl-popup-close-button {
-  background-color: rgba(0, 0, 0, 0.75) !important;
-  color: hsl(var(--background)) !important;
-}
-
-.dark .mapboxgl-popup-close-button:hover {
-  background-color: rgba(0, 0, 0, 0.9) !important;
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
 }
