@@ -5,6 +5,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { PlaygroundPreview } from "@/components/playground-preview";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
@@ -55,6 +56,9 @@ export function PlaygroundPreviewSheet() {
       >
         <SheetHeader className="mb-4">
           <SheetTitle>{name}</SheetTitle>
+          <SheetDescription>
+            {currentPlayground?.address || "Playground preview"}
+          </SheetDescription>
         </SheetHeader>
         <div className="flex flex-1 flex-col overflow-y-auto">
           {previewContent}
