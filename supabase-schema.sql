@@ -24,6 +24,9 @@ CREATE INDEX IF NOT EXISTS idx_osm_cache_zoom ON osm_query_cache(zoom_level);
 -- Add comment
 COMMENT ON TABLE osm_query_cache IS 'Caches OpenStreetMap query results for 24 hours with LRU eviction';
 
+-- Disable RLS for cache table (no user-specific data)
+ALTER TABLE osm_query_cache DISABLE ROW LEVEL SECURITY;
+
 
 -- ============================================
 -- 2. Perplexity Insights Cache Table
@@ -52,6 +55,9 @@ ON perplexity_insights_cache(created_at);
 -- Add comment
 COMMENT ON TABLE perplexity_insights_cache IS 'Caches AI-generated playground insights with 1 year TTL';
 
+-- Disable RLS for cache table (no user-specific data)
+ALTER TABLE perplexity_insights_cache DISABLE ROW LEVEL SECURITY;
+
 
 -- ============================================
 -- 3. Playground Issues Table
@@ -75,6 +81,31 @@ ON playground_issues(created_at DESC);
 
 -- Add comment
 COMMENT ON TABLE playground_issues IS 'User-reported issues with playground data';
+
+-- Enable RLS for issues table (contains user submissions)
+ALTER TABLE playground_issues ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone to submit issues (insert)
+CREATE POLICY IF NOT EXISTS "Anyone can submit issues"
+ON playground_issues FOR INSERT
+TO public
+WITH CHECK (true);
+
+-- Only admins can view all issues (for moderation)
+CREATE POLICY IF NOT EXISTS "Only admins can view issues"
+ON playground_issues FOR SELECT
+TO authenticated
+USING (
+  auth.jwt() ->> 'role' = 'app_admin'
+);
+
+-- Only admins can delete issues
+CREATE POLICY IF NOT EXISTS "Only admins can delete issues"
+ON playground_issues FOR DELETE
+TO authenticated
+USING (
+  auth.jwt() ->> 'role' = 'app_admin'
+);
 
 
 -- ============================================
