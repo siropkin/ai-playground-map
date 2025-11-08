@@ -34,8 +34,8 @@ export function PlaygroundPreview({
         {!playground.enriched ? (
           <div className="relative h-full w-full">
             <Skeleton className="h-full w-full" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-muted-foreground text-sm">Thinking...</span>
+            <div className="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm">
+              Thinking...
             </div>
           </div>
         ) : displayImage ? (

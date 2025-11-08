@@ -123,10 +123,8 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             {!playground.enriched ? (
               <div className="relative h-full w-full">
                 <Skeleton className="h-full w-full rounded-r-none" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-muted-foreground text-xs">
-                    Thinking...
-                  </span>
+                <div className="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm">
+                  Thinking...
                 </div>
               </div>
             ) : displayImage ? (
