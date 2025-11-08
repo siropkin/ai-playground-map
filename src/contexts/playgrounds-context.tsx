@@ -42,7 +42,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const { mapBounds } = useFilters();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
 
