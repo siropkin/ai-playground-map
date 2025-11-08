@@ -77,7 +77,7 @@ export async function generatePlaygroundAiInsights({
   osmId,
   signal,
 }: {
-  location: PerplexityLocation;
+  location?: PerplexityLocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;

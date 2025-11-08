@@ -533,7 +533,7 @@ export async function fetchPerplexityInsightsWithCache({
   signal,
   priority = 'medium',
 }: {
-  location: PerplexityLocation;
+  location?: PerplexityLocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
@@ -545,7 +545,12 @@ export async function fetchPerplexityInsightsWithCache({
 
   // Create cache key from OSM ID (preferred) or location coordinates (fallback)
   // Using OSM ID ensures each playground has unique cached data
-  const cacheKey = osmId || `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`;
+  const cacheKey = osmId || (location ? `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}` : null);
+
+  if (!cacheKey) {
+    console.warn('[Perplexity] No cache key available (missing both osmId and location)');
+    return null;
+  }
 
   // Wrap entire cache check + API call in request deduplication
   // This prevents multiple concurrent users from triggering the same API call
@@ -558,6 +563,12 @@ export async function fetchPerplexityInsightsWithCache({
       });
       if (cachedInsights) {
         return cachedInsights;
+      }
+
+      // Cache miss - need location to fetch from API
+      if (!location) {
+        console.log('[Perplexity] Cache miss and no location provided, cannot fetch from API');
+        return null;
       }
 
       // Cache miss - fetch from API
@@ -646,7 +657,7 @@ export async function fetchPerplexityInsightsBatch({
 }: {
   requests: Array<{
     playgroundId: number;
-    location: PerplexityLocation;
+    location?: PerplexityLocation;
     name?: string;
     osmId?: string;
   }>;

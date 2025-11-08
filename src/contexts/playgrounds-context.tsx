@@ -129,22 +129,35 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       if (!playground || playground.enriched) return;
 
       try {
-        const location = await fetchLocationData(
-          playground.lat,
-          playground.lon,
-          abortControllerRef.current?.signal,
-        );
+        const osmIdFormatted = playground.osmType && playground.osmId
+          ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
+          : undefined;
 
-        if (!location) return;
-
-        const insight = await generatePlaygroundAiInsights({
-          location,
+        // PERFORMANCE OPTIMIZATION: Try cache-only check first with osmId
+        // This saves 100-500ms of Nominatim reverse geocoding for cached results
+        let insight = await generatePlaygroundAiInsights({
           name: playground.name || undefined,
-          osmId: playground.osmType && playground.osmId
-            ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
-            : undefined,
+          osmId: osmIdFormatted,
           signal: abortControllerRef.current?.signal,
         });
+
+        // If cache miss and we have osmId, fetch location and try full enrichment
+        if (!insight && osmIdFormatted) {
+          const location = await fetchLocationData(
+            playground.lat,
+            playground.lon,
+            abortControllerRef.current?.signal,
+          );
+
+          if (!location) return;
+
+          insight = await generatePlaygroundAiInsights({
+            location,
+            name: playground.name || undefined,
+            osmId: osmIdFormatted,
+            signal: abortControllerRef.current?.signal,
+          });
+        }
 
         setPlaygrounds((prev) =>
           prev.map((p) =>

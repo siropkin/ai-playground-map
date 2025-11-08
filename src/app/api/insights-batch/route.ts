@@ -39,12 +39,37 @@ export async function POST(
       );
     }
 
-    // Get location data for all playgrounds using batch reverse geocoding
-    const coordinates = playgrounds.map((pg) => ({ lat: pg.lat, lon: pg.lon }));
+    // PERFORMANCE OPTIMIZATION: Try cache-only checks first with osmIds
+    // This saves ~3 seconds of geocoding for cached playgrounds
+    const cacheOnlyRequests = playgrounds.map((pg) => ({
+      playgroundId: pg.id,
+      location: undefined, // No location = cache-only check
+      name: pg.name,
+      osmId: pg.osmId,
+    }));
+
+    const cacheResults = await fetchPerplexityInsightsBatch({
+      requests: cacheOnlyRequests,
+      signal,
+    });
+
+    // Identify cache misses (playgrounds that need geocoding + full enrichment)
+    const cacheMisses = cacheResults
+      .map((result, index) => ({ result, index }))
+      .filter(({ result }) => result.insights === null)
+      .map(({ index }) => playgrounds[index]);
+
+    // If all cached, return immediately (fast path!)
+    if (cacheMisses.length === 0) {
+      return NextResponse.json({ results: cacheResults });
+    }
+
+    // Geocode only the cache misses
+    const coordinates = cacheMisses.map((pg) => ({ lat: pg.lat, lon: pg.lon }));
     const geocodeResults = await batchReverseGeocode({ coordinates, signal });
 
-    // Map geocode results back to playgrounds
-    const locations = playgrounds
+    // Build full requests for cache misses
+    const missRequests = cacheMisses
       .map((pg, index) => {
         const result = geocodeResults[index];
         if (!result || !result.data) {
@@ -71,18 +96,17 @@ export async function POST(
       })
       .filter((loc): loc is NonNullable<typeof loc> => loc !== null);
 
-    if (locations.length === 0) {
-      return NextResponse.json(
-        { error: "Failed to fetch location data" },
-        { status: 500 },
-      );
-    }
-
-    // Fetch insights for all playgrounds with valid locations
-    const results = await fetchPerplexityInsightsBatch({
-      requests: locations,
+    // Fetch insights for cache misses with full location data
+    const missResults = await fetchPerplexityInsightsBatch({
+      requests: missRequests,
       signal,
     });
+
+    // Merge cache hits and API results
+    const missMap = new Map(missResults.map((r) => [r.playgroundId, r]));
+    const results = cacheResults.map((cacheResult) =>
+      missMap.get(cacheResult.playgroundId) || cacheResult
+    );
 
     if (signal?.aborted) {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });

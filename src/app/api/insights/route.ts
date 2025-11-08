@@ -18,14 +18,15 @@ export async function POST(
 
     const body = await request.json();
     const { location, name, osmId } = body as {
-      location: PerplexityLocation;
+      location?: PerplexityLocation;
       name?: string;
       osmId?: string;
     };
 
-    if (!location || typeof location.latitude !== "number" || typeof location.longitude !== "number" || !location.country) {
+    // Require either osmId (for cache-only check) or full location (for API call)
+    if (!osmId && (!location || typeof location.latitude !== "number" || typeof location.longitude !== "number" || !location.country)) {
       return NextResponse.json(
-        { error: "Valid location with latitude, longitude, and country is required" },
+        { error: "Either osmId or valid location with latitude, longitude, and country is required" },
         { status: 400 },
       );
     }
