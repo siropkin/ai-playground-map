@@ -28,29 +28,6 @@ export function PlaygroundPreviewSheet() {
   const isOpen = selectedPlayground !== null;
   const name = selectedPlayground?.name || UNNAMED_PLAYGROUND;
 
-  const hasNoEnrichmentData =
-    selectedPlayground?.enriched === true &&
-    !selectedPlayground?.description &&
-    !selectedPlayground?.features?.length &&
-    !selectedPlayground?.images?.length &&
-    (!selectedPlayground?.name || selectedPlayground?.name === UNNAMED_PLAYGROUND);
-
-  const showAiBadge = selectedPlayground?.enriched && !hasNoEnrichmentData;
-
-  const titleWithBadge = (
-    <div className="flex items-center gap-2">
-      <span>{name}</span>
-      {showAiBadge && (
-        <span
-          className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
-          title="AI-generated content may contain errors"
-        >
-          AI
-        </span>
-      )}
-    </div>
-  );
-
   const previewContent = selectedPlayground ? (
     <PlaygroundPreview
       playground={selectedPlayground}
@@ -69,7 +46,7 @@ export function PlaygroundPreviewSheet() {
       <Dialog open={isOpen} onOpenChange={(open) => !open && clearSelectedPlayground()}>
         <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{titleWithBadge}</DialogTitle>
+            <DialogTitle>{name}</DialogTitle>
           </DialogHeader>
           {previewContent}
         </DialogContent>
@@ -85,7 +62,7 @@ export function PlaygroundPreviewSheet() {
         className="max-h-[85vh] overflow-y-auto rounded-t-2xl p-4"
       >
         <SheetHeader className="mb-4">
-          <SheetTitle>{titleWithBadge}</SheetTitle>
+          <SheetTitle>{name}</SheetTitle>
         </SheetHeader>
         {previewContent}
       </SheetContent>

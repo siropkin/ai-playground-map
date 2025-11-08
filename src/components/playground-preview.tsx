@@ -68,17 +68,7 @@ export function PlaygroundPreview({
             {!playground.enriched ? (
               <Skeleton className="h-6 w-3/4" />
             ) : (
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">{name}</h3>
-                {playground.enriched && !hasNoEnrichmentData && (
-                  <span
-                    className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
-                    title="AI-generated content may contain errors"
-                  >
-                    AI
-                  </span>
-                )}
-              </div>
+              <h3 className="text-lg font-semibold">{name}</h3>
             )}
           </>
         )}

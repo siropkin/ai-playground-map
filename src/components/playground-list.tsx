@@ -157,17 +157,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
           {!playground.enriched ? (
             <Skeleton className="h-4 w-full" />
           ) : name ? (
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold">{name}</h3>
-              {playground.enriched && !noEnrichmentData && (
-                <span
-                  className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
-                  title="AI-generated content may contain errors"
-                >
-                  AI
-                </span>
-              )}
-            </div>
+            <h3 className="font-semibold">{name}</h3>
           ) : null}
 
           {/* Description Section */}
