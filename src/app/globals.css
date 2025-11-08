@@ -128,19 +128,29 @@
 }
 
 .mapboxgl-popup-close-button {
-  width: 32px !important;
-  height: 32px !important;
-  font-size: 20px !important;
-  line-height: 32px !important;
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 18px !important;
+  line-height: 28px !important;
   padding: 0 !important;
   margin: 8px !important;
   border-radius: var(--radius-md) !important;
-  color: hsl(var(--foreground)) !important;
-  background-color: transparent !important;
-  transition: background-color 0.2s, color 0.2s !important;
+  color: oklch(0.205 0 0) !important;
+  background-color: oklch(1 0 0) !important;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  transition: background-color 0.2s, box-shadow 0.2s !important;
 }
 
 .mapboxgl-popup-close-button:hover {
-  background-color: hsl(var(--accent)) !important;
-  color: hsl(var(--accent-foreground)) !important;
+  background-color: oklch(0.97 0 0) !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+}
+
+.dark .mapboxgl-popup-close-button {
+  color: oklch(0.985 0 0) !important;
+  background-color: oklch(0.269 0 0) !important;
+}
+
+.dark .mapboxgl-popup-close-button:hover {
+  background-color: oklch(0.35 0 0) !important;
 }
