@@ -249,7 +249,7 @@ export const MapView = React.memo(function MapView() {
           paint: {
             "text-color": mapColors.label,
             "text-halo-color": mapColors.labelHalo,
-            "text-halo-width": 1,
+            "text-halo-width": 2, // Thicker white border for better readability
           },
         });
       }

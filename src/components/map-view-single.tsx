@@ -24,18 +24,20 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        current: "#3b82f6", // Blue for current playground
+        current: "#000000", // Black for current playground (matches main map)
         currentStroke: "#FFFFFF",
+        currentHalo: "#FFFFFF",
         nearby: "#94a3b8", // Gray for nearby playgrounds
         nearbyStroke: "#FFFFFF",
-        nearbyHover: "#64748b", // Darker gray on hover
+        nearbyHalo: "#FFFFFF",
       }
     : {
-        current: "#60a5fa", // Lighter blue for dark mode
-        currentStroke: "#1e293b",
+        current: "#FFFFFF", // White for current playground in dark mode
+        currentStroke: "#000000",
+        currentHalo: "#000000",
         nearby: "#64748b",
-        nearbyStroke: "#1e293b",
-        nearbyHover: "#94a3b8",
+        nearbyStroke: "#000000",
+        nearbyHalo: "#000000",
       };
 };
 
@@ -88,36 +90,36 @@ export default function MapViewSingle({
         },
       });
 
-      // Add current playground marker (larger)
+      // Add current playground marker (matches main map size)
       map.current!.addLayer({
         id: "current-point",
         type: "circle",
         source: "current-playground",
         paint: {
           "circle-color": colors.current,
-          "circle-radius": 12,
-          "circle-stroke-width": 2,
+          "circle-radius": 10, // Matches main map
+          "circle-stroke-width": 1, // Matches main map
           "circle-stroke-color": colors.currentStroke,
         },
       });
 
-      // Add current playground label
+      // Add current playground label (matches main map style)
       map.current!.addLayer({
         id: "current-label",
         type: "symbol",
         source: "current-playground",
         layout: {
           "text-field": ["get", "name"],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-offset": [0, -1.5],
-          "text-anchor": "top",
-          "text-size": 13,
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"], // Matches main map
+          "text-offset": [1.3, 0], // Right side, matches main map
+          "text-anchor": "left", // Matches main map
+          "text-size": 11, // Matches main map
           "text-allow-overlap": false,
         },
         paint: {
           "text-color": colors.current,
-          "text-halo-color": colors.currentStroke,
-          "text-halo-width": 2,
+          "text-halo-color": colors.currentHalo,
+          "text-halo-width": 2, // Thicker white border (user's preference)
         },
       });
 
@@ -156,7 +158,7 @@ export default function MapViewSingle({
           },
         });
 
-        // Add nearby playground labels (smaller)
+        // Add nearby playground labels (smaller, grayed out)
         map.current!.addLayer({
           id: "nearby-labels",
           type: "symbol",
@@ -164,15 +166,15 @@ export default function MapViewSingle({
           layout: {
             "text-field": ["get", "name"],
             "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-            "text-offset": [0, -1.2],
-            "text-anchor": "top",
-            "text-size": 11,
+            "text-offset": [1.3, 0], // Right side, matches main map
+            "text-anchor": "left", // Matches main map
+            "text-size": 10, // Slightly smaller than current
             "text-allow-overlap": false,
           },
           paint: {
             "text-color": colors.nearby,
-            "text-halo-color": colors.nearbyStroke,
-            "text-halo-width": 1.5,
+            "text-halo-color": colors.nearbyHalo,
+            "text-halo-width": 2, // Thicker white border
           },
         });
 
