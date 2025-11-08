@@ -14,12 +14,14 @@ interface PlaygroundPreviewProps {
   playground: Playground;
   onViewDetails?: () => void;
   onFlyTo?: (coords: [number, number]) => void;
+  hideTitle?: boolean;
 }
 
 export function PlaygroundPreview({
   playground,
   onViewDetails,
   onFlyTo,
+  hideTitle = false,
 }: PlaygroundPreviewProps) {
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
@@ -61,20 +63,24 @@ export function PlaygroundPreview({
       {/* Content Section */}
       <div className="flex flex-col gap-2">
         {/* Title */}
-        {!playground.enriched ? (
-          <Skeleton className="h-6 w-3/4" />
-        ) : (
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold">{name}</h3>
-            {playground.enriched && !hasNoEnrichmentData && (
-              <span
-                className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
-                title="AI-generated content may contain errors"
-              >
-                AI
-              </span>
+        {!hideTitle && (
+          <>
+            {!playground.enriched ? (
+              <Skeleton className="h-6 w-3/4" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">{name}</h3>
+                {playground.enriched && !hasNoEnrichmentData && (
+                  <span
+                    className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
+                    title="AI-generated content may contain errors"
+                  >
+                    AI
+                  </span>
+                )}
+              </div>
             )}
-          </div>
+          </>
         )}
 
         {/* Description */}
