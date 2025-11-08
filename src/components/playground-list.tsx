@@ -101,6 +101,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
   const { requestFlyTo } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
 
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -119,11 +120,14 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
   const displayImage = playground.images?.[0];
   const noEnrichmentData = hasNoEnrichmentData(playground);
 
+  // Check if description is long enough to need expansion
+  const isDescriptionLong = playground.description && playground.description.length > 150;
+
   return (
     <div ref={ref}>
       <Card
         key={playground.id}
-        className="bg-background/95 flex min-h-[200px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
+        className="bg-background/95 flex min-h-[260px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
         onClick={() => requestFlyTo([playground.lon, playground.lat])}
       >
         <CardHeader className="flex w-1/3 gap-0 p-0">
@@ -152,67 +156,78 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
           </div>
         </CardHeader>
 
-        <CardContent className="flex w-2/3 flex-col gap-2 p-4">
-          {/* Title Section */}
-          {!playground.enriched ? (
-            <Skeleton className="h-4 w-full" />
-          ) : name ? (
-            <h3 className="font-semibold">{name}</h3>
-          ) : null}
+        <CardContent className="flex h-full w-2/3 flex-col gap-2 p-4">
+          {/* Content Area - grows to push button to bottom */}
+          <div className="flex flex-1 flex-col gap-2">
+            {/* Title Section */}
+            {!playground.enriched ? (
+              <Skeleton className="h-4 w-full" />
+            ) : name ? (
+              <h3 className="font-semibold">{name}</h3>
+            ) : null}
 
-          {/* Description Section */}
-          {!playground.enriched ? (
-            <Skeleton className="h-16 w-full" />
-          ) : noEnrichmentData ? (
-            <div className="text-muted-foreground flex flex-col gap-1 text-xs italic">
-              <p>No AI information available for this playground.</p>
-              {playground.osmTags && Object.keys(playground.osmTags).length > 0 && (
-                <p className="text-[10px]">
-                  OpenStreetMap data: {Object.entries(playground.osmTags).slice(0, 3).map(([k, v]) => `${k}=${v}`).join(', ')}
+            {/* Description Section */}
+            {!playground.enriched ? (
+              <Skeleton className="h-16 w-full" />
+            ) : noEnrichmentData ? (
+              <div className="text-muted-foreground text-xs italic">
+                <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
+              </div>
+            ) : playground.description ? (
+              <div className="text-muted-foreground text-xs">
+                <p className={!isDescriptionExpanded && isDescriptionLong ? "line-clamp-3" : ""}>
+                  {playground.description}
                 </p>
-              )}
-            </div>
-          ) : playground.description ? (
-            <div className="text-muted-foreground text-xs">
-              {playground.description}
-            </div>
-          ) : null}
+                {isDescriptionLong && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDescriptionExpanded(!isDescriptionExpanded);
+                    }}
+                    className="text-foreground mt-1 text-xs underline hover:no-underline"
+                  >
+                    {isDescriptionExpanded ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
+            ) : null}
 
-          {/* Features Section */}
-          {!playground.enriched ? (
-            <Skeleton className="h-4 w-full" />
-          ) : playground.features?.length ? (
-            <div className="flex flex-wrap gap-1">
-              {playground.features.map((value, i) => (
-                <Badge
-                  className="max-w-full truncate"
-                  variant="outline"
-                  key={i}
-                >
-                  <span className="truncate">
-                    {formatEnumString(value)}
-                  </span>
-                </Badge>
-              ))}
-            </div>
-          ) : null}
+            {/* Features Section */}
+            {!playground.enriched ? (
+              <Skeleton className="h-4 w-full" />
+            ) : playground.features?.length ? (
+              <div className="flex flex-wrap gap-1">
+                {playground.features.map((value, i) => (
+                  <Badge
+                    className="max-w-full truncate"
+                    variant="outline"
+                    key={i}
+                  >
+                    <span className="truncate">
+                      {formatEnumString(value)}
+                    </span>
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
 
-          {/* Address Section */}
-          {!playground.enriched ? (
-            <Skeleton className="h-4 w-full" />
-          ) : playground.address ? (
-            <div className="text-muted-foreground mr-1 flex items-center text-xs">
-              <span>{playground.address}</span>
-              <MapPin className="ml-2 h-4 w-4 shrink-0" />
-            </div>
-          ) : null}
+            {/* Address Section */}
+            {!playground.enriched ? (
+              <Skeleton className="h-4 w-full" />
+            ) : playground.address ? (
+              <div className="text-muted-foreground mr-1 flex items-center text-xs">
+                <span>{playground.address}</span>
+                <MapPin className="ml-2 h-4 w-4 shrink-0" />
+              </div>
+            ) : null}
+          </div>
 
-          {/* View Details Button */}
+          {/* View Details Button - stays at bottom */}
           {playground.enriched && (
             <Link
               href="/playgrounds/[id]"
               as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
-              className="mt-2"
+              className="mt-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <Button variant="outline" size="sm" className="w-full">
