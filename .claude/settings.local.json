@@ -23,7 +23,8 @@
       "Bash(gh pr list:*)",
       "Bash(gh api:*)",
       "Bash(pnpm update:*)",
-      "Bash(python3 -m json.tool:*)"
+      "Bash(python3 -m json.tool:*)",
+      "WebFetch(domain:ui.shadcn.com)"
     ],
     "deny": [],
     "ask": []
