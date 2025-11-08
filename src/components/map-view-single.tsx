@@ -61,7 +61,7 @@ export default function MapViewSingle({
       container: mapContainer,
       style: getMapStyle(theme),
       center: [playground.lon, playground.lat],
-      zoom: 14, // Slightly zoomed out to show nearby playgrounds
+      zoom: 16.5, // Zoomed in closer to the playground
     });
 
     map.current.on("load", () => {
