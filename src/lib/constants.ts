@@ -7,7 +7,7 @@ export const SHORT_SITE_NAME = "GPM";
 export const SITE_ICON = "🛝";
 
 export const SITE_DESCRIPTION =
-  "AI-powered map with playgrounds for kids near you";
+  "Discover local playgrounds with photos, features, and AI insights";
 
 export const APP_ADMIN_ROLE = "app_admin";
 
