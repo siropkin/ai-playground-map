@@ -114,13 +114,14 @@ export async function saveOSMToCache(
     const supabase = await createClient();
 
     // Upsert cache entry
+    // Note: Supabase automatically handles JSON serialization for JSONB columns
     const { error } = await supabase
       .from(OSM_CACHE_TABLE_NAME)
       .upsert({
         cache_key: cacheKey,
-        bounds: JSON.stringify(bounds),
+        bounds: bounds, // JSONB column - no need for JSON.stringify
         zoom_level: Math.floor(zoom),
-        playgrounds: JSON.stringify(playgrounds),
+        playgrounds: playgrounds, // JSONB column - no need for JSON.stringify
         query_count: 1,
         created_at: new Date().toISOString(),
         last_accessed_at: new Date().toISOString()

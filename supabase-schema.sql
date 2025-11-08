@@ -114,6 +114,15 @@ USING (
 
 
 -- ============================================
+-- CLEAR CACHE (Run this after fixing serialization bug)
+-- ============================================
+-- The cache had a double-stringification bug that was fixed.
+-- Clear existing corrupted cache entries to force fresh data.
+DELETE FROM osm_query_cache;
+DELETE FROM perplexity_insights_cache;
+
+
+-- ============================================
 -- VERIFY TABLES EXIST
 -- ============================================
 SELECT
