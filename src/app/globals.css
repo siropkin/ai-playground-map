@@ -136,11 +136,24 @@
   margin: 8px !important;
   border-radius: 4px !important;
   color: hsl(var(--foreground)) !important;
-  opacity: 0.7 !important;
-  transition: opacity 0.2s !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  opacity: 0.95 !important;
+  transition: all 0.2s !important;
 }
 
 .mapboxgl-popup-close-button:hover {
   opacity: 1 !important;
-  background-color: hsl(var(--muted)) !important;
+  background-color: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.dark .mapboxgl-popup-close-button {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  color: hsl(var(--background)) !important;
+}
+
+.dark .mapboxgl-popup-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.9) !important;
 }
