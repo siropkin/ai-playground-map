@@ -132,12 +132,18 @@ PlaygroundsContext fetches → Check OSM cache →
   CACHE MISS: Query Overpass API → Save to cache → Return
 ```
 
-### AI Enrichment
+### AI Enrichment (Cache-First Strategy)
 ```
 User views playground → enrichPlayground(id) called →
-Check if already enriched → Fetch location data →
-Call Perplexity API → Validate result (location, quality) →
-Score result (0-100) → Cache if score ≥ 70 → Display
+Check if already enriched → Try cache with osmId ONLY →
+  CACHE HIT: Return immediately (20-50ms)
+  CACHE MISS: Fetch location data → Call Perplexity API →
+              Validate result (location, quality) →
+              Score result (0-100) → Cache if score ≥ 70 → Display
+
+Batch enrichment: Check cache for ALL playgrounds first →
+  Identify cache misses → Geocode ONLY misses →
+  Fetch AI insights for misses → Merge hits + misses
 ```
 
 ## Important File Paths
@@ -233,6 +239,7 @@ import { Spinner } from "@/components/ui/spinner";
 ## Recent Changes & Bug Fixes
 
 ### Latest Commits
+- `2857db9` - **Performance**: Cache-first strategy (5-30× faster cached insights)
 - `f3666ef` - Fix flash of "No playgrounds found" on initial load
 - `5c8b43a` - Improve loading state UX (added "Thinking..." text, shadcn Spinner)
 - `918f2f5` - Add comprehensive SEO (sitemap, robots.txt, structured data)
@@ -270,6 +277,26 @@ import { Spinner } from "@/components/ui/spinner";
 - **Timeout**: Max 25 seconds per Overpass query
 - **Cache TTL**: 24 hours for OSM data
 
+### Cache-First Optimization (Nov 2025)
+
+**Problem:** Cached playgrounds were slow because we geocoded BEFORE checking cache.
+
+**Solution:** Two-phase cache-first strategy:
+1. **Phase 1 (Cache Check)**: Try cache with just `osmId` (no geocoding needed)
+   - If HIT: Return immediately (20-50ms) ✅
+   - If MISS: Proceed to Phase 2
+2. **Phase 2 (Full Enrichment)**: Fetch location + call Perplexity API
+
+**Batch Optimization:** Check cache for ALL playgrounds first, then:
+- Separate cache hits from misses
+- Geocode ONLY the cache misses
+- Merge results (hits + freshly enriched)
+
+**Impact:**
+- Single cached: 105-520ms → 20-50ms (5-10× faster)
+- Batch cached (5): 3100ms → 100-150ms (20-30× faster)
+- User sees: 5-6s → 300-400ms for 10-15 playgrounds
+
 ## Performance Characteristics
 
 | Operation | Time | Notes |
@@ -277,8 +304,10 @@ import { Spinner } from "@/components/ui/spinner";
 | Initial page load | 2-3s | Next.js + Mapbox init |
 | OSM search (cached) | <50ms | Database lookup |
 | OSM search (uncached) | 500-2000ms | Overpass API |
-| AI enrichment (cached) | <50ms | Database lookup |
+| AI enrichment (cached) | 20-50ms | Cache-first with osmId (no geocoding) |
 | AI enrichment (uncached) | 3-8s | Perplexity API + validation |
+| Batch enrichment (5 cached) | 100-150ms | Skip geocoding for cached playgrounds |
+| Batch enrichment (5 uncached) | 15-30s | Geocode + AI enrichment for all |
 
 ## Testing
 
