@@ -101,7 +101,7 @@ const createGeoJson = (
 export const MapView = React.memo(function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading, selectPlayground } =
+  const { playgrounds, flyToCoords, clearFlyToRequest, loading, selectPlayground, enrichPlayground } =
     usePlaygrounds();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
@@ -359,6 +359,10 @@ export const MapView = React.memo(function MapView() {
         );
         if (playground) {
           selectPlayground(playground);
+          // Trigger enrichment if not already enriched
+          if (!playground.enriched) {
+            enrichPlayground(playground.osmId);
+          }
         }
       }
     };
@@ -376,6 +380,10 @@ export const MapView = React.memo(function MapView() {
         );
         if (playground) {
           selectPlayground(playground);
+          // Trigger enrichment if not already enriched
+          if (!playground.enriched) {
+            enrichPlayground(playground.osmId);
+          }
         }
       }
     };
@@ -480,7 +488,7 @@ export const MapView = React.memo(function MapView() {
         map.current.getCanvas().style.cursor = "";
       }
     };
-  }, [isMapLoaded, playgrounds, selectPlayground]);
+  }, [isMapLoaded, playgrounds, selectPlayground, enrichPlayground]);
 
   useEffect(() => {
     if (map.current) {
