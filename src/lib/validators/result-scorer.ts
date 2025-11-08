@@ -239,18 +239,3 @@ export function getScoreSummary(score: ResultScore): string {
 
   return parts.join(' | ');
 }
-
-/**
- * Quick check if result meets minimum quality standards
- */
-export function meetsMinimumQuality(
-  result: PerplexityInsights | null,
-  locationConfidence: string
-): boolean {
-  if (!result) return false;
-  if (locationConfidence === 'low') return false;
-  if (!result.description || result.description.length < 20) return false;
-  if (!result.sources || result.sources.length === 0) return false;
-
-  return true;
-}

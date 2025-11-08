@@ -239,37 +239,3 @@ export function validateDescription(
 
   return result;
 }
-
-/**
- * Quick check if description has minimum playground relevance
- */
-export function hasPlaygroundContent(description: string | null): boolean {
-  if (!description) return false;
-
-  const lowerDesc = description.toLowerCase();
-  return CORE_PLAYGROUND_KEYWORDS.some(keyword => lowerDesc.includes(keyword));
-}
-
-/**
- * Extract mentioned locations from text (for debugging/monitoring)
- */
-export function extractMentionedLocations(text: string): string[] {
-  const mentioned: string[] = [];
-  const lowerText = text.toLowerCase();
-
-  // Check cities
-  for (const city of MAJOR_CITIES) {
-    if (lowerText.includes(city)) {
-      mentioned.push(city);
-    }
-  }
-
-  // Check states (only full names, not abbreviations)
-  for (const state of US_STATES) {
-    if (state.length > 2 && lowerText.includes(state)) {
-      mentioned.push(state);
-    }
-  }
-
-  return mentioned;
-}

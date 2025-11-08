@@ -196,8 +196,6 @@ export async function batchReverseGeocode({
     return [];
   }
 
-  // Use Promise.all with rate limiting via nominatimLimiter
-  // Import nominatimLimiter at top of file if needed
   const results = await Promise.all(
     coordinates.map(async ({ lat, lon }) => {
       try {

@@ -38,17 +38,3 @@ export async function deduplicatedFetch<T>(
   inflightRequests.set(key, promise);
   return promise;
 }
-
-/**
- * Clears all in-flight requests (useful for testing or forced refresh).
- */
-export function clearInflightRequests(): void {
-  inflightRequests.clear();
-}
-
-/**
- * Gets the number of currently in-flight requests (for monitoring).
- */
-export function getInflightRequestCount(): number {
-  return inflightRequests.size;
-}

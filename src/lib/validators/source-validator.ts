@@ -171,28 +171,3 @@ export function validateSources(
 
   return result;
 }
-
-/**
- * Quick check if sources contain any trusted domains
- */
-export function hasTrustedSources(sources: string[] | null): boolean {
-  if (!sources || sources.length === 0) return false;
-
-  return sources.some(source =>
-    TRUSTED_DOMAINS.some(domain =>
-      source.toLowerCase().includes(domain)
-    )
-  );
-}
-
-/**
- * Extract domain from URL
- */
-export function extractDomain(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch {
-    return url;
-  }
-}
