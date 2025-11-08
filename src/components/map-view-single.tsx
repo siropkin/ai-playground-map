@@ -210,6 +210,7 @@ export default function MapViewSingle({
           closeButton: false,
           closeOnClick: false,
           offset: 12,
+          maxWidth: "none", // Allow auto width
         });
 
         map.current!.on("mouseenter", "nearby-points", (e) => {
@@ -222,7 +223,7 @@ export default function MapViewSingle({
 
           popup
             .setLngLat(coordinates)
-            .setHTML(`<div class="text-sm font-medium p-1">${name}</div>`)
+            .setHTML(`<div style="text-align: center; white-space: nowrap; padding: 4px 8px; font-size: 12px; font-weight: 500;">${name}</div>`)
             .addTo(map.current!);
         });
 
