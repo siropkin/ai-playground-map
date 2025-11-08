@@ -130,7 +130,7 @@ export function PlaygroundPreview({
         {/* View Details Button */}
         {playground.enriched && (
           <Link href={detailsUrl} onClick={onViewDetails} className="mt-4">
-            <Button className="w-full" size="lg">
+            <Button variant="outline" className="w-full" size="lg">
               View Details
             </Button>
           </Link>

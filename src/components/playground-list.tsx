@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
@@ -97,7 +98,7 @@ const hasNoEnrichmentData = (playground: Playground): boolean => {
 
 // Individual playground item with intersection observer
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
-  const { requestFlyTo, selectPlayground } = usePlaygrounds();
+  const { requestFlyTo } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
 
@@ -123,7 +124,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
       <Card
         key={playground.id}
         className="bg-background/95 flex min-h-[200px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
-        onClick={() => selectPlayground(playground)}
+        onClick={() => requestFlyTo([playground.lon, playground.lat])}
       >
         <CardHeader className="flex w-1/3 gap-0 p-0">
           <div className="h-full w-full flex-1 items-center justify-center bg-zinc-200 dark:bg-zinc-700">
@@ -157,15 +158,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             <Skeleton className="h-4 w-full" />
           ) : name ? (
             <div className="flex items-center gap-2">
-              <Link
-                href="/playgrounds/[id]"
-                as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
-                className="underline"
-                aria-label={`Go to ${name} page`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h3 className="font-semibold">{name}</h3>
-              </Link>
+              <h3 className="font-semibold">{name}</h3>
               {playground.enriched && !noEnrichmentData && (
                 <span
                   className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
@@ -218,18 +211,25 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
           {!playground.enriched ? (
             <Skeleton className="h-4 w-full" />
           ) : playground.address ? (
-            <div
-              className="text-muted-foreground mr-1 flex cursor-pointer items-center text-xs underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                requestFlyTo([playground.lon, playground.lat]);
-              }}
-              aria-label={`See ${name} on the map`}
-            >
+            <div className="text-muted-foreground mr-1 flex items-center text-xs">
               <span>{playground.address}</span>
               <MapPin className="ml-2 h-4 w-4 shrink-0" />
             </div>
           ) : null}
+
+          {/* View Details Button */}
+          {playground.enriched && (
+            <Link
+              href="/playgrounds/[id]"
+              as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
+              className="mt-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button variant="outline" size="sm" className="w-full">
+                View Details
+              </Button>
+            </Link>
+          )}
         </CardContent>
       </Card>
     </div>
