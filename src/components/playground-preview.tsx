@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Playground } from "@/types/playground";
-import { MapPin, ExternalLink } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 interface PlaygroundPreviewProps {
   playground: Playground;
@@ -65,7 +65,14 @@ export function PlaygroundPreview({
           <Skeleton className="h-6 w-3/4" />
         ) : (
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold">{name}</h3>
+            <Link
+              href={detailsUrl}
+              onClick={onViewDetails}
+              className="underline"
+              aria-label={`Go to ${name} page`}
+            >
+              <h3 className="text-lg font-semibold">{name}</h3>
+            </Link>
             {playground.enriched && !hasNoEnrichmentData && (
               <span
                 className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-400"
@@ -122,10 +129,9 @@ export function PlaygroundPreview({
 
         {/* View Details Button */}
         {playground.enriched && (
-          <Link href={detailsUrl} onClick={onViewDetails}>
+          <Link href={detailsUrl} onClick={onViewDetails} className="mt-4">
             <Button className="w-full" size="lg">
               View Details
-              <ExternalLink className="ml-2 h-4 w-4" />
             </Button>
           </Link>
         )}
