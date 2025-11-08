@@ -541,6 +541,7 @@ export const MapView = React.memo(function MapView() {
         closeOnClick: false,
         maxWidth: "400px",
         className: "playground-popup",
+        offset: 25, // Offset upward from marker center
       })
         .setLngLat([selectedPlayground.lon, selectedPlayground.lat])
         .setDOMContent(popupNode)
