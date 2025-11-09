@@ -10,7 +10,7 @@ import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
 // Cache version - increment this to invalidate all cached data when schema changes
-const CACHE_VERSION = "v5"; // v5: Fixed duplicate names by emphasizing CLOSEST playground to coordinates (0.15mi radius)
+const CACHE_VERSION = "v6"; // v6: Added OSM name back as hint to help AI identify correct playground
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -390,11 +390,9 @@ export async function fetchPerplexityInsights({
   };
 
   // Enhanced prompt with explicit geographic constraints
-  // NOTE: We intentionally do NOT include the OSM name in the prompt because:
-  // 1. OSM names are often generic/unofficial (e.g., "Hamilton Street Playground")
-  // 2. Many playgrounds are inside recreation centers or parks with different official names
-  // 3. Strict name matching causes AI to reject valid playgrounds at the correct location
-  const prompt = `Find detailed information about a children's playground${locationContext}.
+  // Include OSM name as a hint to help AI identify the correct playground
+  const osmNameHint = name ? ` The local mapping data suggests this may be called "${name}".` : '';
+  const prompt = `Find detailed information about a children's playground${locationContext}.${osmNameHint}
 
 GEOGRAPHIC SEARCH AREA:
 - Target coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} in ${cityState}
@@ -404,10 +402,12 @@ GEOGRAPHIC SEARCH AREA:
 
 CRITICAL LOCATION MATCHING RULES:
 - Your goal is to identify the SPECIFIC playground at or nearest to the target coordinates
+- If a name was suggested, prioritize playgrounds with similar names in the target area
+- However, the playground's official name may differ from the suggested name - use the name you find in sources
 - If multiple playgrounds exist in the search area, choose the one CLOSEST to the target coordinates
 - Most sources don't provide exact GPS coordinates, so use addresses, neighborhood descriptions, and facility names to identify the closest match
 - DO NOT return a well-known playground from across the neighborhood if there's likely a different playground closer to the coordinates
-- If you cannot determine which playground is at the target coordinates, return null rather than guessing
+- If you cannot confidently identify which playground is at the target coordinates, return null rather than guessing
 - DO NOT return results from different cities, states, or countries
 - If sources mention a different city/state than ${cityState}, return null for all fields
 
