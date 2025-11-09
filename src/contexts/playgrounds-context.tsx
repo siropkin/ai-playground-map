@@ -15,9 +15,8 @@ import { Playground } from "@/types/playground";
 import { useFilters } from "@/contexts/filters-context";
 import {
   searchPlaygrounds,
-  fetchLocationData,
-  generatePlaygroundAiInsights,
   generatePlaygroundAiInsightsBatch,
+  fetchPlaygroundImages,
 } from "@/lib/api/client";
 // Tier calculation now done by Gemini AI - no longer needed locally
 import { useDebounce } from "@/lib/hooks";
@@ -53,7 +52,7 @@ interface PlaygroundsContextType {
   requestFlyTo: (coords: FlyToCoordinates) => void;
   clearFlyToRequest: () => void;
   enrichPlayground: (playgroundId: number) => Promise<void>;
-  enrichPlaygroundsBatch: (playgroundIds: number[], skipImages?: boolean) => Promise<void>;
+  enrichPlaygroundsBatch: (playgroundIds: number[]) => Promise<void>;
   loadImagesForPlayground: (playgroundId: number) => Promise<void>;
   selectedPlayground: Playground | null;
   selectPlayground: (playground: Playground) => void;
@@ -77,7 +76,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Ref to store enrichPlaygroundsBatch function for eager enrichment
-  const enrichPlaygroundsBatchRef = useRef<(ids: number[], skipImages?: boolean) => Promise<void>>(() => Promise.resolve());
+  const enrichPlaygroundsBatchRef = useRef<(ids: number[]) => Promise<void>>(() => Promise.resolve());
 
   // Track recently enriched playgrounds to prevent duplicate requests
   const recentlyEnrichedRef = useRef<Map<number, number>>(new Map()); // playgroundId -> timestamp
@@ -161,11 +160,11 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             // Process in batches of 5 sequentially to avoid overwhelming the backend
             // Center playgrounds (most likely visible) will be enriched first
-            // Use skipImages=true for initial enrichment (lazy load images later)
+            // NOTE: AI enrichment no longer fetches images - images loaded separately
             (async () => {
               for (let i = 0; i < allPlaygroundIds.length; i += 5) {
                 const batch = allPlaygroundIds.slice(i, i + 5);
-                await enrichPlaygroundsBatchRef.current(batch, true); // skipImages=true
+                await enrichPlaygroundsBatchRef.current(batch);
               }
             })();
           }
@@ -204,81 +203,18 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   }, [mapBounds]);
 
   // Enrich a single playground
+  // Uses batch API internally for consistency (AI insights only, no images)
   const enrichPlayground = useCallback(
     async (playgroundId: number) => {
-      // Get playground from current state to avoid stale closures
-      let playground: Playground | undefined;
-      await new Promise<void>(resolve => {
-        setPlaygrounds((prev) => {
-          playground = prev.find((p) => p.osmId === playgroundId);
-          resolve();
-          return prev;
-        });
-      });
-
-      if (!playground || playground.enriched) return;
-
-      try {
-        const osmIdFormatted = playground.osmType && playground.osmId
-          ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
-          : undefined;
-
-        // PERFORMANCE OPTIMIZATION: Try cache-only check first with osmId
-        // This saves 100-500ms of Nominatim reverse geocoding for cached results
-        let insight = await generatePlaygroundAiInsights({
-          name: playground.name || undefined,
-          osmId: osmIdFormatted,
-          signal: abortControllerRef.current?.signal,
-        });
-
-        // If cache miss and we have osmId, fetch location and try full enrichment
-        if (!insight && osmIdFormatted) {
-          const location = await fetchLocationData(
-            playground.lat,
-            playground.lon,
-            abortControllerRef.current?.signal,
-          );
-
-          if (!location) return;
-
-          insight = await generatePlaygroundAiInsights({
-            location,
-            name: playground.name || undefined,
-            osmId: osmIdFormatted,
-            signal: abortControllerRef.current?.signal,
-          });
-        }
-
-        // Tier now comes directly from Gemini AI
-        setPlaygrounds((prev) =>
-          prev.map((p) =>
-            p.osmId === playgroundId
-              ? {
-                  ...p,
-                  name: insight?.name || p.name,
-                  description: insight?.description || p.description,
-                  features: insight?.features || p.features,
-                  parking: insight?.parking || p.parking,
-                  sources: insight?.sources || p.sources,
-                  images: insight?.images || p.images,
-                  accessibility: validateAccessibility(insight?.accessibility) || p.accessibility,
-                  tier: insight?.tier || null,
-                  tierReasoning: insight?.tier_reasoning || null,
-                  enriched: true,
-                }
-              : p,
-          ),
-        );
-      } catch (error) {
-        console.error(`[Context] ❌ Error enriching playground ${playgroundId}:`, error);
-      }
+      await enrichPlaygroundsBatchRef.current([playgroundId]);
     },
-    [], // No dependencies - we get playground from setState callback
+    [], // Uses ref to avoid circular dependency
   );
 
   // Enrich multiple playgrounds in a batch (max 5)
+  // NOTE: This only fetches AI insights - use loadImagesForPlayground for images
   const enrichPlaygroundsBatch = useCallback(
-    async (playgroundIds: number[], skipImages = false) => {
+    async (playgroundIds: number[]) => {
       // Filter out recently enriched playgrounds (within last 5 seconds)
       const now = Date.now();
       const DEDUPE_WINDOW = 5000; // 5 seconds
@@ -330,7 +266,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               : undefined,
           })),
           signal: abortControllerRef.current?.signal,
-          skipImages,
         });
 
         // Update playgrounds with insights
@@ -364,6 +299,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   );
 
   // Load images for a specific playground (lazy loading on visibility)
+  // Uses separate image service (src/lib/images.ts) - not Gemini
   const loadImagesForPlayground = useCallback(
     async (playgroundId: number) => {
       // Get playground from current state
@@ -381,41 +317,37 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Skip if no name (can't search for images without a name)
+      if (!playground.name) {
+        return;
+      }
+
       try {
         const osmIdFormatted = playground.osmType && playground.osmId
           ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
           : undefined;
 
-        // Fetch location data first (needed for image search)
-        const location = await fetchLocationData(
-          playground.lat,
-          playground.lon,
-          abortControllerRef.current?.signal,
-        );
-
-        if (!location) return;
-
-        // Now fetch with images (skipImages=false)
-        const insight = await generatePlaygroundAiInsights({
-          location,
-          name: playground.name || undefined,
+        // Fetch images from Google Custom Search (separate service)
+        const images = await fetchPlaygroundImages({
+          playgroundName: playground.name,
+          city: playground.address?.split(',')[1]?.trim(),
           osmId: osmIdFormatted,
           signal: abortControllerRef.current?.signal,
         });
 
         // Update only if we got images
-        if (insight?.images) {
+        if (images && images.length > 0) {
           setPlaygrounds((prev) =>
             prev.map((p) =>
               p.osmId === playgroundId
                 ? {
                     ...p,
-                    images: insight.images,
+                    images,
                   }
                 : p,
             ),
           );
-          console.log(`[Context] 🖼️ Loaded images for playground ${playgroundId}`);
+          console.log(`[Context] 🖼️ Loaded ${images.length} images for playground ${playgroundId}`);
         }
       } catch (error) {
         console.error(`[Context] ❌ Error loading images for playground ${playgroundId}:`, error);

@@ -31,6 +31,8 @@ ALTER TABLE osm_query_cache DISABLE ROW LEVEL SECURITY;
 -- ============================================
 -- 2. AI Insights Cache Table
 -- ============================================
+-- NOTE: 'images' field is deprecated - use playground_images_cache table instead
+-- Kept for backward compatibility during migration
 CREATE TABLE IF NOT EXISTS ai_insights_cache (
   cache_key TEXT PRIMARY KEY,
   name TEXT,
@@ -38,7 +40,7 @@ CREATE TABLE IF NOT EXISTS ai_insights_cache (
   features JSONB,
   parking TEXT,
   sources JSONB,
-  images JSONB,
+  images JSONB, -- DEPRECATED: Use playground_images_cache instead
   accessibility JSONB,
   tier TEXT CHECK (tier IN ('neighborhood', 'gem', 'star')),
   tier_reasoning TEXT,
@@ -62,7 +64,28 @@ ALTER TABLE ai_insights_cache DISABLE ROW LEVEL SECURITY;
 
 
 -- ============================================
--- 3. Playground Issues Table
+-- 3. Playground Images Cache Table (NEW)
+-- ============================================
+CREATE TABLE IF NOT EXISTS playground_images_cache (
+  cache_key TEXT PRIMARY KEY,
+  images JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  schema_version INTEGER DEFAULT 1
+);
+
+-- Add index for created_at for TTL checks
+CREATE INDEX IF NOT EXISTS idx_playground_images_cache_created_at
+ON playground_images_cache(created_at);
+
+-- Add comment
+COMMENT ON TABLE playground_images_cache IS 'Caches playground images from Google Custom Search with 1 year TTL';
+
+-- Disable RLS for cache table (no user-specific data)
+ALTER TABLE playground_images_cache DISABLE ROW LEVEL SECURITY;
+
+
+-- ============================================
+-- 4. Playground Issues Table
 -- ============================================
 CREATE TABLE IF NOT EXISTS playground_issues (
   id BIGSERIAL PRIMARY KEY,
@@ -184,5 +207,5 @@ SELECT
   tablename,
   tableowner
 FROM pg_tables
-WHERE tablename IN ('osm_query_cache', 'ai_insights_cache', 'playground_issues')
+WHERE tablename IN ('osm_query_cache', 'ai_insights_cache', 'playground_images_cache', 'playground_issues')
 ORDER BY tablename;

@@ -31,7 +31,6 @@ import { AIInsights, AILocation } from "@/types/ai-insights";
 import { aiLimiter } from "@/lib/rate-limiter";
 import { deduplicatedFetch } from "@/lib/request-dedup";
 import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
-import { searchImages, buildPlaygroundImageQuery } from "@/lib/google-image-search";
 
 // Cache version - increment this to invalidate all cached data when schema changes
 const CACHE_VERSION = "v17-tier-fields-fixed"; // v17: Fixed bug where tier/accessibility fields weren't being saved to cache
@@ -44,16 +43,15 @@ function removeCitationMarkers(text: string | null): string | null {
 }
 
 // Function to fetch AI insights from Google Gemini with web search
+// NOTE: This function does NOT fetch images - use src/lib/images.ts instead
 export async function fetchGeminiInsights({
   location,
   name,
   signal,
-  skipImages = false,
 }: {
   location: AILocation;
   name?: string;
   signal?: AbortSignal;
-  skipImages?: boolean;
 }): Promise<AIInsights | null> {
   if (signal?.aborted) {
     return null;
@@ -215,34 +213,8 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       }
     }
 
-    // Fetch images using Google Custom Search API (unless skipImages is true)
-    let images: AIInsights['images'] = null;
-    if (!skipImages && base.name && base.location_confidence !== 'low') {
-      try {
-        const imageQuery = buildPlaygroundImageQuery({
-          name: base.name,
-          city: location.city,
-          region: location.region,
-          country: location.country,
-        });
-
-        const rawImages = await searchImages(imageQuery, {
-          maxResults: 10,
-          signal,
-        });
-
-        // Use images directly from Google Custom Search API
-        // Google's SafeSearch and imgType=photo filters provide good quality results
-        images = rawImages.length > 0 ? rawImages : null;
-
-        console.log(`[Gemini] 🖼️ Found ${rawImages.length} images for "${base.name}"`);
-      } catch (error) {
-        console.error('[Gemini] ❌ Error fetching images:', error);
-        // Continue without images rather than failing the whole request
-      }
-    } else if (skipImages) {
-      console.log(`[Gemini] ⏩ Skipping image search (lazy loading enabled)`);
-    }
+    // NOTE: Images are NOT fetched here
+    // Use src/lib/images.ts -> fetchPlaygroundImages() for image loading
 
     // Construct the result object with internal metadata for validation
     const result = {
@@ -251,7 +223,7 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       features: base.features ?? null,
       parking: removeCitationMarkers(base.parking ?? null),
       sources: sources.length > 0 ? sources : null,
-      images,
+      images: null, // Images loaded separately via src/lib/images.ts
       accessibility: base.accessibility ?? null,
       // Tier rating from Gemini AI
       tier: base.tier ?? null,
@@ -274,18 +246,17 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
 }
 
 // Function to fetch AI insights from Gemini with caching and request deduplication
+// NOTE: This function does NOT fetch images - use src/lib/images.ts instead
 export async function fetchGeminiInsightsWithCache({
   location,
   name,
   osmId,
   signal,
-  skipImages = false,
 }: {
   location?: AILocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
-  skipImages?: boolean;
 }): Promise<AIInsights | null> {
   if (signal?.aborted) {
     return null;
@@ -326,7 +297,6 @@ export async function fetchGeminiInsightsWithCache({
         location,
         name,
         signal,
-        skipImages,
       }) as AIInsights & {
         _locationConfidence?: string;
         _locationVerification?: string | null;
@@ -381,11 +351,11 @@ export async function fetchGeminiInsightsWithCache({
 }
 
 // Batch function to fetch insights for multiple playgrounds efficiently
+// NOTE: This function does NOT fetch images - use src/lib/images.ts instead
 export async function fetchGeminiInsightsBatch({
   requests,
   signal,
   cacheOnly = false,
-  skipImages = false,
 }: {
   requests: Array<{
     playgroundId: number;
@@ -395,7 +365,6 @@ export async function fetchGeminiInsightsBatch({
   }>;
   signal?: AbortSignal;
   cacheOnly?: boolean;
-  skipImages?: boolean;
 }): Promise<
   Array<{
     playgroundId: number;
@@ -463,7 +432,6 @@ export async function fetchGeminiInsightsBatch({
               name: req.name,
               osmId: req.osmId,
               signal,
-              skipImages,
             });
             return {
               playgroundId: req.playgroundId,

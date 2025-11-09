@@ -1,6 +1,7 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
 import { AIInsights, AILocation } from "@/types/ai-insights";
+import { PlaygroundImage } from "@/lib/images";
 
 /**
  * Client-side function to search for playgrounds in the API
@@ -110,11 +111,11 @@ export async function generatePlaygroundAiInsights({
 
 /**
  * Client-side function to enrich multiple playgrounds in a single batch request
+ * NOTE: This does NOT fetch images - use src/lib/images.ts instead
  */
 export async function generatePlaygroundAiInsightsBatch({
   playgrounds,
   signal,
-  skipImages = false,
 }: {
   playgrounds: Array<{
     id: number;
@@ -124,7 +125,6 @@ export async function generatePlaygroundAiInsightsBatch({
     osmId?: string;
   }>;
   signal?: AbortSignal;
-  skipImages?: boolean;
 }): Promise<
   Array<{
     playgroundId: number;
@@ -138,7 +138,7 @@ export async function generatePlaygroundAiInsightsBatch({
         "Content-Type": "application/json",
         "x-app-origin": "internal",
       },
-      body: JSON.stringify({ playgrounds, skipImages }),
+      body: JSON.stringify({ playgrounds }),
       signal,
     });
 
@@ -154,5 +154,49 @@ export async function generatePlaygroundAiInsightsBatch({
     }
     console.error("[API Client] ❌ Error generating batch playground AI insights:", error);
     return [];
+  }
+}
+
+/**
+ * Client-side function to fetch playground images
+ */
+export async function fetchPlaygroundImages({
+  playgroundName,
+  city,
+  region,
+  country,
+  osmId,
+  signal,
+}: {
+  playgroundName: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  osmId?: string;
+  signal?: AbortSignal;
+}): Promise<PlaygroundImage[] | null> {
+  try {
+    const response = await fetch("/api/images", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-app-origin": "internal",
+      },
+      body: JSON.stringify({ playgroundName, city, region, country, osmId }),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.images || null;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return null;
+    }
+    console.error("[API Client] ❌ Error fetching playground images:", error);
+    return null;
   }
 }
