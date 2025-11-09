@@ -389,6 +389,21 @@ export const MapView = React.memo(function MapView() {
           (p) => p.osmId === feature.properties!.id
         );
         if (playground) {
+          // Toggle behavior: if clicking the same playground, close it
+          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
+            if (popupRef.current) {
+              popupRef.current.remove();
+              if (popupRootRef.current) {
+                const rootToUnmount = popupRootRef.current;
+                setTimeout(() => rootToUnmount.unmount(), 0);
+                popupRootRef.current = null;
+              }
+              popupRef.current = null;
+            }
+            clearSelectedPlayground();
+            return;
+          }
+
           // Close existing popup before selecting new one to prevent race condition
           if (popupRef.current) {
             popupRef.current.remove();
@@ -422,6 +437,21 @@ export const MapView = React.memo(function MapView() {
           (p) => p.osmId === feature.properties!.id
         );
         if (playground) {
+          // Toggle behavior: if clicking the same playground, close it
+          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
+            if (popupRef.current) {
+              popupRef.current.remove();
+              if (popupRootRef.current) {
+                const rootToUnmount = popupRootRef.current;
+                setTimeout(() => rootToUnmount.unmount(), 0);
+                popupRootRef.current = null;
+              }
+              popupRef.current = null;
+            }
+            clearSelectedPlayground();
+            return;
+          }
+
           // Close existing popup before selecting new one to prevent race condition
           if (popupRef.current) {
             popupRef.current.remove();
@@ -542,7 +572,7 @@ export const MapView = React.memo(function MapView() {
         map.current.getCanvas().style.cursor = "";
       }
     };
-  }, [isMapLoaded, playgrounds, selectPlayground, enrichPlayground]);
+  }, [isMapLoaded, playgrounds, selectPlayground, enrichPlayground, selectedPlayground, clearSelectedPlayground]);
 
   useEffect(() => {
     if (map.current) {
