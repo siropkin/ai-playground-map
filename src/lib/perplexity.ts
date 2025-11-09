@@ -727,6 +727,7 @@ export async function fetchPerplexityInsightsWithCache({
 export async function fetchPerplexityInsightsBatch({
   requests,
   signal,
+  cacheOnly = false,
 }: {
   requests: Array<{
     playgroundId: number;
@@ -735,6 +736,7 @@ export async function fetchPerplexityInsightsBatch({
     osmId?: string;
   }>;
   signal?: AbortSignal;
+  cacheOnly?: boolean; // If true, only check cache and don't fetch from API
 }): Promise<
   Array<{
     playgroundId: number;
@@ -793,8 +795,8 @@ export async function fetchPerplexityInsightsBatch({
     }
   }
 
-  // PHASE 3: Fetch cache misses from Perplexity API
-  if (misses.length > 0) {
+  // PHASE 3: Fetch cache misses from Perplexity API (unless cacheOnly mode)
+  if (misses.length > 0 && !cacheOnly) {
     console.log(`[Batch Enrichment] Fetching ${misses.length} from AI`);
 
     const apiResults = await Promise.all(
@@ -823,6 +825,12 @@ export async function fetchPerplexityInsightsBatch({
     );
 
     results.push(...apiResults);
+  } else if (misses.length > 0 && cacheOnly) {
+    // In cache-only mode, return null for all misses without API calls
+    results.push(...misses.map((req) => ({
+      playgroundId: req.playgroundId,
+      insights: null,
+    })));
   }
 
   return results;

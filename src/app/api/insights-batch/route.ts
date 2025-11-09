@@ -43,7 +43,7 @@ export async function POST(
     // This saves ~3 seconds of geocoding for cached playgrounds
     const cacheOnlyRequests = playgrounds.map((pg) => ({
       playgroundId: pg.id,
-      location: undefined, // No location = cache-only check
+      location: undefined, // No location for cache-only check
       name: pg.name,
       osmId: pg.osmId,
     }));
@@ -51,6 +51,7 @@ export async function POST(
     const cacheResults = await fetchPerplexityInsightsBatch({
       requests: cacheOnlyRequests,
       signal,
+      cacheOnly: true, // Only check cache, don't try to fetch from API
     });
 
     // Identify cache misses (playgrounds that need geocoding + full enrichment)
