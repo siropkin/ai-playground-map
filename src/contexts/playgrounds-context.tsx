@@ -97,7 +97,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
           // Merge new OSM data with existing enriched AI data
-          let newPlaygroundIds: number[] = [];
+          let updatedPlaygrounds: Playground[] = [];
           setPlaygrounds((prevPlaygrounds) => {
             const enrichedMap = new Map(
               prevPlaygrounds
@@ -105,7 +105,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 .map(p => [p.osmId, p])
             );
 
-            const updatedPlaygrounds = playgroundsForBounds.map(newPlayground => {
+            updatedPlaygrounds = playgroundsForBounds.map(newPlayground => {
               const existingEnriched = enrichedMap.get(newPlayground.osmId);
 
               if (existingEnriched) {
@@ -126,9 +126,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 };
               }
 
-              // Track new (non-enriched) playgrounds for eager enrichment
-              newPlaygroundIds.push(newPlayground.osmId);
-
               // New playground - ensure tier fields are null
               return {
                 ...newPlayground,
@@ -140,13 +137,17 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             return updatedPlaygrounds;
           });
 
-          // Eagerly enrich new playgrounds from cache immediately after fetch
-          if (newPlaygroundIds.length > 0 && !signal?.aborted) {
-            // Process in batches of 5
-            for (let i = 0; i < newPlaygroundIds.length; i += 5) {
-              const batch = newPlaygroundIds.slice(i, i + 5);
-              enrichPlaygroundsBatchRef.current(batch);
-            }
+          // Eagerly enrich ALL playgrounds from cache (including already-enriched ones)
+          // This ensures tier badges show immediately even for previously-enriched playgrounds
+          if (updatedPlaygrounds.length > 0 && !signal?.aborted) {
+            const allPlaygroundIds = updatedPlaygrounds.map(p => p.osmId);
+            // Process in batches of 5 sequentially to avoid overwhelming the backend
+            (async () => {
+              for (let i = 0; i < allPlaygroundIds.length; i += 5) {
+                const batch = allPlaygroundIds.slice(i, i + 5);
+                await enrichPlaygroundsBatchRef.current(batch);
+              }
+            })();
           }
         }
       } catch (err) {
@@ -185,7 +186,16 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   // Enrich a single playground
   const enrichPlayground = useCallback(
     async (playgroundId: number) => {
-      const playground = playgrounds.find((p) => p.osmId === playgroundId);
+      // Get playground from current state to avoid stale closures
+      let playground: Playground | undefined;
+      await new Promise<void>(resolve => {
+        setPlaygrounds((prev) => {
+          playground = prev.find((p) => p.osmId === playgroundId);
+          resolve();
+          return prev;
+        });
+      });
+
       if (!playground || playground.enriched) return;
 
       try {
@@ -245,17 +255,27 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         console.error(`Error enriching playground ${playgroundId}:`, error);
       }
     },
-    [playgrounds],
+    [], // No dependencies - we get playground from setState callback
   );
 
   // Enrich multiple playgrounds in a batch (max 5)
   const enrichPlaygroundsBatch = useCallback(
     async (playgroundIds: number[]) => {
-      const playgroundsToEnrich = playgrounds
-        .filter((p) => playgroundIds.includes(p.osmId) && !p.enriched)
-        .slice(0, 5); // Limit to 5 per batch
+      // Get current playground state using setState callback to avoid stale closures
+      let playgroundsToEnrich: Playground[] = [];
+      await new Promise<void>(resolve => {
+        setPlaygrounds((prev) => {
+          playgroundsToEnrich = prev
+            .filter((p) => playgroundIds.includes(p.osmId))
+            .slice(0, 5); // Limit to 5 per batch
+          resolve();
+          return prev; // Don't modify state here
+        });
+      });
 
-      if (playgroundsToEnrich.length === 0) return;
+      if (playgroundsToEnrich.length === 0) {
+        return;
+      }
 
       try {
         const results = await generatePlaygroundAiInsightsBatch({
@@ -300,7 +320,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         console.error("Error enriching playgrounds batch:", error);
       }
     },
-    [playgrounds],
+    [], // No dependencies - we get playgrounds from setState callback
   );
 
   // Update ref when enrichPlaygroundsBatch changes

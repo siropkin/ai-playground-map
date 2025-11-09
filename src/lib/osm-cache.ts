@@ -28,9 +28,7 @@ export function generateOSMCacheKey(bounds: MapBounds, zoom: number): string {
   const west = bounds.west.toFixed(precision);
   const zoomBucket = Math.floor(zoom); // Group by integer zoom
 
-  const cacheKey = `${OSM_CACHE_VERSION}:osm:${north}:${south}:${east}:${west}:${zoomBucket}`;
-  console.log(`[OSM Cache] Generated key: ${cacheKey} (precision: ${precision})`);
-  return cacheKey;
+  return `${OSM_CACHE_VERSION}:osm:${north}:${south}:${east}:${west}:${zoomBucket}`;
 }
 
 /**
