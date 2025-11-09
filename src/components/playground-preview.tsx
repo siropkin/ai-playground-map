@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TierBadge } from "@/components/tier-badge";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Playground } from "@/types/playground";
@@ -15,6 +16,7 @@ interface PlaygroundPreviewProps {
   onViewDetails?: () => void;
   onFlyTo?: (coords: [number, number]) => void;
   hideTitle?: boolean;
+  hideTierBadge?: boolean;
 }
 
 export function PlaygroundPreview({
@@ -22,6 +24,7 @@ export function PlaygroundPreview({
   onViewDetails,
   onFlyTo,
   hideTitle = false,
+  hideTierBadge = false,
 }: PlaygroundPreviewProps) {
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
@@ -51,6 +54,11 @@ export function PlaygroundPreview({
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-emerald-100 text-sm text-emerald-700/80 dark:from-sky-950/50 dark:to-emerald-950/50 dark:text-emerald-200/70">
             No image
           </div>
+        )}
+
+        {/* Tier Badge - Top right corner */}
+        {!hideTierBadge && playground.enriched && playground.tier && (
+          <TierBadge tier={playground.tier} size="sm" className="absolute right-2 top-2" />
         )}
 
         {/* Info Indicators - Only show when enriched */}

@@ -1,3 +1,5 @@
+import { PlaygroundTier } from "@/lib/tier-calculator";
+
 export type AccessibilityInfo = {
   wheelchair_accessible: boolean;
   surface_type: string | null;
@@ -43,4 +45,6 @@ export type Playground = {
   osmTags: Record<string, string> | null;
   enriched: boolean | null;
   accessibility: AccessibilityInfo | null;
+  tier: PlaygroundTier | null;
+  tierScore: number | null;
 };

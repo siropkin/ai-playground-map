@@ -19,8 +19,6 @@ import {
 import { MapBounds } from "@/types/map";
 import { useDebounce } from "@/lib/hooks";
 
-// TODO: Implement other filters
-
 interface FiltersContextType {
   mapBounds: MapBounds | null;
   setMapBounds: (bounds: MapBounds) => void;

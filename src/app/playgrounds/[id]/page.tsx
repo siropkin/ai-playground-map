@@ -17,12 +17,14 @@ import StructuredData from "@/components/structured-data";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TierBadge } from "@/components/tier-badge";
 import {
   MapPin,
   Navigation,
   ParkingCircle,
   Accessibility,
 } from "lucide-react";
+import { calculatePlaygroundTier } from "@/lib/tier-calculator";
 import ClearCacheButton from "./clear-cache-button";
 import ReportIssueForm from "./report-issue-form";
 import CollapsibleSources from "./collapsible-sources";
@@ -102,6 +104,26 @@ export default async function PlaygroundDetail({
     excludeOsmId: playground.osmId,
   });
 
+  // Calculate tier with reasons for display
+  const tierResult = playground.enriched
+    ? calculatePlaygroundTier({
+        name: playground.name,
+        description: playground.description,
+        features: playground.features,
+        parking: playground.parking,
+        accessibility: playground.accessibility,
+        images: playground.images,
+        sources: playground.sources,
+      })
+    : null;
+
+  // Add tier to playground object for map display
+  const playgroundWithTier = {
+    ...playground,
+    tier: tierResult?.tier || null,
+    tierScore: tierResult?.score || null,
+  };
+
   return (
     <>
       <StructuredData playground={playground} />
@@ -127,14 +149,19 @@ export default async function PlaygroundDetail({
         </div>
 
         {/* Header with Title and Actions */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold sm:text-4xl">
-              {playground.name || UNNAMED_PLAYGROUND}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-bold sm:text-4xl">
+                {playground.name || UNNAMED_PLAYGROUND}
+              </h1>
+              {tierResult && tierResult.tier !== "neighborhood" && (
+                <TierBadge tier={tierResult.tier} size="lg" />
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-shrink-0 flex-wrap gap-2">
             {/* Get Directions Button */}
             <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
               <Button size="default" className="gap-2">
@@ -162,6 +189,21 @@ export default async function PlaygroundDetail({
           <p className="text-muted-foreground text-sm italic">
             This playground&apos;s keeping its secrets (even from AI) 🤷
           </p>
+        )}
+
+        {/* Why This Is Special - Tier Reasons */}
+        {tierResult && tierResult.tier !== "neighborhood" && tierResult.reasons.length > 0 && (
+          <div className="flex items-start gap-2 rounded-lg border-2 border-purple-200 bg-gradient-to-br from-purple-50/50 to-pink-50/50 p-3 dark:border-purple-800/50 dark:from-purple-950/20 dark:to-pink-950/20">
+            <span className="flex-shrink-0 text-base leading-5">{tierResult.tier === "star" ? "⭐" : "💎"}</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium leading-5 text-purple-900 dark:text-purple-200">Why This Is Special</p>
+              <div className="text-muted-foreground mt-2 space-y-1 text-sm text-purple-800 dark:text-purple-300">
+                {tierResult.reasons.map((reason, i) => (
+                  <div key={i} className="capitalize">{reason}</div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Features */}
@@ -306,7 +348,7 @@ export default async function PlaygroundDetail({
             <div className="overflow-hidden rounded-b-lg">
               <div className="h-80 w-full">
                 <MapViewSingle
-                  playground={playground}
+                  playground={playgroundWithTier}
                   nearbyPlaygrounds={nearbyPlaygrounds}
                 />
               </div>
@@ -319,7 +361,7 @@ export default async function PlaygroundDetail({
           <div className="overflow-hidden rounded-lg">
             <div className="h-80 w-full">
               <MapViewSingle
-                playground={playground}
+                playground={playgroundWithTier}
                 nearbyPlaygrounds={nearbyPlaygrounds}
               />
             </div>

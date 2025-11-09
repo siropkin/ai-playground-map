@@ -49,6 +49,8 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       osmTags: null,
       enriched: false,
       accessibility: null,
+      tier: null,
+      tierScore: null,
     };
 
     // Build location object from OSM address data
@@ -68,6 +70,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       location,
       name: playground.name || undefined,
       osmId: correctOsmId,
+      priority: 'high', // Detail view should use high priority for best quality images
     });
 
     if (insight) {

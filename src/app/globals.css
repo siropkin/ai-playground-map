@@ -127,6 +127,13 @@
   min-width: 320px !important;
 }
 
+/* Playground popup - max height and scroll */
+.playground-popup .mapboxgl-popup-content {
+  max-height: calc(100vh - 120px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 .mapboxgl-popup-close-button {
   width: 28px !important;
   height: 28px !important;

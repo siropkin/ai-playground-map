@@ -68,6 +68,8 @@ export default function MapViewSingle({
       const colors = getMapColors(theme);
 
       // Add current playground
+      const currentTier = playground.enriched ? (playground.tier || "neighborhood") : "neighborhood";
+
       map.current!.addSource("current-playground", {
         type: "geojson",
         data: {
@@ -84,22 +86,47 @@ export default function MapViewSingle({
                 type: (playground.osmType || "").toString(),
                 name: playground.name || UNNAMED_PLAYGROUND,
                 isCurrent: true,
+                tier: currentTier,
               },
             },
           ],
         },
       });
 
-      // Add current playground marker (matches main map size)
+      // Add current playground marker with tier colors
       map.current!.addLayer({
         id: "current-point",
         type: "circle",
         source: "current-playground",
         paint: {
-          "circle-color": colors.current,
-          "circle-radius": 10, // Matches main map
-          "circle-stroke-width": 1, // Matches main map
-          "circle-stroke-color": colors.currentStroke,
+          "circle-color": [
+            "match",
+            ["get", "tier"],
+            "star", "#f59e0b", // Amber-500 for Star
+            "gem", "#a855f7", // Purple-500 for Gem
+            colors.current, // Default for neighborhood
+          ],
+          "circle-radius": [
+            "match",
+            ["get", "tier"],
+            "star", 8, // Larger for Star
+            "gem", 7, // Slightly larger for Gem
+            6, // Default for neighborhood
+          ],
+          "circle-stroke-width": [
+            "match",
+            ["get", "tier"],
+            "star", 2, // Thicker stroke for Star
+            "gem", 2, // Thicker stroke for Gem
+            1, // Default for neighborhood
+          ],
+          "circle-stroke-color": [
+            "match",
+            ["get", "tier"],
+            "star", "#fbbf24", // Amber-400 for Star stroke
+            "gem", "#c084fc", // Purple-400 for Gem stroke
+            colors.currentStroke, // Default for neighborhood
+          ],
         },
       });
 
@@ -129,32 +156,60 @@ export default function MapViewSingle({
           type: "geojson",
           data: {
             type: "FeatureCollection",
-            features: nearbyPlaygrounds.map((pg) => ({
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [pg.lon, pg.lat],
-              },
-              properties: {
-                id: pg.osmId,
-                type: (pg.osmType || "").toString(),
-                name: pg.name || UNNAMED_PLAYGROUND,
-                isCurrent: false,
-              },
-            })),
+            features: nearbyPlaygrounds.map((pg) => {
+              const tier = pg.enriched ? (pg.tier || "neighborhood") : "neighborhood";
+              return {
+                type: "Feature",
+                geometry: {
+                  type: "Point",
+                  coordinates: [pg.lon, pg.lat],
+                },
+                properties: {
+                  id: pg.osmId,
+                  type: (pg.osmType || "").toString(),
+                  name: pg.name || UNNAMED_PLAYGROUND,
+                  isCurrent: false,
+                  tier: tier,
+                },
+              };
+            }),
           },
         });
 
-        // Add nearby playground markers (smaller)
+        // Add nearby playground markers with tier colors
         map.current!.addLayer({
           id: "nearby-points",
           type: "circle",
           source: "nearby-playgrounds",
           paint: {
-            "circle-color": colors.nearby,
-            "circle-radius": 8,
-            "circle-stroke-width": 1.5,
-            "circle-stroke-color": colors.nearbyStroke,
+            "circle-color": [
+              "match",
+              ["get", "tier"],
+              "star", "#f59e0b", // Amber-500 for Star
+              "gem", "#a855f7", // Purple-500 for Gem
+              colors.nearby, // Default gray for neighborhood
+            ],
+            "circle-radius": [
+              "match",
+              ["get", "tier"],
+              "star", 6, // Slightly smaller than current but still larger for Star
+              "gem", 5.5, // Slightly smaller than current but still larger for Gem
+              5, // Default for neighborhood
+            ],
+            "circle-stroke-width": [
+              "match",
+              ["get", "tier"],
+              "star", 2, // Thicker stroke for Star
+              "gem", 2, // Thicker stroke for Gem
+              1.5, // Default for neighborhood
+            ],
+            "circle-stroke-color": [
+              "match",
+              ["get", "tier"],
+              "star", "#fbbf24", // Amber-400 for Star stroke
+              "gem", "#c084fc", // Purple-400 for Gem stroke
+              colors.nearbyStroke, // Default for neighborhood
+            ],
           },
         });
 

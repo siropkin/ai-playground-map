@@ -6,6 +6,7 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TierBadge } from "@/components/tier-badge";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
@@ -142,6 +143,11 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
               </div>
             )}
           </div>
+
+          {/* Tier Badge - Top right corner */}
+          {playground.enriched && playground.tier && (
+            <TierBadge tier={playground.tier} size="sm" className="absolute right-2 top-2" />
+          )}
 
           {/* Info Indicators - Only show when enriched */}
           {playground.enriched && (playground.parking || playground.accessibility) && (

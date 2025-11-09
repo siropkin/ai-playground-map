@@ -57,6 +57,8 @@ export async function fetchNearbyPlaygrounds({
         osmTags: item.tags,
         enriched: false,
         accessibility: null,
+        tier: null,
+        tierScore: null,
       }))
       .filter(
         (playground) =>

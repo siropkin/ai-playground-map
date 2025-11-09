@@ -15,6 +15,7 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { PlaygroundPreview } from "@/components/playground-preview";
+import { TierBadge } from "@/components/tier-badge";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 // Safely set Mapbox access token with proper error handling
@@ -81,7 +82,7 @@ const getMapBounds = (map: mapboxgl.Map | null): MapBounds => {
 
 const createGeoJson = (
   playgrounds: Playground[],
-): FeatureCollection<Point, { id: number; name: string }> => {
+): FeatureCollection<Point, { id: number; name: string; tier: string | null }> => {
   return {
     type: "FeatureCollection",
     features: playgrounds.map((playground) => ({
@@ -94,6 +95,7 @@ const createGeoJson = (
         id: playground.osmId,
         type: (playground.osmType || "").toString(),
         name: playground.enriched ? playground.name || UNNAMED_PLAYGROUND : "",
+        tier: playground.enriched ? (playground.tier || "neighborhood") : "neighborhood",
       },
     })),
   };
@@ -140,7 +142,7 @@ export const MapView = React.memo(function MapView() {
   // Memoize GeoJSON data to prevent recreation on every render
   const playgroundsGeoJson = useMemo((): FeatureCollection<
     Point,
-    { id: number; name: string }
+    { id: number; name: string; tier: string | null }
   > => {
     return createGeoJson(playgrounds || []);
   }, [playgrounds]);
@@ -221,10 +223,34 @@ export const MapView = React.memo(function MapView() {
           source: SOURCE_ID,
           filter: ["!", ["has", "point_count"]],
           paint: {
-            "circle-color": mapColors.point,
-            "circle-radius": 10,
-            "circle-stroke-width": 1,
-            "circle-stroke-color": mapColors.pointStroke,
+            "circle-color": [
+              "match",
+              ["get", "tier"],
+              "star", "#f59e0b", // Amber-500 for Star
+              "gem", "#a855f7", // Purple-500 for Gem
+              mapColors.point, // Default for neighborhood
+            ],
+            "circle-radius": [
+              "match",
+              ["get", "tier"],
+              "star", 8, // Larger for Star
+              "gem", 7, // Slightly larger for Gem
+              6, // Default for neighborhood
+            ],
+            "circle-stroke-width": [
+              "match",
+              ["get", "tier"],
+              "star", 2, // Thicker stroke for Star
+              "gem", 2, // Thicker stroke for Gem
+              1, // Default for neighborhood
+            ],
+            "circle-stroke-color": [
+              "match",
+              ["get", "tier"],
+              "star", "#fbbf24", // Amber-400 for Star stroke
+              "gem", "#c084fc", // Purple-400 for Gem stroke
+              mapColors.pointStroke, // Default for neighborhood
+            ],
           },
         });
       }
@@ -525,7 +551,9 @@ export const MapView = React.memo(function MapView() {
     if (popupRef.current) {
       popupRef.current.remove();
       if (popupRootRef.current) {
-        popupRootRef.current.unmount();
+        // Defer unmount to avoid race condition with React rendering
+        const rootToUnmount = popupRootRef.current;
+        setTimeout(() => rootToUnmount.unmount(), 0);
         popupRootRef.current = null;
       }
       popupRef.current = null;
@@ -538,13 +566,14 @@ export const MapView = React.memo(function MapView() {
 
       const popupNode = document.createElement("div");
 
-      // Create popup at playground location
+      // Create popup at playground location with smart positioning
       const popup = new mapboxgl.Popup({
         closeButton: true,
         closeOnClick: false,
         maxWidth: "400px",
         className: "playground-popup",
-        offset: 12, // Offset upward from marker center
+        anchor: 'left', // Position popup to the right of marker to avoid sidebar
+        offset: 25, // Offset to the right from marker
       })
         .setLngLat([currentPlayground.lon, currentPlayground.lat])
         .setDOMContent(popupNode)
@@ -558,16 +587,33 @@ export const MapView = React.memo(function MapView() {
       // Render React component into popup
       const root = createRoot(popupNode);
       root.render(
-        <div className="p-2">
-          <PlaygroundPreview
-            playground={currentPlayground}
-            onViewDetails={clearSelectedPlayground}
-            onFlyTo={(coords) => {
-              requestFlyTo(coords);
-              clearSelectedPlayground();
-            }}
-            hideTitle
-          />
+        <div className="flex flex-col">
+          {/* Header with title and space for close button */}
+          <div className="flex items-center justify-between gap-3 px-3 pb-0 pt-3 sm:pb-3">
+            <div className="flex flex-1 items-center gap-2 min-w-0">
+              <h3 className="text-base font-semibold truncate">
+                {currentPlayground.name || UNNAMED_PLAYGROUND}
+              </h3>
+              {currentPlayground.enriched && currentPlayground.tier && (
+                <TierBadge tier={currentPlayground.tier} size="sm" className="flex-shrink-0" />
+              )}
+            </div>
+            {/* Space reserved for Mapbox close button */}
+            <div className="w-6 h-6 flex-shrink-0" />
+          </div>
+          {/* Content */}
+          <div className="px-2 pb-2 pt-2 sm:pt-0">
+            <PlaygroundPreview
+              playground={currentPlayground}
+              onViewDetails={clearSelectedPlayground}
+              onFlyTo={(coords) => {
+                requestFlyTo(coords);
+                clearSelectedPlayground();
+              }}
+              hideTitle
+              hideTierBadge
+            />
+          </div>
         </div>
       );
 
@@ -581,7 +627,9 @@ export const MapView = React.memo(function MapView() {
         popupRef.current.remove();
       }
       if (popupRootRef.current) {
-        popupRootRef.current.unmount();
+        // Defer unmount to avoid race condition with React rendering
+        const rootToUnmount = popupRootRef.current;
+        setTimeout(() => rootToUnmount.unmount(), 0);
       }
     };
   }, [selectedPlayground, playgrounds, isMapLoaded, clearSelectedPlayground, requestFlyTo]);

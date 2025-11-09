@@ -19,6 +19,7 @@ import {
   generatePlaygroundAiInsights,
   generatePlaygroundAiInsightsBatch,
 } from "@/lib/api/client";
+import { calculatePlaygroundTier } from "@/lib/tier-calculator";
 import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
@@ -85,11 +86,19 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   parking: existingEnriched.parking,
                   sources: existingEnriched.sources,
                   images: existingEnriched.images,
+                  accessibility: existingEnriched.accessibility,
+                  tier: existingEnriched.tier,
+                  tierScore: existingEnriched.tierScore,
                   enriched: true,
                 };
               }
 
-              return newPlayground;
+              // New playground - ensure tier fields are null
+              return {
+                ...newPlayground,
+                tier: null,
+                tierScore: null,
+              };
             });
           });
         }
@@ -163,6 +172,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           });
         }
 
+        // Calculate tier from insights
+        const tierResult = calculatePlaygroundTier(insight);
+
         setPlaygrounds((prev) =>
           prev.map((p) =>
             p.osmId === playgroundId
@@ -174,6 +186,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   parking: insight?.parking || p.parking,
                   sources: insight?.sources || p.sources,
                   images: insight?.images || p.images,
+                  accessibility: insight?.accessibility || p.accessibility,
+                  tier: tierResult.tier,
+                  tierScore: tierResult.score,
                   enriched: true,
                 }
               : p,
@@ -215,6 +230,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             const result = results.find((r) => r.playgroundId === p.osmId);
             if (!result) return p; // No result for this playground
 
+            // Calculate tier from insights
+            const tierResult = calculatePlaygroundTier(result.insights);
+
             // Mark as enriched even if insights is null (enrichment completed but found nothing)
             return {
               ...p,
@@ -224,6 +242,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               parking: result.insights?.parking || p.parking,
               sources: result.insights?.sources || p.sources,
               images: result.insights?.images || p.images,
+              accessibility: result.insights?.accessibility || p.accessibility,
+              tier: tierResult.tier,
+              tierScore: tierResult.score,
               enriched: true, // Always mark as enriched, even if insights is null
             };
           }),
