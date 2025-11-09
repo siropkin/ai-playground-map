@@ -174,10 +174,6 @@ export default function ImageCarousel({
               />
             ))}
           </div>
-          {/* Image counter */}
-          <div className="bg-background/80 absolute top-4 right-2 rounded-full px-2 py-1 text-xs">
-            {currentIndex + 1} / {images.length}
-          </div>
         </>
       )}
     </div>
