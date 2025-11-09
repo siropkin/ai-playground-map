@@ -150,7 +150,22 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
           )}
 
           {/* Info Indicators - Only show when enriched */}
-          {playground.enriched && (playground.parking || playground.accessibility) && (
+          {playground.enriched && (playground.parking || (playground.accessibility && (
+            playground.accessibility.wheelchair_accessible ||
+            playground.accessibility.surface_type ||
+            playground.accessibility.transfer_stations ||
+            (playground.accessibility.ground_level_activities !== null && playground.accessibility.ground_level_activities > 0) ||
+            (playground.accessibility.sensory_friendly && (
+              playground.accessibility.sensory_friendly.quiet_zones ||
+              playground.accessibility.sensory_friendly.tactile_elements ||
+              playground.accessibility.sensory_friendly.visual_aids
+            )) ||
+            (playground.accessibility.shade_coverage &&
+              playground.accessibility.shade_coverage !== "none" &&
+              playground.accessibility.shade_coverage !== "minimal") ||
+            (playground.accessibility.accessible_parking?.available) ||
+            (playground.accessibility.accessible_restrooms?.available)
+          ))) && (
             <div className="absolute bottom-2 left-2 flex gap-1.5">
               {playground.parking && (
                 <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
@@ -158,6 +173,21 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
                 </div>
               )}
               {playground.accessibility && (
+                playground.accessibility.wheelchair_accessible ||
+                playground.accessibility.surface_type ||
+                playground.accessibility.transfer_stations ||
+                (playground.accessibility.ground_level_activities !== null && playground.accessibility.ground_level_activities > 0) ||
+                (playground.accessibility.sensory_friendly && (
+                  playground.accessibility.sensory_friendly.quiet_zones ||
+                  playground.accessibility.sensory_friendly.tactile_elements ||
+                  playground.accessibility.sensory_friendly.visual_aids
+                )) ||
+                (playground.accessibility.shade_coverage &&
+                  playground.accessibility.shade_coverage !== "none" &&
+                  playground.accessibility.shade_coverage !== "minimal") ||
+                (playground.accessibility.accessible_parking?.available) ||
+                (playground.accessibility.accessible_restrooms?.available)
+              ) && (
                 <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                   <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
