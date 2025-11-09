@@ -26,31 +26,23 @@ type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
 // Validate accessibility data structure to reject old/malformed cache data
 function validateAccessibility(accessibility: any): Playground["accessibility"] {
-  if (!accessibility || typeof accessibility !== "object") {
+  // New format: array of strings (v6+)
+  if (Array.isArray(accessibility)) {
+    // Validate it's an array of strings
+    if (accessibility.every(item => typeof item === "string")) {
+      return accessibility;
+    }
+    console.warn("[PlaygroundsContext] Rejecting malformed accessibility array");
     return null;
   }
 
-  // Check for old format (string values instead of structured data)
-  // Old format had fields like "wheelchair_access" (string) instead of "wheelchair_accessible" (boolean)
-  if (
-    typeof accessibility.wheelchair_accessible === "string" ||
-    typeof accessibility.wheelchair_access !== "undefined" ||
-    typeof accessibility.ground_level_activities === "string" ||
-    typeof accessibility.transfer_stations === "string" ||
-    typeof accessibility.sensory_friendly === "string" ||
-    typeof accessibility.accessible_parking === "string" ||
-    typeof accessibility.accessible_restrooms === "string"
-  ) {
-    console.warn("[PlaygroundsContext] Rejecting malformed accessibility data (old schema)");
+  // Old format: object (v5 and earlier) - reject
+  if (accessibility && typeof accessibility === "object") {
+    console.warn("[PlaygroundsContext] Rejecting old accessibility object format");
     return null;
   }
 
-  // Validate structure matches expected schema
-  if (typeof accessibility.wheelchair_accessible !== "boolean") {
-    return null;
-  }
-
-  return accessibility;
+  return null;
 }
 
 interface PlaygroundsContextType {

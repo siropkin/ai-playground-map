@@ -152,36 +152,35 @@ export function calculatePlaygroundTier(insights: PerplexityInsights | null): Ti
     }
   }
 
-  // Wheelchair accessible
-  if (insights.accessibility?.wheelchair_accessible) {
-    score += 10;
-    amenityReasons.push("wheelchair accessible");
-  }
+  // Accessibility features (array format)
+  const accessibilityCount = insights.accessibility?.length || 0;
 
-  // Shade coverage
-  if (insights.accessibility?.shade_coverage) {
-    const shade = insights.accessibility.shade_coverage;
-    if (shade === "full" || shade === "mostly-covered") {
-      score += 5;
-      amenityReasons.push("good shade coverage");
+  if (accessibilityCount > 0) {
+    const accessibilityText = insights.accessibility?.join(" ").toLowerCase() || "";
+
+    // Wheelchair accessible
+    if (accessibilityText.includes("wheelchair")) {
+      score += 10;
+      amenityReasons.push("wheelchair accessible");
     }
-  }
 
-  // Accessible restrooms
-  if (insights.accessibility?.accessible_restrooms?.available) {
-    score += 5;
-    amenityReasons.push("accessible restrooms");
-  }
+    // Shade coverage
+    if (accessibilityText.includes("shade")) {
+      score += 5;
+      amenityReasons.push("shade coverage");
+    }
 
-  // Sensory friendly
-  if (
-    insights.accessibility?.sensory_friendly &&
-    (insights.accessibility.sensory_friendly.quiet_zones ||
-      insights.accessibility.sensory_friendly.tactile_elements ||
-      insights.accessibility.sensory_friendly.visual_aids)
-  ) {
-    score += 5;
-    amenityReasons.push("sensory-friendly features");
+    // Accessible restrooms
+    if (accessibilityText.includes("restroom") || accessibilityText.includes("changing_table")) {
+      score += 5;
+      amenityReasons.push("accessible restrooms");
+    }
+
+    // Sensory friendly
+    if (accessibilityText.includes("sensory") || accessibilityText.includes("tactile") || accessibilityText.includes("quiet")) {
+      score += 5;
+      amenityReasons.push("sensory-friendly features");
+    }
   }
 
   // Add amenities to reasons (list them out instead of just a count)

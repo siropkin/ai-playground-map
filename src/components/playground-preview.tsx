@@ -84,44 +84,14 @@ export function PlaygroundPreview({
         )}
 
         {/* Info Indicators - Bottom Left - Only show when enriched */}
-        {!hideBottomIndicators && playground.enriched && (playground.parking || (playground.accessibility && (
-          playground.accessibility.wheelchair_accessible ||
-          (playground.accessibility.surface_type && playground.accessibility.surface_type.trim()) ||
-          playground.accessibility.transfer_stations ||
-          (playground.accessibility.ground_level_activities !== null && playground.accessibility.ground_level_activities > 0) ||
-          (playground.accessibility.sensory_friendly && (
-            playground.accessibility.sensory_friendly.quiet_zones ||
-            playground.accessibility.sensory_friendly.tactile_elements ||
-            playground.accessibility.sensory_friendly.visual_aids
-          )) ||
-          (playground.accessibility.shade_coverage &&
-            playground.accessibility.shade_coverage !== "none" &&
-            playground.accessibility.shade_coverage !== "minimal") ||
-          (playground.accessibility.accessible_parking?.available) ||
-          (playground.accessibility.accessible_restrooms?.available)
-        ))) && (
+        {!hideBottomIndicators && playground.enriched && (playground.parking || (playground.accessibility && playground.accessibility.length > 0)) && (
           <div className="absolute bottom-2 left-2 flex gap-1.5">
             {playground.parking && (
               <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                 <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
             )}
-            {playground.accessibility && (
-              playground.accessibility.wheelchair_accessible ||
-              (playground.accessibility.surface_type && playground.accessibility.surface_type.trim()) ||
-              playground.accessibility.transfer_stations ||
-              (playground.accessibility.ground_level_activities !== null && playground.accessibility.ground_level_activities > 0) ||
-              (playground.accessibility.sensory_friendly && (
-                playground.accessibility.sensory_friendly.quiet_zones ||
-                playground.accessibility.sensory_friendly.tactile_elements ||
-                playground.accessibility.sensory_friendly.visual_aids
-              )) ||
-              (playground.accessibility.shade_coverage &&
-                playground.accessibility.shade_coverage !== "none" &&
-                playground.accessibility.shade_coverage !== "minimal") ||
-              (playground.accessibility.accessible_parking?.available) ||
-              (playground.accessibility.accessible_restrooms?.available)
-            ) && (
+            {playground.accessibility && playground.accessibility.length > 0 && (
               <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                 <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
@@ -193,49 +163,16 @@ export function PlaygroundPreview({
           ) : (
             <div className="text-muted-foreground text-xs">
               <div className="font-medium">Accessibility:</div>
-              {playground.accessibility ? (
-                <div className="mt-1 space-y-0.5">
-                  {playground.accessibility.wheelchair_accessible && (
-                    <div className="flex items-center gap-1">
-                      <Accessibility className="h-3 w-3 flex-shrink-0" />
-                      <span>Wheelchair accessible</span>
-                    </div>
+              {playground.accessibility && playground.accessibility.length > 0 ? (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {playground.accessibility.slice(0, 3).map((feature, i) => (
+                    <Badge variant="outline" key={i} className="text-xs">
+                      <span className="truncate">{formatEnumString(feature)}</span>
+                    </Badge>
+                  ))}
+                  {playground.accessibility.length > 3 && (
+                    <Badge variant="outline" className="text-xs">+{playground.accessibility.length - 3}</Badge>
                   )}
-                  {playground.accessibility.sensory_friendly &&
-                    (playground.accessibility.sensory_friendly.quiet_zones ||
-                      playground.accessibility.sensory_friendly.tactile_elements ||
-                      playground.accessibility.sensory_friendly.visual_aids) && (
-                      <div className="flex items-center gap-1">
-                        <Volume2 className="h-3 w-3 flex-shrink-0" />
-                        <span>Sensory-friendly features</span>
-                      </div>
-                    )}
-                  {playground.accessibility.shade_coverage &&
-                    playground.accessibility.shade_coverage !== "none" &&
-                    playground.accessibility.shade_coverage !== "minimal" && (
-                      <div className="flex items-center gap-1">
-                        <Umbrella className="h-3 w-3 flex-shrink-0" />
-                        <span>
-                          {playground.accessibility.shade_coverage
-                            .split("-")
-                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(" ")}{" "}
-                          shade
-                        </span>
-                      </div>
-                    )}
-                  {!playground.accessibility.wheelchair_accessible &&
-                    !(
-                      playground.accessibility.sensory_friendly &&
-                      (playground.accessibility.sensory_friendly.quiet_zones ||
-                        playground.accessibility.sensory_friendly.tactile_elements ||
-                        playground.accessibility.sensory_friendly.visual_aids)
-                    ) &&
-                    (!playground.accessibility.shade_coverage ||
-                      playground.accessibility.shade_coverage === "none" ||
-                      playground.accessibility.shade_coverage === "minimal") && (
-                      <div className="italic">No accessibility information available</div>
-                    )}
                 </div>
               ) : (
                 <div className="mt-1 italic">No accessibility information available</div>

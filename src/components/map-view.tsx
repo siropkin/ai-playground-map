@@ -382,12 +382,24 @@ export const MapView = React.memo(function MapView() {
       },
     ) => {
       e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
           (p) => p.osmId === feature.properties!.id
         );
         if (playground) {
+          // Close existing popup before selecting new one to prevent race condition
+          if (popupRef.current) {
+            popupRef.current.remove();
+            if (popupRootRef.current) {
+              const rootToUnmount = popupRootRef.current;
+              setTimeout(() => rootToUnmount.unmount(), 0);
+              popupRootRef.current = null;
+            }
+            popupRef.current = null;
+          }
+
           selectPlayground(playground);
           // Trigger enrichment if not already enriched
           if (!playground.enriched) {
@@ -403,12 +415,24 @@ export const MapView = React.memo(function MapView() {
       },
     ) => {
       e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
           (p) => p.osmId === feature.properties!.id
         );
         if (playground) {
+          // Close existing popup before selecting new one to prevent race condition
+          if (popupRef.current) {
+            popupRef.current.remove();
+            if (popupRootRef.current) {
+              const rootToUnmount = popupRootRef.current;
+              setTimeout(() => rootToUnmount.unmount(), 0);
+              popupRootRef.current = null;
+            }
+            popupRef.current = null;
+          }
+
           selectPlayground(playground);
           // Trigger enrichment if not already enriched
           if (!playground.enriched) {
@@ -547,7 +571,7 @@ export const MapView = React.memo(function MapView() {
     const isDesktop = window.innerWidth >= 768;
     if (!isDesktop) return; // Mobile uses Sheet instead
 
-    // Clean up existing popup
+    // Clean up existing popup with delay to prevent flicker
     if (popupRef.current) {
       popupRef.current.remove();
       if (popupRootRef.current) {
