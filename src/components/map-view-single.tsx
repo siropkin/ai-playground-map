@@ -109,9 +109,9 @@ export default function MapViewSingle({
           "circle-radius": [
             "match",
             ["get", "tier"],
-            "star", 8, // Larger for Star
-            "gem", 7, // Slightly larger for Gem
-            6, // Default for neighborhood
+            "star", 12, // Larger for Star
+            "gem", 10, // Slightly larger for Gem
+            9, // Default for neighborhood
           ],
           "circle-stroke-width": [
             "match",
@@ -192,9 +192,9 @@ export default function MapViewSingle({
             "circle-radius": [
               "match",
               ["get", "tier"],
-              "star", 6, // Slightly smaller than current but still larger for Star
-              "gem", 5.5, // Slightly smaller than current but still larger for Gem
-              5, // Default for neighborhood
+              "star", 10, // Slightly smaller than current but still larger for Star
+              "gem", 8, // Slightly smaller than current but still larger for Gem
+              7, // Default for neighborhood
             ],
             "circle-stroke-width": [
               "match",
