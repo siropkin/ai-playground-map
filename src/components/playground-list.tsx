@@ -87,10 +87,12 @@ function useEnrichmentBatch() {
 }
 
 // Individual playground item with intersection observer
+// Memoized with custom comparison to prevent unnecessary re-renders during batch enrichment
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
-  const { requestFlyTo } = usePlaygrounds();
+  const { requestFlyTo, loadImagesForPlayground } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
+  const hasTriggeredImageLoad = useRef(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
 
   const { ref, inView } = useInView({
@@ -99,12 +101,21 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
     triggerOnce: true, // Only trigger once per item
   });
 
+  // Trigger AI enrichment (without images) when card enters viewport
   useEffect(() => {
     if (inView && !playground.enriched && !hasTriggeredEnrichment.current) {
       hasTriggeredEnrichment.current = true;
       requestEnrichment(playground.osmId);
     }
   }, [inView, playground.enriched, playground.osmId, requestEnrichment]);
+
+  // Trigger image loading when card is visible and enriched (lazy loading)
+  useEffect(() => {
+    if (inView && playground.enriched && !playground.images && !hasTriggeredImageLoad.current) {
+      hasTriggeredImageLoad.current = true;
+      loadImagesForPlayground(playground.osmId);
+    }
+  }, [inView, playground.enriched, playground.images, playground.osmId, loadImagesForPlayground]);
 
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
@@ -238,6 +249,22 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
         </CardContent>
       </Card>
     </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function to optimize re-renders
+  // Only re-render if relevant playground data actually changed
+  const prev = prevProps.playground;
+  const next = nextProps.playground;
+
+  return (
+    prev.osmId === next.osmId &&
+    prev.enriched === next.enriched &&
+    prev.name === next.name &&
+    prev.description === next.description &&
+    prev.tier === next.tier &&
+    prev.images === next.images && // Reference comparison is fine for images array
+    prev.features === next.features && // Reference comparison is fine for features array
+    prev.address === next.address
   );
 });
 

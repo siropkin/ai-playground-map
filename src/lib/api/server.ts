@@ -70,7 +70,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       location,
       name: playground.name || undefined,
       osmId: correctOsmId,
-      priority: 'high', // Detail view should use high priority for best quality images
+      // Detail view loads all data including images (not using skipImages)
     });
 
     if (insight) {

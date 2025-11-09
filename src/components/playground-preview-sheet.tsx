@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -18,6 +19,7 @@ export function PlaygroundPreviewSheet() {
     clearSelectedPlayground,
     requestFlyTo,
     playgrounds,
+    loadImagesForPlayground,
   } = usePlaygrounds();
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -27,6 +29,13 @@ export function PlaygroundPreviewSheet() {
   const currentPlayground = selectedPlayground
     ? playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground
     : null;
+
+  // Load images when a playground is selected (popup/sheet opened)
+  useEffect(() => {
+    if (currentPlayground && currentPlayground.enriched && !currentPlayground.images) {
+      loadImagesForPlayground(currentPlayground.osmId);
+    }
+  }, [currentPlayground, loadImagesForPlayground]);
 
   const name = currentPlayground?.name || UNNAMED_PLAYGROUND;
 

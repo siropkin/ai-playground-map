@@ -31,7 +31,6 @@ import { AIInsights, AILocation } from "@/types/ai-insights";
 import { aiLimiter } from "@/lib/rate-limiter";
 import { deduplicatedFetch } from "@/lib/request-dedup";
 import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
-import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 import { searchImages, buildPlaygroundImageQuery } from "@/lib/google-image-search";
 
 // Cache version - increment this to invalidate all cached data when schema changes
@@ -49,12 +48,12 @@ export async function fetchGeminiInsights({
   location,
   name,
   signal,
-  priority = 'medium',
+  skipImages = false,
 }: {
   location: AILocation;
   name?: string;
   signal?: AbortSignal;
-  priority?: EnrichmentPriority;
+  skipImages?: boolean;
 }): Promise<AIInsights | null> {
   if (signal?.aborted) {
     return null;
@@ -110,16 +109,6 @@ Confidence guidelines:
 - "low": Can't find playground near these coordinates${name ? ' OR name completely different' : ''} (set all fields to null, tier=neighborhood)
 
 CRITICAL: Always return valid JSON, even if confidence is low. Never return plain text.`;
-
-  // Phase 4: Apply enrichment strategy based on priority
-  // Note: enrichmentStrategy could be used in future to adjust Gemini parameters
-  // based on priority (e.g., different models, temperature, etc.)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const enrichmentStrategy = getEnrichmentStrategy({
-    isDetailView: priority === 'high',
-    hasName: !!name,
-    priority,
-  });
 
   // Initialize Google Gemini client
   // Note: Don't specify apiVersion - SDK will use the correct default for google_search
@@ -226,9 +215,9 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       }
     }
 
-    // Fetch images using Google Custom Search API
+    // Fetch images using Google Custom Search API (unless skipImages is true)
     let images: AIInsights['images'] = null;
-    if (base.name && base.location_confidence !== 'low') {
+    if (!skipImages && base.name && base.location_confidence !== 'low') {
       try {
         const imageQuery = buildPlaygroundImageQuery({
           name: base.name,
@@ -251,6 +240,8 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
         console.error('[Gemini] ❌ Error fetching images:', error);
         // Continue without images rather than failing the whole request
       }
+    } else if (skipImages) {
+      console.log(`[Gemini] ⏩ Skipping image search (lazy loading enabled)`);
     }
 
     // Construct the result object with internal metadata for validation
@@ -288,13 +279,13 @@ export async function fetchGeminiInsightsWithCache({
   name,
   osmId,
   signal,
-  priority = 'medium',
+  skipImages = false,
 }: {
   location?: AILocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
-  priority?: EnrichmentPriority;
+  skipImages?: boolean;
 }): Promise<AIInsights | null> {
   if (signal?.aborted) {
     return null;
@@ -335,7 +326,7 @@ export async function fetchGeminiInsightsWithCache({
         location,
         name,
         signal,
-        priority,
+        skipImages,
       }) as AIInsights & {
         _locationConfidence?: string;
         _locationVerification?: string | null;
@@ -394,6 +385,7 @@ export async function fetchGeminiInsightsBatch({
   requests,
   signal,
   cacheOnly = false,
+  skipImages = false,
 }: {
   requests: Array<{
     playgroundId: number;
@@ -403,6 +395,7 @@ export async function fetchGeminiInsightsBatch({
   }>;
   signal?: AbortSignal;
   cacheOnly?: boolean;
+  skipImages?: boolean;
 }): Promise<
   Array<{
     playgroundId: number;
@@ -470,6 +463,7 @@ export async function fetchGeminiInsightsBatch({
               name: req.name,
               osmId: req.osmId,
               signal,
+              skipImages,
             });
             return {
               playgroundId: req.playgroundId,

@@ -14,7 +14,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { playgrounds } = body as {
+    const { playgrounds, skipImages = false } = body as {
       playgrounds: Array<{
         id: number;
         lat: number;
@@ -22,6 +22,7 @@ export async function POST(
         name?: string;
         osmId?: string;
       }>;
+      skipImages?: boolean;
     };
 
     if (!Array.isArray(playgrounds) || playgrounds.length === 0) {
@@ -98,11 +99,12 @@ export async function POST(
       .filter((loc): loc is NonNullable<typeof loc> => loc !== null);
 
     // Fetch insights for cache misses with full location data
-    console.log(`[API /insights-batch] 🚀 Fetching ${missRequests.length} playgrounds`);
+    console.log(`[API /insights-batch] 🚀 Fetching ${missRequests.length} playgrounds${skipImages ? ' (without images)' : ''}`);
 
     const missResults = await fetchGeminiInsightsBatch({
       requests: missRequests,
       signal,
+      skipImages,
     });
 
     console.log(`[API /insights-batch] ✅ Completed: ${missResults.filter(r => r.insights).length}/${missResults.length}`);

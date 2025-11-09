@@ -114,6 +114,7 @@ export async function generatePlaygroundAiInsights({
 export async function generatePlaygroundAiInsightsBatch({
   playgrounds,
   signal,
+  skipImages = false,
 }: {
   playgrounds: Array<{
     id: number;
@@ -123,6 +124,7 @@ export async function generatePlaygroundAiInsightsBatch({
     osmId?: string;
   }>;
   signal?: AbortSignal;
+  skipImages?: boolean;
 }): Promise<
   Array<{
     playgroundId: number;
@@ -136,7 +138,7 @@ export async function generatePlaygroundAiInsightsBatch({
         "Content-Type": "application/json",
         "x-app-origin": "internal",
       },
-      body: JSON.stringify({ playgrounds }),
+      body: JSON.stringify({ playgrounds, skipImages }),
       signal,
     });
 
