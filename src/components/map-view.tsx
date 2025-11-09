@@ -382,12 +382,39 @@ export const MapView = React.memo(function MapView() {
       },
     ) => {
       e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
           (p) => p.osmId === feature.properties!.id
         );
         if (playground) {
+          // Toggle behavior: if clicking the same playground, close it
+          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
+            if (popupRef.current) {
+              popupRef.current.remove();
+              if (popupRootRef.current) {
+                const rootToUnmount = popupRootRef.current;
+                setTimeout(() => rootToUnmount.unmount(), 0);
+                popupRootRef.current = null;
+              }
+              popupRef.current = null;
+            }
+            clearSelectedPlayground();
+            return;
+          }
+
+          // Close existing popup before selecting new one to prevent race condition
+          if (popupRef.current) {
+            popupRef.current.remove();
+            if (popupRootRef.current) {
+              const rootToUnmount = popupRootRef.current;
+              setTimeout(() => rootToUnmount.unmount(), 0);
+              popupRootRef.current = null;
+            }
+            popupRef.current = null;
+          }
+
           selectPlayground(playground);
           // Trigger enrichment if not already enriched
           if (!playground.enriched) {
@@ -403,12 +430,39 @@ export const MapView = React.memo(function MapView() {
       },
     ) => {
       e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
           (p) => p.osmId === feature.properties!.id
         );
         if (playground) {
+          // Toggle behavior: if clicking the same playground, close it
+          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
+            if (popupRef.current) {
+              popupRef.current.remove();
+              if (popupRootRef.current) {
+                const rootToUnmount = popupRootRef.current;
+                setTimeout(() => rootToUnmount.unmount(), 0);
+                popupRootRef.current = null;
+              }
+              popupRef.current = null;
+            }
+            clearSelectedPlayground();
+            return;
+          }
+
+          // Close existing popup before selecting new one to prevent race condition
+          if (popupRef.current) {
+            popupRef.current.remove();
+            if (popupRootRef.current) {
+              const rootToUnmount = popupRootRef.current;
+              setTimeout(() => rootToUnmount.unmount(), 0);
+              popupRootRef.current = null;
+            }
+            popupRef.current = null;
+          }
+
           selectPlayground(playground);
           // Trigger enrichment if not already enriched
           if (!playground.enriched) {
@@ -518,7 +572,7 @@ export const MapView = React.memo(function MapView() {
         map.current.getCanvas().style.cursor = "";
       }
     };
-  }, [isMapLoaded, playgrounds, selectPlayground, enrichPlayground]);
+  }, [isMapLoaded, playgrounds, selectPlayground, enrichPlayground, selectedPlayground, clearSelectedPlayground]);
 
   useEffect(() => {
     if (map.current) {
@@ -547,7 +601,7 @@ export const MapView = React.memo(function MapView() {
     const isDesktop = window.innerWidth >= 768;
     if (!isDesktop) return; // Mobile uses Sheet instead
 
-    // Clean up existing popup
+    // Clean up existing popup with delay to prevent flicker
     if (popupRef.current) {
       popupRef.current.remove();
       if (popupRootRef.current) {
@@ -591,7 +645,7 @@ export const MapView = React.memo(function MapView() {
           {/* Header with title and space for close button */}
           <div className="flex items-center justify-between gap-3 px-3 pb-0 pt-3 sm:pb-3">
             <div className="flex flex-1 items-center gap-2 min-w-0">
-              <h3 className="text-base font-semibold truncate">
+              <h3 className="text-base font-semibold truncate max-w-[280px]">
                 {currentPlayground.name || UNNAMED_PLAYGROUND}
               </h3>
               {currentPlayground.enriched && currentPlayground.tier && (
@@ -612,6 +666,7 @@ export const MapView = React.memo(function MapView() {
               }}
               hideTitle
               hideTierBadge
+              hideBottomIndicators
             />
           </div>
         </div>

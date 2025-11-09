@@ -10,7 +10,7 @@ import { TierBadge } from "@/components/tier-badge";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
-import { MapPin, ArrowRight, Accessibility, ParkingCircle } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
@@ -144,24 +144,10 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             )}
           </div>
 
-          {/* Tier Badge - Top right corner */}
+          {/* Tier Badge - Top Right */}
           {playground.enriched && playground.tier && (
-            <TierBadge tier={playground.tier} size="sm" className="absolute right-2 top-2" />
-          )}
-
-          {/* Info Indicators - Only show when enriched */}
-          {playground.enriched && (playground.parking || playground.accessibility) && (
-            <div className="absolute bottom-2 left-2 flex gap-1.5">
-              {playground.parking && (
-                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                  <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              )}
-              {playground.accessibility && (
-                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                  <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              )}
+            <div className="absolute right-2 top-2">
+              <TierBadge tier={playground.tier} variant="compact" />
             </div>
           )}
         </CardHeader>
@@ -173,7 +159,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             {!playground.enriched ? (
               <Skeleton className="h-4 w-full" />
             ) : name ? (
-              <h3 className="font-semibold">{name}</h3>
+              <h3 className="font-semibold truncate">{name}</h3>
             ) : null}
 
             {/* Description Section */}

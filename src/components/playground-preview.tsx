@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TierBadge } from "@/components/tier-badge";
+import ImageCarousel from "@/components/image-carousel";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Playground } from "@/types/playground";
 import { MapPin, ArrowRight, Accessibility, Umbrella, Volume2, ParkingCircle } from "lucide-react";
+import { useState } from "react";
 
 interface PlaygroundPreviewProps {
   playground: Playground;
@@ -17,6 +19,7 @@ interface PlaygroundPreviewProps {
   onFlyTo?: (coords: [number, number]) => void;
   hideTitle?: boolean;
   hideTierBadge?: boolean;
+  hideBottomIndicators?: boolean;
 }
 
 export function PlaygroundPreview({
@@ -25,10 +28,18 @@ export function PlaygroundPreview({
   onFlyTo,
   hideTitle = false,
   hideTierBadge = false,
+  hideBottomIndicators = false,
 }: PlaygroundPreviewProps) {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isParkingExpanded, setIsParkingExpanded] = useState(false);
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
   const detailsUrl = `/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`;
+
+  // Check if description is long enough to need expansion
+  const isDescriptionLong = playground.description && playground.description.length > 150;
+  // Check if parking text is long enough to need expansion
+  const isParkingLong = playground.parking && playground.parking.length > 150;
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -41,6 +52,15 @@ export function PlaygroundPreview({
               Thinking...
             </div>
           </div>
+        ) : playground.images && playground.images.length > 1 ? (
+          <ImageCarousel
+            images={playground.images.map((image) => ({
+              filename: image.image_url,
+              alt: `Photo of ${name}`,
+            }))}
+            className="h-full w-full"
+            unoptimized={true}
+          />
         ) : displayImage ? (
           <Image
             className="h-full w-full object-cover"
@@ -56,20 +76,22 @@ export function PlaygroundPreview({
           </div>
         )}
 
-        {/* Tier Badge - Top right corner */}
-        {!hideTierBadge && playground.enriched && playground.tier && (
-          <TierBadge tier={playground.tier} size="sm" className="absolute right-2 top-2" />
+        {/* Tier Badge - Top Right */}
+        {playground.enriched && !hideTierBadge && playground.tier && (
+          <div className="absolute right-2 top-2 z-10">
+            <TierBadge tier={playground.tier} variant="compact" />
+          </div>
         )}
 
-        {/* Info Indicators - Only show when enriched */}
-        {playground.enriched && (playground.parking || playground.accessibility) && (
+        {/* Info Indicators - Bottom Left - Only show when enriched */}
+        {!hideBottomIndicators && playground.enriched && (playground.parking || (playground.accessibility && playground.accessibility.length > 0)) && (
           <div className="absolute bottom-2 left-2 flex gap-1.5">
             {playground.parking && (
               <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                 <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
             )}
-            {playground.accessibility && (
+            {playground.accessibility && playground.accessibility.length > 0 && (
               <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                 <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
@@ -97,9 +119,22 @@ export function PlaygroundPreview({
           {!playground.enriched ? (
             <Skeleton className="h-16 w-full" />
           ) : playground.description ? (
-            <p className="text-muted-foreground line-clamp-3 text-sm">
-              {playground.description}
-            </p>
+            <div className="text-muted-foreground text-sm">
+              <p className={!isDescriptionExpanded && isDescriptionLong ? "line-clamp-3" : ""}>
+                {playground.description}
+              </p>
+              {isDescriptionLong && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsDescriptionExpanded(!isDescriptionExpanded);
+                  }}
+                  className="text-foreground mt-1 cursor-pointer text-xs underline hover:no-underline"
+                >
+                  {isDescriptionExpanded ? "Show less" : "Show more"}
+                </button>
+              )}
+            </div>
           ) : (
             <div className="text-muted-foreground text-sm italic">
               <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
@@ -128,49 +163,16 @@ export function PlaygroundPreview({
           ) : (
             <div className="text-muted-foreground text-xs">
               <div className="font-medium">Accessibility:</div>
-              {playground.accessibility ? (
-                <div className="mt-1 space-y-0.5">
-                  {playground.accessibility.wheelchair_accessible && (
-                    <div className="flex items-center gap-1">
-                      <Accessibility className="h-3 w-3 flex-shrink-0" />
-                      <span>Wheelchair accessible</span>
-                    </div>
+              {playground.accessibility && playground.accessibility.length > 0 ? (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {playground.accessibility.slice(0, 3).map((feature, i) => (
+                    <Badge variant="outline" key={i} className="text-xs">
+                      <span className="truncate">{formatEnumString(feature)}</span>
+                    </Badge>
+                  ))}
+                  {playground.accessibility.length > 3 && (
+                    <Badge variant="outline" className="text-xs">+{playground.accessibility.length - 3}</Badge>
                   )}
-                  {playground.accessibility.sensory_friendly &&
-                    (playground.accessibility.sensory_friendly.quiet_zones ||
-                      playground.accessibility.sensory_friendly.tactile_elements ||
-                      playground.accessibility.sensory_friendly.visual_aids) && (
-                      <div className="flex items-center gap-1">
-                        <Volume2 className="h-3 w-3 flex-shrink-0" />
-                        <span>Sensory-friendly features</span>
-                      </div>
-                    )}
-                  {playground.accessibility.shade_coverage &&
-                    playground.accessibility.shade_coverage !== "none" &&
-                    playground.accessibility.shade_coverage !== "minimal" && (
-                      <div className="flex items-center gap-1">
-                        <Umbrella className="h-3 w-3 flex-shrink-0" />
-                        <span>
-                          {playground.accessibility.shade_coverage
-                            .split("-")
-                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(" ")}{" "}
-                          shade
-                        </span>
-                      </div>
-                    )}
-                  {!playground.accessibility.wheelchair_accessible &&
-                    !(
-                      playground.accessibility.sensory_friendly &&
-                      (playground.accessibility.sensory_friendly.quiet_zones ||
-                        playground.accessibility.sensory_friendly.tactile_elements ||
-                        playground.accessibility.sensory_friendly.visual_aids)
-                    ) &&
-                    (!playground.accessibility.shade_coverage ||
-                      playground.accessibility.shade_coverage === "none" ||
-                      playground.accessibility.shade_coverage === "minimal") && (
-                      <div className="italic">No accessibility information available</div>
-                    )}
                 </div>
               ) : (
                 <div className="mt-1 italic">No accessibility information available</div>
@@ -186,7 +188,22 @@ export function PlaygroundPreview({
               <div className="font-medium">Parking:</div>
               <div className="mt-1">
                 {playground.parking ? (
-                  <div>{playground.parking}</div>
+                  <div>
+                    <p className={!isParkingExpanded && isParkingLong ? "line-clamp-3" : ""}>
+                      {playground.parking}
+                    </p>
+                    {isParkingLong && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsParkingExpanded(!isParkingExpanded);
+                        }}
+                        className="text-foreground mt-1 cursor-pointer text-xs underline hover:no-underline"
+                      >
+                        {isParkingExpanded ? "Show less" : "Show more"}
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <div className="italic">No parking information available</div>
                 )}

@@ -222,97 +222,16 @@ export default async function PlaygroundDetail({
           <Accessibility className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium">Accessibility Features</p>
-            {playground.accessibility ? (
-              <div className="text-muted-foreground mt-2 space-y-2 text-sm">
-                {/* Wheelchair Access */}
-                <div>
-                  <span className="font-medium">Wheelchair Access: </span>
-                  {playground.accessibility.wheelchair_accessible
-                    ? "Yes - includes ramps, accessible routes, or transfer stations"
-                    : "No wheelchair-accessible features identified"}
-                </div>
-
-                {/* Surface Type */}
-                {playground.accessibility.surface_type && (
-                  <div>
-                    <span className="font-medium">Surface: </span>
-                    {playground.accessibility.surface_type}
-                  </div>
-                )}
-
-                {/* Transfer Stations */}
-                {playground.accessibility.transfer_stations && (
-                  <div>
-                    <span className="font-medium">Transfer Stations: </span>
-                    Available for easier access to play equipment
-                  </div>
-                )}
-
-                {/* Ground-Level Activities */}
-                {playground.accessibility.ground_level_activities !== null &&
-                  playground.accessibility.ground_level_activities > 0 && (
-                    <div>
-                      <span className="font-medium">Ground-Level Activities: </span>
-                      {playground.accessibility.ground_level_activities} accessible{" "}
-                      {playground.accessibility.ground_level_activities === 1
-                        ? "activity"
-                        : "activities"}{" "}
-                      (panels, sandboxes, music stations)
-                    </div>
-                  )}
-
-                {/* Sensory-Friendly Features */}
-                {playground.accessibility.sensory_friendly &&
-                  (playground.accessibility.sensory_friendly.quiet_zones ||
-                    playground.accessibility.sensory_friendly.tactile_elements ||
-                    playground.accessibility.sensory_friendly.visual_aids) && (
-                    <div>
-                      <span className="font-medium">Sensory-Friendly: </span>
-                      {[
-                        playground.accessibility.sensory_friendly.quiet_zones && "Quiet zones",
-                        playground.accessibility.sensory_friendly.tactile_elements &&
-                          "Tactile elements",
-                        playground.accessibility.sensory_friendly.visual_aids && "Visual aids",
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </div>
-                  )}
-
-                {/* Shade Coverage */}
-                {playground.accessibility.shade_coverage && (
-                  <div>
-                    <span className="font-medium">Shade Coverage: </span>
-                    {playground.accessibility.shade_coverage}
-                  </div>
-                )}
-
-                {/* Accessible Parking */}
-                {playground.accessibility.accessible_parking &&
-                  playground.accessibility.accessible_parking.available && (
-                    <div>
-                      <span className="font-medium">Accessible Parking: </span>
-                      Available
-                      {playground.accessibility.accessible_parking.van_accessible &&
-                        " (including van-accessible)"}
-                      {playground.accessibility.accessible_parking.distance_to_playground &&
-                        ` - ${playground.accessibility.accessible_parking.distance_to_playground} from playground`}
-                    </div>
-                  )}
-
-                {/* Accessible Restrooms */}
-                {playground.accessibility.accessible_restrooms &&
-                  playground.accessibility.accessible_restrooms.available && (
-                    <div>
-                      <span className="font-medium">Accessible Restrooms: </span>
-                      Available
-                      {playground.accessibility.accessible_restrooms.adult_changing_table &&
-                        " (with adult changing table)"}
-                    </div>
-                  )}
+            {playground.accessibility && playground.accessibility.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {playground.accessibility.map((feature, i) => (
+                  <Badge variant="outline" key={i} className="max-w-[calc(100%-0.5rem)] text-xs sm:max-w-full">
+                    <span className="truncate">{formatEnumString(feature)}</span>
+                  </Badge>
+                ))}
               </div>
             ) : (
-              <p className="text-muted-foreground mt-2 text-sm italic">
+              <p className="text-muted-foreground mt-1 text-sm italic">
                 No accessibility information available
               </p>
             )}

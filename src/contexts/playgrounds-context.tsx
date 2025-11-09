@@ -24,6 +24,27 @@ import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
+// Validate accessibility data structure to reject old/malformed cache data
+function validateAccessibility(accessibility: any): Playground["accessibility"] {
+  // New format: array of strings (v6+)
+  if (Array.isArray(accessibility)) {
+    // Validate it's an array of strings
+    if (accessibility.every(item => typeof item === "string")) {
+      return accessibility;
+    }
+    console.warn("[PlaygroundsContext] Rejecting malformed accessibility array");
+    return null;
+  }
+
+  // Old format: object (v5 and earlier) - reject
+  if (accessibility && typeof accessibility === "object") {
+    console.warn("[PlaygroundsContext] Rejecting old accessibility object format");
+    return null;
+  }
+
+  return null;
+}
+
 interface PlaygroundsContextType {
   playgrounds: Playground[];
   loading: boolean;
@@ -54,6 +75,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   // Abort controller for canceling enrichment requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Ref to store enrichPlaygroundsBatch function for eager enrichment
+  const enrichPlaygroundsBatchRef = useRef<(ids: number[]) => Promise<void>>(() => Promise.resolve());
+
   const localFetchPlaygrounds = useCallback(
     async (signal?: AbortSignal) => {
       if (!mapBounds) return;
@@ -65,6 +89,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
           // Merge new OSM data with existing enriched AI data
+          let updatedPlaygrounds: Playground[] = [];
           setPlaygrounds((prevPlaygrounds) => {
             const enrichedMap = new Map(
               prevPlaygrounds
@@ -72,21 +97,21 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 .map(p => [p.osmId, p])
             );
 
-            return playgroundsForBounds.map(newPlayground => {
+            updatedPlaygrounds = playgroundsForBounds.map(newPlayground => {
               const existingEnriched = enrichedMap.get(newPlayground.osmId);
 
               if (existingEnriched) {
                 // Merge: use fresh OSM data but preserve AI-enriched fields
                 return {
                   ...newPlayground, // Fresh OSM data (coordinates, address, tags)
-                  // Preserve AI-enriched fields
+                  // Preserve AI-enriched fields (validate accessibility to reject old schema)
                   name: existingEnriched.name,
                   description: existingEnriched.description,
                   features: existingEnriched.features,
                   parking: existingEnriched.parking,
                   sources: existingEnriched.sources,
                   images: existingEnriched.images,
-                  accessibility: existingEnriched.accessibility,
+                  accessibility: validateAccessibility(existingEnriched.accessibility),
                   tier: existingEnriched.tier,
                   tierScore: existingEnriched.tierScore,
                   enriched: true,
@@ -100,7 +125,22 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 tierScore: null,
               };
             });
+
+            return updatedPlaygrounds;
           });
+
+          // Eagerly enrich ALL playgrounds from cache (including already-enriched ones)
+          // This ensures tier badges show immediately even for previously-enriched playgrounds
+          if (updatedPlaygrounds.length > 0 && !signal?.aborted) {
+            const allPlaygroundIds = updatedPlaygrounds.map(p => p.osmId);
+            // Process in batches of 5 sequentially to avoid overwhelming the backend
+            (async () => {
+              for (let i = 0; i < allPlaygroundIds.length; i += 5) {
+                const batch = allPlaygroundIds.slice(i, i + 5);
+                await enrichPlaygroundsBatchRef.current(batch);
+              }
+            })();
+          }
         }
       } catch (err) {
         if (
@@ -138,7 +178,16 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   // Enrich a single playground
   const enrichPlayground = useCallback(
     async (playgroundId: number) => {
-      const playground = playgrounds.find((p) => p.osmId === playgroundId);
+      // Get playground from current state to avoid stale closures
+      let playground: Playground | undefined;
+      await new Promise<void>(resolve => {
+        setPlaygrounds((prev) => {
+          playground = prev.find((p) => p.osmId === playgroundId);
+          resolve();
+          return prev;
+        });
+      });
+
       if (!playground || playground.enriched) return;
 
       try {
@@ -186,7 +235,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   parking: insight?.parking || p.parking,
                   sources: insight?.sources || p.sources,
                   images: insight?.images || p.images,
-                  accessibility: insight?.accessibility || p.accessibility,
+                  accessibility: validateAccessibility(insight?.accessibility) || p.accessibility,
                   tier: tierResult.tier,
                   tierScore: tierResult.score,
                   enriched: true,
@@ -198,17 +247,27 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         console.error(`Error enriching playground ${playgroundId}:`, error);
       }
     },
-    [playgrounds],
+    [], // No dependencies - we get playground from setState callback
   );
 
   // Enrich multiple playgrounds in a batch (max 5)
   const enrichPlaygroundsBatch = useCallback(
     async (playgroundIds: number[]) => {
-      const playgroundsToEnrich = playgrounds
-        .filter((p) => playgroundIds.includes(p.osmId) && !p.enriched)
-        .slice(0, 5); // Limit to 5 per batch
+      // Get current playground state using setState callback to avoid stale closures
+      let playgroundsToEnrich: Playground[] = [];
+      await new Promise<void>(resolve => {
+        setPlaygrounds((prev) => {
+          playgroundsToEnrich = prev
+            .filter((p) => playgroundIds.includes(p.osmId))
+            .slice(0, 5); // Limit to 5 per batch
+          resolve();
+          return prev; // Don't modify state here
+        });
+      });
 
-      if (playgroundsToEnrich.length === 0) return;
+      if (playgroundsToEnrich.length === 0) {
+        return;
+      }
 
       try {
         const results = await generatePlaygroundAiInsightsBatch({
@@ -242,7 +301,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               parking: result.insights?.parking || p.parking,
               sources: result.insights?.sources || p.sources,
               images: result.insights?.images || p.images,
-              accessibility: result.insights?.accessibility || p.accessibility,
+              accessibility: validateAccessibility(result.insights?.accessibility) || p.accessibility,
               tier: tierResult.tier,
               tierScore: tierResult.score,
               enriched: true, // Always mark as enriched, even if insights is null
@@ -253,8 +312,13 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         console.error("Error enriching playgrounds batch:", error);
       }
     },
-    [playgrounds],
+    [], // No dependencies - we get playgrounds from setState callback
   );
+
+  // Update ref when enrichPlaygroundsBatch changes
+  useEffect(() => {
+    enrichPlaygroundsBatchRef.current = enrichPlaygroundsBatch;
+  }, [enrichPlaygroundsBatch]);
 
   // Cleanup on unmount
   useEffect(() => {

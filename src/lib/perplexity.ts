@@ -9,6 +9,9 @@ import { deduplicatedFetch } from "@/lib/request-dedup";
 import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
+// Cache version - increment this to invalidate all cached data when schema changes
+const CACHE_VERSION = "v7"; // v7: Simplified accessibility schema from complex nested object to simple array of strings (like features)
+
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
   if (!text) return text;
@@ -301,17 +304,17 @@ export async function fetchPerplexityInsights({
         type: "string",
         enum: ["high", "medium", "low"],
         description:
-          "High: Sources explicitly mention the target city/state AND coordinates are within 0.1 miles. Medium: Coordinates match but city not explicitly confirmed in sources. Low: Uncertain, ambiguous, or sources mention different locations.",
+          "High: Sources explicitly mention the target city/state AND playground is in the target neighborhood. Medium: Playground appears to be in the target area but sources don't provide exact location confirmation. Low: Uncertain, ambiguous, or sources mention different city/state.",
       },
       location_verification: {
         type: ["string", "null"],
         description:
-          `Quote from sources that confirms this playground is in ${cityState}. Must mention the city/state name. Use null if no explicit confirmation found.`,
+          `Explain why you believe this is the playground at the target coordinates (${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}). Include: 1) Confirmation this playground is in ${cityState}, 2) Evidence it's the closest playground to the target coordinates (address, neighborhood, landmarks), 3) Why you chose this playground over others in the area if multiple exist. Use null if no confirmation found.`,
       },
       name: {
         type: ["string", "null"],
         description:
-          "The official name of the playground or facility containing it (e.g., 'Sunset Park Playground'). Use null if no playground found or confidence is low.",
+          "The official name of the playground or the facility containing it (e.g., 'Sunset Park Playground' or 'Hamilton Recreation Center'). Return the name found in sources at the coordinates, even if it differs from any suggested name. Use null if no playground found or confidence is low.",
       },
       description: {
         type: ["string", "null"],
@@ -330,56 +333,9 @@ export async function fetchPerplexityInsights({
           "Brief parking description (e.g., 'Street parking available' or 'Dedicated lot at entrance'). Use null if no playground found, no info available, or confidence is low.",
       },
       accessibility: {
-        type: ["object", "null"],
-        properties: {
-          wheelchair_accessible: {
-            type: "boolean",
-            description: "True if playground has ramps, accessible routes, or transfer stations to play equipment"
-          },
-          surface_type: {
-            type: ["string", "null"],
-            description: "Primary surface type: 'pour-in-place rubber', 'engineered wood fiber', 'rubber tiles', 'loose-fill' (not wheelchair accessible), 'concrete', 'grass', 'mulch'. Null if unknown."
-          },
-          transfer_stations: {
-            type: "boolean",
-            description: "Presence of transfer stations/platforms for moving from wheelchair to equipment"
-          },
-          ground_level_activities: {
-            type: ["number", "null"],
-            description: "Count of ground-level play activities accessible without transfers (e.g., panels, sandboxes, music stations). Null if unknown."
-          },
-          sensory_friendly: {
-            type: ["object", "null"],
-            properties: {
-              quiet_zones: { type: "boolean", description: "Quiet zones or calm areas for sensory breaks" },
-              tactile_elements: { type: "boolean", description: "Textured surfaces, sensory walls, or tactile play elements" },
-              visual_aids: { type: "boolean", description: "Visual aids, clear signage, or wayfinding elements" }
-            },
-            description: "Sensory-friendly features for children with autism or sensory processing needs. Null if unknown."
-          },
-          shade_coverage: {
-            type: ["string", "null"],
-            description: "Shade description: 'full' (80%+), 'partial' (30-80%), 'minimal' (10-30%), or 'none' (<10%). Null if unknown."
-          },
-          accessible_parking: {
-            type: ["object", "null"],
-            properties: {
-              available: { type: "boolean", description: "Accessible/handicapped parking spaces available" },
-              van_accessible: { type: "boolean", description: "Van-accessible spaces (wider) available" },
-              distance_to_playground: { type: ["string", "null"], description: "Distance description: 'adjacent', 'within 100 feet', 'within 200 feet', 'over 200 feet'. Null if unknown." }
-            },
-            description: "Accessible parking information. Null if unknown."
-          },
-          accessible_restrooms: {
-            type: ["object", "null"],
-            properties: {
-              available: { type: "boolean", description: "Wheelchair-accessible restrooms available" },
-              adult_changing_table: { type: "boolean", description: "Adult-sized changing table available (critical for older children with disabilities)" }
-            },
-            description: "Accessible restroom information. Null if unknown."
-          }
-        },
-        description: "Accessibility features for children with disabilities. Include all available information. Use false for boolean fields if feature is explicitly absent, use null for entire object if no accessibility info found."
+        type: ["array", "null"],
+        items: { type: "string" },
+        description: "List of accessibility features found in sources. Include any mentioned: 'wheelchair_accessible', 'accessible_surface' (rubber/wood fiber), 'ramps', 'transfer_stations', 'ground_level_play', 'accessible_swings', 'sensory_play', 'tactile_elements', 'shade_structures', 'accessible_parking', 'accessible_restrooms', 'adult_changing_table', 'wide_pathways', 'handrails', 'quiet_areas'. Only include features explicitly mentioned in sources. Use null if no accessibility info found."
       },
     },
     required: ["location_confidence", "location_verification", "name", "description", "features", "parking", "accessibility"],
@@ -387,33 +343,37 @@ export async function fetchPerplexityInsights({
   };
 
   // Enhanced prompt with explicit geographic constraints
-  const prompt = `Find detailed information about a children's playground${name ? ` named "${name}"` : ""}${locationContext}.
+  // Include OSM name as a hint to help AI identify the correct playground
+  const osmNameHint = name ? ` The local mapping data suggests this may be called "${name}".` : '';
+  const prompt = `Find detailed information about a children's playground${locationContext}.${osmNameHint}
 
-CRITICAL GEOGRAPHIC CONSTRAINTS:
-- Search ONLY within ${location.city || 'the specified location'}, ${location.region || location.country}
-- Location must be at or within 0.1 miles (160 meters) of coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}
-- DO NOT return results from other cities, states, or countries
-- If "${name || 'a playground'}" exists in multiple locations, return ONLY the one in ${cityState}
-- Verify ALL sources explicitly mention ${location.city || 'the target city'}, ${location.region || location.country}
-- If sources mention any different city/state, return null for all fields
-- If uncertain about location match (less than 90% confident), return null rather than potentially wrong results
+GEOGRAPHIC SEARCH AREA:
+- Target coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} in ${cityState}
+- Find the playground that is CLOSEST to these exact coordinates
+- Search radius: within 0.15 miles (250 meters) maximum
+- The playground may be inside a larger facility (e.g., recreation center, community center, park, school)
 
-SEARCH FOCUS:
-Search within 0.1-mile radius from ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} for playgrounds in parks, recreation centers, schools, or public facilities${name ? ` matching the name "${name}"` : ""} located in ${cityState}.
+CRITICAL LOCATION MATCHING RULES:
+- Your goal is to identify the SPECIFIC playground at or nearest to the target coordinates
+- If a name was suggested, prioritize playgrounds with similar names in the target area
+- However, the playground's official name may differ from the suggested name - use the name you find in sources
+- If multiple playgrounds exist in the search area, choose the one CLOSEST to the target coordinates
+- Most sources don't provide exact GPS coordinates, so use addresses, neighborhood descriptions, and facility names to identify the closest match
+- DO NOT return a well-known playground from across the neighborhood if there's likely a different playground closer to the coordinates
+- If you cannot confidently identify which playground is at the target coordinates, return null rather than guessing
+- DO NOT return results from different cities, states, or countries
+- If sources mention a different city/state than ${cityState}, return null for all fields
 
 DATA REQUIREMENTS:
 1. Find the playground's official name or facility name
 2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
 3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
 4. Describe parking availability
-5. ACCESSIBILITY FEATURES (CRITICAL FOR FAMILIES WITH DISABLED CHILDREN):
-   - Wheelchair access: ramps, transfer stations, or accessible routes to equipment
-   - Surface type: pour-in-place rubber (best), engineered wood fiber, rubber tiles, loose-fill (NOT accessible), concrete, grass
-   - Ground-level activities: panels, sandboxes, music stations accessible without transfers
-   - Sensory-friendly: quiet zones, tactile elements, visual aids for autism/sensory needs
-   - Shade coverage: full/partial/minimal/none (critical for medical conditions)
-   - Accessible parking: availability, van-accessible spaces, distance from playground
-   - Accessible restrooms: wheelchair-accessible, adult changing tables
+5. ACCESSIBILITY FEATURES - List any mentioned in sources (even if only one or two):
+   - Examples: wheelchair_accessible, accessible_surface, ramps, transfer_stations, ground_level_play, accessible_swings, sensory_play, tactile_elements, shade_structures, accessible_parking, accessible_restrooms, adult_changing_table, wide_pathways, handrails, quiet_areas
+   - Include whatever accessibility info you find - partial information is valuable!
+   - If sources mention "ADA compliant" or "wheelchair accessible" add those features
+   - If no accessibility info found in sources, use null (don't guess)
 
 IMAGE REQUIREMENTS (STRICT - CRITICAL FOR QUALITY):
 ONLY return images that show:
@@ -445,9 +405,11 @@ FORMATTING:
 - Sources will be tracked separately
 
 CONFIDENCE ASSESSMENT:
-- Only return results if you are at least 90% confident this playground exists in ${cityState}
-- If sources are ambiguous or mention other locations, return all fields as null
-- Better to return null than provide incorrect information for a different location`;
+- Return results if you find a playground in ${cityState} that appears to be in the target neighborhood
+- Set location_confidence to "medium" if sources describe the playground but don't provide exact coordinates
+- Set location_confidence to "high" if sources explicitly confirm the location
+- Set location_confidence to "low" (and return null for data fields) ONLY if sources mention a different city/state
+- It's acceptable to return data with "medium" confidence - approximate location matches are valid`;
 
   // Phase 4: Apply enrichment strategy based on priority
   const enrichmentStrategy = getEnrichmentStrategy({
@@ -607,7 +569,9 @@ export async function fetchPerplexityInsightsWithCache({
 
   // Create cache key from OSM ID (preferred) or location coordinates (fallback)
   // Using OSM ID ensures each playground has unique cached data
-  const cacheKey = osmId || (location ? `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}` : null);
+  // Include CACHE_VERSION to invalidate old caches when schema changes
+  const baseCacheKey = osmId || (location ? `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}` : null);
+  const cacheKey = baseCacheKey ? `${CACHE_VERSION}:${baseCacheKey}` : null;
 
   if (!cacheKey) {
     console.warn('[Perplexity] No cache key available (missing both osmId and location)');
@@ -719,6 +683,7 @@ export async function fetchPerplexityInsightsWithCache({
 export async function fetchPerplexityInsightsBatch({
   requests,
   signal,
+  cacheOnly = false,
 }: {
   requests: Array<{
     playgroundId: number;
@@ -727,6 +692,7 @@ export async function fetchPerplexityInsightsBatch({
     osmId?: string;
   }>;
   signal?: AbortSignal;
+  cacheOnly?: boolean; // If true, only check cache and don't fetch from API
 }): Promise<
   Array<{
     playgroundId: number;
@@ -747,8 +713,10 @@ export async function fetchPerplexityInsightsBatch({
 
   for (const req of batch) {
     // Create cache key from OSM ID (preferred) or location coordinates (fallback)
-    const cacheKey = req.osmId ||
+    // Include CACHE_VERSION to invalidate old caches when schema changes
+    const baseCacheKey = req.osmId ||
       (req.location ? `${req.location.latitude.toFixed(6)},${req.location.longitude.toFixed(6)}` : null);
+    const cacheKey = baseCacheKey ? `${CACHE_VERSION}:${baseCacheKey}` : null;
 
     if (cacheKey) {
       cacheKeyMap.set(req.playgroundId, cacheKey);
@@ -783,8 +751,8 @@ export async function fetchPerplexityInsightsBatch({
     }
   }
 
-  // PHASE 3: Fetch cache misses from Perplexity API
-  if (misses.length > 0) {
+  // PHASE 3: Fetch cache misses from Perplexity API (unless cacheOnly mode)
+  if (misses.length > 0 && !cacheOnly) {
     console.log(`[Batch Enrichment] Fetching ${misses.length} from AI`);
 
     const apiResults = await Promise.all(
@@ -813,6 +781,12 @@ export async function fetchPerplexityInsightsBatch({
     );
 
     results.push(...apiResults);
+  } else if (misses.length > 0 && cacheOnly) {
+    // In cache-only mode, return null for all misses without API calls
+    results.push(...misses.map((req) => ({
+      playgroundId: req.playgroundId,
+      insights: null,
+    })));
   }
 
   return results;

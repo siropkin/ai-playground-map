@@ -39,6 +39,7 @@ export function PlaygroundPreviewSheet() {
         clearSelectedPlayground();
       }}
       hideTitle
+      hideBottomIndicators
     />
   ) : null;
 
