@@ -593,7 +593,7 @@ export const MapView = React.memo(function MapView() {
     }
   }, [flyToCoords, clearFlyToRequest]);
 
-  // Desktop popup management
+  // Desktop popup management - Create/Remove popup when selection changes
   useEffect(() => {
     if (!map.current || !isMapLoaded) return;
 
@@ -687,7 +687,48 @@ export const MapView = React.memo(function MapView() {
         setTimeout(() => rootToUnmount.unmount(), 0);
       }
     };
-  }, [selectedPlayground, playgrounds, isMapLoaded, clearSelectedPlayground, requestFlyTo]);
+  }, [selectedPlayground, isMapLoaded, clearSelectedPlayground, requestFlyTo, playgrounds]);
+
+  // Update popup content when playground data changes (without recreating popup)
+  useEffect(() => {
+    if (!popupRootRef.current || !selectedPlayground) return;
+
+    // Get the latest playground data
+    const currentPlayground = playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground;
+
+    // Re-render the popup content with updated data
+    popupRootRef.current.render(
+      <div className="flex flex-col">
+        {/* Header with title and space for close button */}
+        <div className="flex items-center justify-between gap-3 px-3 pb-0 pt-3 sm:pb-3">
+          <div className="flex flex-1 items-center gap-2 min-w-0">
+            <h3 className="text-base font-semibold truncate max-w-[280px]">
+              {currentPlayground.name || UNNAMED_PLAYGROUND}
+            </h3>
+            {currentPlayground.enriched && currentPlayground.tier && (
+              <TierBadge tier={currentPlayground.tier} size="sm" className="flex-shrink-0" />
+            )}
+          </div>
+          {/* Space reserved for Mapbox close button */}
+          <div className="w-6 h-6 flex-shrink-0" />
+        </div>
+        {/* Content */}
+        <div className="px-2 pb-2 pt-2 sm:pt-0">
+          <PlaygroundPreview
+            playground={currentPlayground}
+            onViewDetails={clearSelectedPlayground}
+            onFlyTo={(coords) => {
+              requestFlyTo(coords);
+              clearSelectedPlayground();
+            }}
+            hideTitle
+            hideTierBadge
+            hideBottomIndicators
+          />
+        </div>
+      </div>
+    );
+  }, [playgrounds, selectedPlayground, clearSelectedPlayground, requestFlyTo]);
 
   useEffect(() => {
     return () => {
