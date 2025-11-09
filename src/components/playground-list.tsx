@@ -159,7 +159,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             {!playground.enriched ? (
               <Skeleton className="h-4 w-full" />
             ) : name ? (
-              <h3 className="font-semibold">{name}</h3>
+              <h3 className="font-semibold truncate">{name}</h3>
             ) : null}
 
             {/* Description Section */}
