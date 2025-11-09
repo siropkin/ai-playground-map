@@ -56,8 +56,9 @@ export async function POST(
     const cacheKey = generateOSMCacheKey(bounds, bounds.zoom);
     let osmResults = await fetchOSMFromCache(cacheKey);
 
-    // Cache miss - fetch from OSM API
-    if (!osmResults) {
+    // Cache miss or empty cache result - fetch from OSM API
+    // If cache returns 0 playgrounds, verify with real search (might be bad cache)
+    if (!osmResults || osmResults.length === 0) {
       osmResults = await runOSMQuery({
         bounds,
         leisure: "playground",
@@ -67,6 +68,7 @@ export async function POST(
       });
 
       // Save to cache for future requests (async, non-blocking)
+      // Update cache even if empty to prevent repeated queries for areas with no playgrounds
       saveOSMToCache(cacheKey, bounds, bounds.zoom, osmResults).catch(err =>
         console.error("Failed to save OSM cache:", err)
       );
