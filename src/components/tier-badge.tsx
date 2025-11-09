@@ -56,7 +56,7 @@ export function TierBadge({ tier, size = "md", variant = "default", className }:
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-full p-1.5",
+          "flex h-7 w-7 items-center justify-center rounded-full",
           config.bgColor,
           config.textColor,
           className,

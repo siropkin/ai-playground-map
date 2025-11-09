@@ -54,6 +54,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   // Abort controller for canceling enrichment requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Ref to store enrichPlaygroundsBatch function for eager enrichment
+  const enrichPlaygroundsBatchRef = useRef<(ids: number[]) => Promise<void>>(() => Promise.resolve());
+
   const localFetchPlaygrounds = useCallback(
     async (signal?: AbortSignal) => {
       if (!mapBounds) return;
@@ -65,6 +68,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
           // Merge new OSM data with existing enriched AI data
+          let newPlaygroundIds: number[] = [];
           setPlaygrounds((prevPlaygrounds) => {
             const enrichedMap = new Map(
               prevPlaygrounds
@@ -72,7 +76,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 .map(p => [p.osmId, p])
             );
 
-            return playgroundsForBounds.map(newPlayground => {
+            const updatedPlaygrounds = playgroundsForBounds.map(newPlayground => {
               const existingEnriched = enrichedMap.get(newPlayground.osmId);
 
               if (existingEnriched) {
@@ -93,6 +97,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 };
               }
 
+              // Track new (non-enriched) playgrounds for eager enrichment
+              newPlaygroundIds.push(newPlayground.osmId);
+
               // New playground - ensure tier fields are null
               return {
                 ...newPlayground,
@@ -100,7 +107,18 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 tierScore: null,
               };
             });
+
+            return updatedPlaygrounds;
           });
+
+          // Eagerly enrich new playgrounds from cache immediately after fetch
+          if (newPlaygroundIds.length > 0 && !signal?.aborted) {
+            // Process in batches of 5
+            for (let i = 0; i < newPlaygroundIds.length; i += 5) {
+              const batch = newPlaygroundIds.slice(i, i + 5);
+              enrichPlaygroundsBatchRef.current(batch);
+            }
+          }
         }
       } catch (err) {
         if (
@@ -255,6 +273,11 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     },
     [playgrounds],
   );
+
+  // Update ref when enrichPlaygroundsBatch changes
+  useEffect(() => {
+    enrichPlaygroundsBatchRef.current = enrichPlaygroundsBatch;
+  }, [enrichPlaygroundsBatch]);
 
   // Cleanup on unmount
   useEffect(() => {

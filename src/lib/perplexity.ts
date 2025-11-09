@@ -9,6 +9,9 @@ import { deduplicatedFetch } from "@/lib/request-dedup";
 import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
+// Cache version - increment this to invalidate all cached data when schema changes
+const CACHE_VERSION = "v2";
+
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
   if (!text) return text;
@@ -607,7 +610,9 @@ export async function fetchPerplexityInsightsWithCache({
 
   // Create cache key from OSM ID (preferred) or location coordinates (fallback)
   // Using OSM ID ensures each playground has unique cached data
-  const cacheKey = osmId || (location ? `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}` : null);
+  // Include CACHE_VERSION to invalidate old caches when schema changes
+  const baseCacheKey = osmId || (location ? `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}` : null);
+  const cacheKey = baseCacheKey ? `${CACHE_VERSION}:${baseCacheKey}` : null;
 
   if (!cacheKey) {
     console.warn('[Perplexity] No cache key available (missing both osmId and location)');
@@ -747,8 +752,10 @@ export async function fetchPerplexityInsightsBatch({
 
   for (const req of batch) {
     // Create cache key from OSM ID (preferred) or location coordinates (fallback)
-    const cacheKey = req.osmId ||
+    // Include CACHE_VERSION to invalidate old caches when schema changes
+    const baseCacheKey = req.osmId ||
       (req.location ? `${req.location.latitude.toFixed(6)},${req.location.longitude.toFixed(6)}` : null);
+    const cacheKey = baseCacheKey ? `${CACHE_VERSION}:${baseCacheKey}` : null;
 
     if (cacheKey) {
       cacheKeyMap.set(req.playgroundId, cacheKey);

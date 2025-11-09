@@ -591,7 +591,7 @@ export const MapView = React.memo(function MapView() {
           {/* Header with title and space for close button */}
           <div className="flex items-center justify-between gap-3 px-3 pb-0 pt-3 sm:pb-3">
             <div className="flex flex-1 items-center gap-2 min-w-0">
-              <h3 className="text-base font-semibold truncate">
+              <h3 className="text-base font-semibold truncate max-w-[280px]">
                 {currentPlayground.name || UNNAMED_PLAYGROUND}
               </h3>
               {currentPlayground.enriched && currentPlayground.tier && (
@@ -612,6 +612,7 @@ export const MapView = React.memo(function MapView() {
               }}
               hideTitle
               hideTierBadge
+              hideBottomIndicators
             />
           </div>
         </div>

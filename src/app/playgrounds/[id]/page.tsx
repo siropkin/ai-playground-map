@@ -222,18 +222,33 @@ export default async function PlaygroundDetail({
           <Accessibility className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium">Accessibility Features</p>
-            {playground.accessibility ? (
+            {playground.accessibility && (
+              playground.accessibility.wheelchair_accessible ||
+              (playground.accessibility.surface_type && playground.accessibility.surface_type.trim()) ||
+              playground.accessibility.transfer_stations ||
+              (playground.accessibility.ground_level_activities !== null && playground.accessibility.ground_level_activities > 0) ||
+              (playground.accessibility.sensory_friendly && (
+                playground.accessibility.sensory_friendly.quiet_zones ||
+                playground.accessibility.sensory_friendly.tactile_elements ||
+                playground.accessibility.sensory_friendly.visual_aids
+              )) ||
+              (playground.accessibility.shade_coverage &&
+                playground.accessibility.shade_coverage !== "none" &&
+                playground.accessibility.shade_coverage !== "minimal") ||
+              (playground.accessibility.accessible_parking?.available) ||
+              (playground.accessibility.accessible_restrooms?.available)
+            ) ? (
               <div className="text-muted-foreground mt-1 space-y-1 text-sm">
                 {/* Wheelchair Access */}
-                <div>
-                  <span className="font-medium">Wheelchair Access: </span>
-                  {playground.accessibility.wheelchair_accessible
-                    ? "Yes - includes ramps, accessible routes, or transfer stations"
-                    : "No wheelchair-accessible features identified"}
-                </div>
+                {playground.accessibility.wheelchair_accessible && (
+                  <div>
+                    <span className="font-medium">Wheelchair Access: </span>
+                    Yes - includes ramps, accessible routes, or transfer stations
+                  </div>
+                )}
 
                 {/* Surface Type */}
-                {playground.accessibility.surface_type && (
+                {playground.accessibility.surface_type && playground.accessibility.surface_type.trim() && (
                   <div>
                     <span className="font-medium">Surface: </span>
                     {playground.accessibility.surface_type}
@@ -280,7 +295,9 @@ export default async function PlaygroundDetail({
                   )}
 
                 {/* Shade Coverage */}
-                {playground.accessibility.shade_coverage && (
+                {playground.accessibility.shade_coverage &&
+                  playground.accessibility.shade_coverage !== "none" &&
+                  playground.accessibility.shade_coverage !== "minimal" && (
                   <div>
                     <span className="font-medium">Shade Coverage: </span>
                     {playground.accessibility.shade_coverage}
@@ -312,7 +329,7 @@ export default async function PlaygroundDetail({
                   )}
               </div>
             ) : (
-              <p className="text-muted-foreground mt-2 text-sm italic">
+              <p className="text-muted-foreground text-sm italic">
                 No accessibility information available
               </p>
             )}

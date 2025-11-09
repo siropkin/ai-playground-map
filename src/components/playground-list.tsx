@@ -10,7 +10,7 @@ import { TierBadge } from "@/components/tier-badge";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import Link from "next/link";
-import { MapPin, ArrowRight, Accessibility, ParkingCircle } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
@@ -144,52 +144,10 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             )}
           </div>
 
-          {/* Info Indicators - Only show when enriched */}
-          {playground.enriched && (playground.tier || playground.parking || (playground.accessibility && (
-            playground.accessibility.wheelchair_accessible ||
-            playground.accessibility.surface_type ||
-            playground.accessibility.transfer_stations ||
-            (playground.accessibility.ground_level_activities !== null && playground.accessibility.ground_level_activities > 0) ||
-            (playground.accessibility.sensory_friendly && (
-              playground.accessibility.sensory_friendly.quiet_zones ||
-              playground.accessibility.sensory_friendly.tactile_elements ||
-              playground.accessibility.sensory_friendly.visual_aids
-            )) ||
-            (playground.accessibility.shade_coverage &&
-              playground.accessibility.shade_coverage !== "none" &&
-              playground.accessibility.shade_coverage !== "minimal") ||
-            (playground.accessibility.accessible_parking?.available) ||
-            (playground.accessibility.accessible_restrooms?.available)
-          ))) && (
-            <div className="absolute bottom-2 left-2 flex gap-1.5">
-              {playground.tier && (
-                <TierBadge tier={playground.tier} variant="compact" />
-              )}
-              {playground.parking && (
-                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                  <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              )}
-              {playground.accessibility && (
-                playground.accessibility.wheelchair_accessible ||
-                playground.accessibility.surface_type ||
-                playground.accessibility.transfer_stations ||
-                (playground.accessibility.ground_level_activities !== null && playground.accessibility.ground_level_activities > 0) ||
-                (playground.accessibility.sensory_friendly && (
-                  playground.accessibility.sensory_friendly.quiet_zones ||
-                  playground.accessibility.sensory_friendly.tactile_elements ||
-                  playground.accessibility.sensory_friendly.visual_aids
-                )) ||
-                (playground.accessibility.shade_coverage &&
-                  playground.accessibility.shade_coverage !== "none" &&
-                  playground.accessibility.shade_coverage !== "minimal") ||
-                (playground.accessibility.accessible_parking?.available) ||
-                (playground.accessibility.accessible_restrooms?.available)
-              ) && (
-                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                  <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              )}
+          {/* Tier Badge - Top Right */}
+          {playground.enriched && playground.tier && (
+            <div className="absolute right-2 top-2">
+              <TierBadge tier={playground.tier} variant="compact" />
             </div>
           )}
         </CardHeader>
