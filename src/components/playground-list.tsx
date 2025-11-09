@@ -144,13 +144,8 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             )}
           </div>
 
-          {/* Tier Badge - Top right corner */}
-          {playground.enriched && playground.tier && (
-            <TierBadge tier={playground.tier} size="sm" className="absolute right-2 top-2" />
-          )}
-
           {/* Info Indicators - Only show when enriched */}
-          {playground.enriched && (playground.parking || (playground.accessibility && (
+          {playground.enriched && (playground.tier || playground.parking || (playground.accessibility && (
             playground.accessibility.wheelchair_accessible ||
             playground.accessibility.surface_type ||
             playground.accessibility.transfer_stations ||
@@ -167,6 +162,9 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
             (playground.accessibility.accessible_restrooms?.available)
           ))) && (
             <div className="absolute bottom-2 left-2 flex gap-1.5">
+              {playground.tier && (
+                <TierBadge tier={playground.tier} variant="compact" />
+              )}
               {playground.parking && (
                 <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                   <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />

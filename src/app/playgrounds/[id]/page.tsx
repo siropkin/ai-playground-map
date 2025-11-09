@@ -223,7 +223,7 @@ export default async function PlaygroundDetail({
           <div className="flex-1">
             <p className="text-sm font-medium">Accessibility Features</p>
             {playground.accessibility ? (
-              <div className="text-muted-foreground mt-2 space-y-2 text-sm">
+              <div className="text-muted-foreground mt-1 space-y-1 text-sm">
                 {/* Wheelchair Access */}
                 <div>
                   <span className="font-medium">Wheelchair Access: </span>
