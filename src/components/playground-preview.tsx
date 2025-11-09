@@ -10,7 +10,7 @@ import ImageCarousel from "@/components/image-carousel";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
 import { Playground } from "@/types/playground";
-import { MapPin, ArrowRight, Accessibility, Umbrella, Volume2, ParkingCircle } from "lucide-react";
+import { MapPin, ArrowRight, Accessibility, ParkingCircle } from "lucide-react";
 import { useState } from "react";
 
 interface PlaygroundPreviewProps {

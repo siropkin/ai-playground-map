@@ -25,7 +25,7 @@ import { useDebounce } from "@/lib/hooks";
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
 // Validate accessibility data structure to reject old/malformed cache data
-function validateAccessibility(accessibility: any): Playground["accessibility"] {
+function validateAccessibility(accessibility: unknown): Playground["accessibility"] {
   // New format: array of strings (v6+)
   if (Array.isArray(accessibility)) {
     // Validate it's an array of strings
