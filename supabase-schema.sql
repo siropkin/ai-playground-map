@@ -29,9 +29,9 @@ ALTER TABLE osm_query_cache DISABLE ROW LEVEL SECURITY;
 
 
 -- ============================================
--- 2. Perplexity Insights Cache Table
+-- 2. AI Insights Cache Table
 -- ============================================
-CREATE TABLE IF NOT EXISTS perplexity_insights_cache (
+CREATE TABLE IF NOT EXISTS ai_insights_cache (
   cache_key TEXT PRIMARY KEY,
   name TEXT,
   description TEXT,
@@ -40,23 +40,25 @@ CREATE TABLE IF NOT EXISTS perplexity_insights_cache (
   sources JSONB,
   images JSONB,
   accessibility JSONB,
+  tier TEXT CHECK (tier IN ('neighborhood', 'gem', 'star')),
+  tier_reasoning TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   schema_version INTEGER DEFAULT 1
 );
 
 -- Add index for accessibility queries
-CREATE INDEX IF NOT EXISTS idx_perplexity_cache_accessibility
-ON perplexity_insights_cache USING GIN (accessibility);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_cache_accessibility
+ON ai_insights_cache USING GIN (accessibility);
 
 -- Add index for created_at for TTL checks
-CREATE INDEX IF NOT EXISTS idx_perplexity_cache_created_at
-ON perplexity_insights_cache(created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_cache_created_at
+ON ai_insights_cache(created_at);
 
 -- Add comment
-COMMENT ON TABLE perplexity_insights_cache IS 'Caches AI-generated playground insights with 1 year TTL';
+COMMENT ON TABLE ai_insights_cache IS 'Caches AI-generated playground insights with 1 year TTL';
 
 -- Disable RLS for cache table (no user-specific data)
-ALTER TABLE perplexity_insights_cache DISABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_insights_cache DISABLE ROW LEVEL SECURITY;
 
 
 -- ============================================
@@ -114,12 +116,64 @@ USING (
 
 
 -- ============================================
--- CLEAR CACHE (Run this after fixing serialization bug)
+-- MIGRATION: Rename table from old name
 -- ============================================
--- The cache had a double-stringification bug that was fixed.
--- Clear existing corrupted cache entries to force fresh data.
-DELETE FROM osm_query_cache;
-DELETE FROM perplexity_insights_cache;
+-- If the old table exists, rename it to the new generic name
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT FROM pg_tables
+    WHERE schemaname = 'public'
+    AND tablename = 'perplexity_insights_cache'
+  ) THEN
+    ALTER TABLE perplexity_insights_cache RENAME TO ai_insights_cache;
+    RAISE NOTICE 'Table renamed from perplexity_insights_cache to ai_insights_cache';
+  END IF;
+END $$;
+
+-- Rename indexes if they exist
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT FROM pg_indexes
+    WHERE schemaname = 'public'
+    AND indexname = 'idx_perplexity_cache_accessibility'
+  ) THEN
+    ALTER INDEX idx_perplexity_cache_accessibility RENAME TO idx_ai_insights_cache_accessibility;
+  END IF;
+
+  IF EXISTS (
+    SELECT FROM pg_indexes
+    WHERE schemaname = 'public'
+    AND indexname = 'idx_perplexity_cache_created_at'
+  ) THEN
+    ALTER INDEX idx_perplexity_cache_created_at RENAME TO idx_ai_insights_cache_created_at;
+  END IF;
+END $$;
+
+
+-- ============================================
+-- MIGRATION: Add tier fields to existing table
+-- ============================================
+-- If the table already exists, add the new columns
+ALTER TABLE ai_insights_cache
+ADD COLUMN IF NOT EXISTS tier TEXT CHECK (tier IN ('neighborhood', 'gem', 'star'));
+
+ALTER TABLE ai_insights_cache
+ADD COLUMN IF NOT EXISTS tier_reasoning TEXT;
+
+-- Add index for tier filtering (optional - for future tier-based queries)
+CREATE INDEX IF NOT EXISTS idx_ai_insights_cache_tier
+ON ai_insights_cache(tier) WHERE tier IS NOT NULL;
+
+
+-- ============================================
+-- CLEAR CACHE (Optional: Run after major changes)
+-- ============================================
+-- Uncomment the lines below to clear all cache entries
+-- This will force fresh data with tier ratings from Gemini AI
+-- DELETE FROM osm_query_cache;
+-- DELETE FROM ai_insights_cache;
 
 
 -- ============================================
@@ -130,5 +184,5 @@ SELECT
   tablename,
   tableowner
 FROM pg_tables
-WHERE tablename IN ('osm_query_cache', 'perplexity_insights_cache', 'playground_issues')
+WHERE tablename IN ('osm_query_cache', 'ai_insights_cache', 'playground_issues')
 ORDER BY tablename;

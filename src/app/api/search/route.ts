@@ -100,7 +100,7 @@ export async function POST(
         enriched: false,
         accessibility: null,
         tier: null,
-        tierScore: null,
+        tierReasoning: null,
       }))
       .filter((playground) => playground.lat && playground.lon);
 

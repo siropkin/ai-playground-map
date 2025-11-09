@@ -1,6 +1,6 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
-import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
+import { AIInsights, AILocation } from "@/types/ai-insights";
 
 /**
  * Client-side function to search for playgrounds in the API
@@ -41,7 +41,7 @@ export async function fetchLocationData(
   lat: number,
   lon: number,
   signal?: AbortSignal,
-): Promise<PerplexityLocation | null> {
+): Promise<AILocation | null> {
   try {
     const response = await fetch("/api/osm-location", {
       method: "POST",
@@ -77,11 +77,11 @@ export async function generatePlaygroundAiInsights({
   osmId,
   signal,
 }: {
-  location?: PerplexityLocation;
+  location?: AILocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
-}): Promise<PerplexityInsights | null> {
+}): Promise<AIInsights | null> {
   try {
     const response = await fetch("/api/insights", {
       method: "POST",
@@ -126,7 +126,7 @@ export async function generatePlaygroundAiInsightsBatch({
 }): Promise<
   Array<{
     playgroundId: number;
-    insights: PerplexityInsights | null;
+    insights: AIInsights | null;
   }>
 > {
   try {

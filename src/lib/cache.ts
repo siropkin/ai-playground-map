@@ -1,32 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
-import { PerplexityInsights } from "@/types/perplexity";
+import { AIInsights } from "@/types/ai-insights";
 
-const PERPLEXITY_CACHE_TTL_MS = parseInt(
-  process.env.PERPLEXITY_CACHE_TTL_MS || "31536000000",
+const AI_INSIGHTS_CACHE_TTL_MS = parseInt(
+  process.env.AI_INSIGHTS_CACHE_TTL_MS || "31536000000",
 ); // Cache TTL (1 year in milliseconds)
-const PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME =
-  process.env.PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME ||
-  "perplexity_insights_cache";
+const AI_INSIGHTS_CACHE_TABLE_NAME =
+  process.env.AI_INSIGHTS_CACHE_TABLE_NAME ||
+  "ai_insights_cache";
 
-// Schema version for Perplexity cache
+// Schema version for AI insights cache
 // Increment this when the prompt or response structure changes
 // Old cache entries will be automatically invalidated
 const CURRENT_SCHEMA_VERSION = 1;
 
 // Function to get AI insights from cache
 // cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
-export async function fetchPerplexityInsightsFromCache({
+export async function fetchAIInsightsFromCache({
   cacheKey,
 }: {
   cacheKey: string;
-}): Promise<PerplexityInsights | null> {
+}): Promise<AIInsights | null> {
   try {
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "name, description, features, parking, sources, images, accessibility, created_at, schema_version",
+        "name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at, schema_version",
       )
       .eq("cache_key", cacheKey)
       .single();
@@ -38,7 +38,7 @@ export async function fetchPerplexityInsightsFromCache({
     // Check schema version first - invalidate if outdated
     if (data.schema_version !== CURRENT_SCHEMA_VERSION) {
       await supabase
-        .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+        .from(AI_INSIGHTS_CACHE_TABLE_NAME)
         .delete()
         .eq("cache_key", cacheKey);
 
@@ -49,19 +49,19 @@ export async function fetchPerplexityInsightsFromCache({
     const now = Date.now();
 
     if (
-      now - createdAt > PERPLEXITY_CACHE_TTL_MS ||
+      now - createdAt > AI_INSIGHTS_CACHE_TTL_MS ||
       data.name === null ||
       data.description === null
     ) {
       await supabase
-        .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+        .from(AI_INSIGHTS_CACHE_TABLE_NAME)
         .delete()
         .eq("cache_key", cacheKey);
 
       return null;
     }
 
-    return {
+    const result = {
       name: data.name,
       description: data.description,
       features: data.features,
@@ -69,7 +69,19 @@ export async function fetchPerplexityInsightsFromCache({
       sources: data.sources,
       images: data.images,
       accessibility: data.accessibility,
+      // Tier fields (added in v17) - now properly selected from database
+      tier: data.tier ?? null,
+      tier_reasoning: data.tier_reasoning ?? null,
     };
+
+    console.log('[Cache] 📖 Retrieved from cache:', {
+      cacheKey,
+      tier: result.tier,
+      tier_reasoning: result.tier_reasoning ? result.tier_reasoning.substring(0, 50) + '...' : null,
+      name: result.name,
+    });
+
+    return result;
   } catch (error) {
     console.error("Error getting AI insights from cache:", error);
     return null;
@@ -78,18 +90,25 @@ export async function fetchPerplexityInsightsFromCache({
 
 // Function to save AI insights to cache
 // cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
-export async function savePerplexityInsightsToCache({
+export async function saveAIInsightsToCache({
   cacheKey,
   insights,
 }: {
   cacheKey: string;
-  insights: PerplexityInsights;
+  insights: AIInsights;
 }): Promise<void> {
   try {
     const supabase = await createClient();
 
+    console.log('[Cache] 💾 Saving to cache:', {
+      cacheKey,
+      tier: insights.tier,
+      tier_reasoning: insights.tier_reasoning ? insights.tier_reasoning.substring(0, 50) + '...' : null,
+      name: insights.name,
+    });
+
     const { error } = await supabase
-      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .upsert(
         {
           cache_key: cacheKey,
@@ -99,6 +118,9 @@ export async function savePerplexityInsightsToCache({
           parking: insights.parking,
           sources: insights.sources,
           images: insights.images,
+          accessibility: insights.accessibility,
+          tier: insights.tier,
+          tier_reasoning: insights.tier_reasoning,
           created_at: new Date().toISOString(),
           schema_version: CURRENT_SCHEMA_VERSION,
         },
@@ -107,15 +129,17 @@ export async function savePerplexityInsightsToCache({
 
     if (error) {
       console.error("Error saving AI insights to cache:", error);
+    } else {
+      console.log('[Cache] ✅ Successfully saved to cache with tier:', insights.tier);
     }
   } catch (error) {
     console.error("Error saving AI insights to cache:", error);
   }
 }
 
-// Function to clear Perplexity insights cache
+// Function to clear AI insights cache
 // cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
-export async function clearPerplexityInsightsCache({
+export async function clearAIInsightsCache({
   cacheKey,
 }: {
   cacheKey: string;
@@ -123,15 +147,15 @@ export async function clearPerplexityInsightsCache({
   try {
     const supabase = await createClient();
     const { error } = await supabase
-      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .delete()
       .eq("cache_key", cacheKey);
 
     if (error) {
-      console.error("Error clearing Perplexity insights cache:", error);
+      console.error("Error clearing AI insights cache:", error);
     }
   } catch (error) {
-    console.error("Error clearing Perplexity insights cache:", error);
+    console.error("Error clearing AI insights cache:", error);
   }
 }
 
@@ -139,12 +163,12 @@ export async function clearPerplexityInsightsCache({
  * Batch fetch multiple cache entries at once (optimized for performance)
  * Returns a Map of cacheKey -> insights for all found entries
  */
-export async function batchFetchPerplexityInsightsFromCache({
+export async function batchFetchAIInsightsFromCache({
   cacheKeys,
 }: {
   cacheKeys: string[];
-}): Promise<Map<string, PerplexityInsights>> {
-  const results = new Map<string, PerplexityInsights>();
+}): Promise<Map<string, AIInsights>> {
+  const results = new Map<string, AIInsights>();
 
   if (cacheKeys.length === 0) {
     return results;
@@ -154,9 +178,9 @@ export async function batchFetchPerplexityInsightsFromCache({
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "cache_key, name, description, features, parking, sources, images, accessibility, created_at, schema_version",
+        "cache_key, name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at, schema_version",
       )
       .in("cache_key", cacheKeys);
 
@@ -179,7 +203,7 @@ export async function batchFetchPerplexityInsightsFromCache({
       // Check TTL and data validity
       const createdAt = new Date(row.created_at).getTime();
       if (
-        now - createdAt > PERPLEXITY_CACHE_TTL_MS ||
+        now - createdAt > AI_INSIGHTS_CACHE_TTL_MS ||
         row.name === null ||
         row.description === null
       ) {
@@ -196,13 +220,16 @@ export async function batchFetchPerplexityInsightsFromCache({
         sources: row.sources,
         images: row.images,
         accessibility: row.accessibility,
+        // Tier fields (added in v17) - now properly selected from database
+        tier: row.tier ?? null,
+        tier_reasoning: row.tier_reasoning ?? null,
       });
     }
 
     // Clean up expired/invalid entries in background
     if (keysToDelete.length > 0) {
       supabase
-        .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+        .from(AI_INSIGHTS_CACHE_TABLE_NAME)
         .delete()
         .in("cache_key", keysToDelete)
         .then(({ error }) => {

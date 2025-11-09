@@ -1,9 +1,9 @@
 import {
-  fetchPerplexityInsightsFromCache,
-  savePerplexityInsightsToCache,
-  batchFetchPerplexityInsightsFromCache,
+  fetchAIInsightsFromCache,
+  saveAIInsightsToCache,
+  batchFetchAIInsightsFromCache,
 } from "@/lib/cache";
-import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
+import { AIInsights, AILocation } from "@/types/ai-insights";
 import { perplexityLimiter } from "@/lib/rate-limiter";
 import { deduplicatedFetch } from "@/lib/request-dedup";
 import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
@@ -269,11 +269,11 @@ export async function fetchPerplexityInsights({
   signal,
   priority = 'medium',
 }: {
-  location: PerplexityLocation;
+  location: AILocation;
   name?: string;
   signal?: AbortSignal;
   priority?: EnrichmentPriority;
-}): Promise<PerplexityInsights | null> {
+}): Promise<AIInsights | null> {
   if (signal?.aborted) {
     return null;
   }
@@ -459,7 +459,7 @@ Explain why you believe this is the correct playground: 1) Confirm it's in ${cit
 
   const base =
     parsed && typeof parsed === "object"
-      ? (parsed as Partial<PerplexityInsights> & {
+      ? (parsed as Partial<AIInsights> & {
           location_confidence?: string;
           location_verification?: string;
         })
@@ -502,7 +502,10 @@ Explain why you believe this is the correct playground: 1) Confirm it's in ${cit
       base.sources ?? (Array.isArray(data?.citations) ? (data.citations as string[]) : null),
     images: filterImages(rawImages), // Apply image quality filtering
     accessibility: base.accessibility ?? null,
-    // Internal metadata (not part of PerplexityInsights type)
+    // Tier rating fields (not provided by Perplexity - only Gemini calculates tiers)
+    tier: null,
+    tier_reasoning: null,
+    // Internal metadata (not part of AIInsights type)
     _locationConfidence: base.location_confidence || 'low',
     _locationVerification: base.location_verification || null,
   };
@@ -518,12 +521,12 @@ export async function fetchPerplexityInsightsWithCache({
   signal,
   priority = 'medium',
 }: {
-  location?: PerplexityLocation;
+  location?: AILocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
   priority?: EnrichmentPriority;
-}): Promise<PerplexityInsights | null> {
+}): Promise<AIInsights | null> {
   if (signal?.aborted) {
     return null;
   }
@@ -545,7 +548,7 @@ export async function fetchPerplexityInsightsWithCache({
     `perplexity:${cacheKey}`,
     async () => {
       // Check cache first
-      const cachedInsights = await fetchPerplexityInsightsFromCache({
+      const cachedInsights = await fetchAIInsightsFromCache({
         cacheKey,
       });
       if (cachedInsights) {
@@ -564,7 +567,7 @@ export async function fetchPerplexityInsightsWithCache({
         name,
         signal,
         priority, // Phase 4: Pass priority for enrichment strategy
-      }) as PerplexityInsights & {
+      }) as AIInsights & {
         _locationConfidence?: string;
         _locationVerification?: string | null;
       } | null;
@@ -610,7 +613,7 @@ export async function fetchPerplexityInsightsWithCache({
       }
 
       // Remove internal metadata before returning/caching
-      const cleanResult: PerplexityInsights = {
+      const cleanResult: AIInsights = {
         name: freshInsights.name,
         description: freshInsights.description,
         features: freshInsights.features,
@@ -618,11 +621,13 @@ export async function fetchPerplexityInsightsWithCache({
         sources: freshInsights.sources,
         images: freshInsights.images,
         accessibility: freshInsights.accessibility,
+        tier: freshInsights.tier,
+        tier_reasoning: freshInsights.tier_reasoning,
       };
 
       // Save to cache only if quality is high enough
       if (resultScore.shouldCache) {
-        await savePerplexityInsightsToCache({ cacheKey, insights: cleanResult });
+        await saveAIInsightsToCache({ cacheKey, insights: cleanResult });
       } else {
         console.warn(
           `[Perplexity] NOT caching result for ${cityState} due to quality concerns`,
@@ -648,7 +653,7 @@ export async function fetchPerplexityInsightsBatch({
 }: {
   requests: Array<{
     playgroundId: number;
-    location?: PerplexityLocation;
+    location?: AILocation;
     name?: string;
     osmId?: string;
   }>;
@@ -657,7 +662,7 @@ export async function fetchPerplexityInsightsBatch({
 }): Promise<
   Array<{
     playgroundId: number;
-    insights: PerplexityInsights | null;
+    insights: AIInsights | null;
   }>
 > {
   if (signal?.aborted) {
@@ -686,14 +691,14 @@ export async function fetchPerplexityInsightsBatch({
   }
 
   // Batch fetch all cache entries at once (single query)
-  const cachedResults = await batchFetchPerplexityInsightsFromCache({
+  const cachedResults = await batchFetchAIInsightsFromCache({
     cacheKeys,
   });
 
   console.log(`[Batch Enrichment] Cache hit: ${cachedResults.size}/${batch.length}`);
 
   // PHASE 2: Build results array and identify cache misses
-  const results: Array<{ playgroundId: number; insights: PerplexityInsights | null }> = [];
+  const results: Array<{ playgroundId: number; insights: AIInsights | null }> = [];
   const misses: typeof batch = [];
 
   for (const req of batch) {

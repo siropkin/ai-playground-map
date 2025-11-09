@@ -5,9 +5,9 @@ export async function POST() {
   try {
     const supabase = await createClient();
 
-    // Delete all perplexity cache entries
+    // Delete all AI insights cache entries
     const { error } = await supabase
-      .from("perplexity_insights_cache")
+      .from("ai_insights_cache")
       .delete()
       .neq("cache_key", ""); // Delete all entries (neq with empty string matches all)
 
@@ -21,7 +21,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: "Perplexity cache cleared successfully"
+      message: "AI insights cache cleared successfully"
     });
   } catch (error) {
     console.error("Error clearing cache:", error);

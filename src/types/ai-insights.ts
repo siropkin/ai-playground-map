@@ -1,4 +1,4 @@
-export type PerplexityLocation = {
+export type AILocation = {
   latitude: number;
   longitude: number;
   city?: string;
@@ -6,7 +6,7 @@ export type PerplexityLocation = {
   country: string; // ISO 3166-1 alpha-2 code (e.g., "US")
 };
 
-export type PerplexityInsights = {
+export type AIInsights = {
   name: string | null;
   description: string | null;
   features: string[] | null;
@@ -21,4 +21,11 @@ export type PerplexityInsights = {
       }[]
     | null;
   accessibility: string[] | null;
+  // Tier rating (determined by Gemini AI based on features, uniqueness, destination quality)
+  tier: "neighborhood" | "gem" | "star" | null;
+  tier_reasoning: string | null; // Why Gemini assigned this tier
 };
+
+// Legacy exports for backwards compatibility during migration
+export type PerplexityLocation = AILocation;
+export type PerplexityInsights = AIInsights;

@@ -38,9 +38,10 @@ pnpm lint
 **Good Playground Map** is an AI-powered interactive map that helps parents find playgrounds for their kids. It combines:
 
 1. **OpenStreetMap** data for playground locations
-2. **Perplexity AI** for detailed enrichment (descriptions, features, images)
-3. **Mapbox GL** for interactive mapping
-4. **Supabase** for auth & caching
+2. **Google Gemini 2.0 Flash** with web search grounding for detailed text enrichment (descriptions, features)
+3. **Google Custom Search API** for high-quality playground images
+4. **Mapbox GL** for interactive mapping
+5. **Supabase** for auth & caching
 
 ## Tech Stack
 
@@ -53,7 +54,8 @@ pnpm lint
 - **shadcn/ui** - Accessible component library (uses Radix UI primitives)
 - **Mapbox GL 3.11.0** - Interactive maps
 - **Supabase** - PostgreSQL database, auth, storage
-- **Perplexity AI** - AI-powered enrichment
+- **Google Gemini 2.0 Flash** - AI-powered text enrichment with web search grounding
+- **Google Custom Search API** - High-quality playground images
 
 ### UI Components (shadcn/ui)
 
@@ -106,16 +108,16 @@ pnpm dlx shadcn@latest add [component-name]
     │ Supabase│         │ External    │
     │ (Cache) │         │ APIs        │
     │         │         │ • OSM       │
-    │ • OSM   │         │ • Perplexity│
-    │ • AI    │         │ • Nominatim │
-    │ • Users │         └─────────────┘
-    └─────────┘
+    │ • OSM   │         │ • Gemini    │
+    │ • AI    │         │ • Google CS │
+    │ • Users │         │ • Nominatim │
+    └─────────┘         └─────────────┘
 ```
 
 ## Key Features
 
 1. **Interactive Map** - Mapbox-powered with clustering, zoom controls
-2. **AI Enrichment** - Perplexity AI generates descriptions, features, parking info, images
+2. **AI Enrichment** - Google Gemini with web search generates descriptions, features, parking info + Google Custom Search for images
 3. **Smart Caching** - 24hr OSM cache, 1yr AI cache (cost optimization)
 4. **Priority-based Enrichment** - Detail page (full), visible (medium), off-screen (light)
 5. **Google OAuth** - Optional login for admin features
@@ -137,21 +139,23 @@ PlaygroundsContext fetches → Check OSM cache →
 User views playground → enrichPlayground(id) called →
 Check if already enriched → Try cache with osmId ONLY →
   CACHE HIT: Return immediately (20-50ms)
-  CACHE MISS: Fetch location data → Call Perplexity API →
+  CACHE MISS: Fetch location data → Call Gemini API (with web search) →
+              Fetch images from Google Custom Search →
               Validate result (location, quality) →
               Score result (0-100) → Cache if score ≥ 70 → Display
 
 Batch enrichment: Check cache for ALL playgrounds first →
   Identify cache misses → Geocode ONLY misses →
-  Fetch AI insights for misses → Merge hits + misses
+  Fetch AI insights + images for misses → Merge hits + misses
 ```
 
 ## Important File Paths
 
 ### Core Logic
-- `/src/lib/perplexity.ts` (696 lines) - AI enrichment with validation
+- `/src/lib/gemini.ts` - Google Gemini AI enrichment with web search grounding
+- `/src/lib/google-image-search.ts` - Google Custom Search API for images
 - `/src/lib/osm.ts` (237 lines) - OpenStreetMap queries
-- `/src/contexts/playgrounds-context.tsx` (275 lines) - State management
+- `/src/contexts/playgrounds-context.tsx` (418 lines) - State management
 - `/src/lib/validators/result-scorer.ts` (232 lines) - Quality scoring
 
 ### UI Components
@@ -179,16 +183,22 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 # Mapbox
 NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=pk.your_token
 
-# Perplexity AI
-PERPLEXITY_API_KEY=pplx-your-key
+# Google Gemini AI (text enrichment with web search grounding)
+GEMINI_API_KEY=AIzaSy...
+GEMINI_MODEL=gemini-2.0-flash-exp  # Supports google_search grounding
+GEMINI_TEMPERATURE=0.2
+
+# Google Custom Search API (images)
+# Get CX from: https://programmablesearchengine.google.com/
+GOOGLE_SEARCH_CX=your_search_engine_id
+GOOGLE_SEARCH_API_KEY=AIzaSy...  # Can be different from GEMINI_API_KEY
 ```
 
 **Optional (with defaults):**
 ```bash
 OSM_QUERY_TIMEOUT=25
-PERPLEXITY_MODEL=sonar-pro
-PERPLEXITY_TEMPERATURE=0.2
-PERPLEXITY_CACHE_TTL_MS=31536000000  # 1 year
+AI_INSIGHTS_CACHE_TTL_MS=31536000000  # 1 year cache TTL
+AI_INSIGHTS_CACHE_TABLE_NAME=ai_insights_cache  # Supabase table name
 ```
 
 ## Code Patterns
@@ -265,10 +275,13 @@ import { Spinner } from "@/components/ui/spinner";
 
 ### When Using AI Enrichment
 
-- **Cost awareness**: High priority = $0.015, Medium = $0.010, Low = $0.005
-- **Location validation**: Results must be within 0.1 mile radius
+- **Cost awareness**:
+  - Gemini API: Free tier 15 RPM (gemini-2.0-flash-exp), 10 RPM with grounding
+  - Google Custom Search: Free tier 100 queries/day, then $5 per 1000
+- **Location validation**: Results must be within 50-200m (high/medium confidence)
 - **Quality threshold**: Only cache results with score ≥ 70
 - **Batch size limit**: Max 5 playgrounds per batch call
+- **Image filtering**: Disabled - relying on Google Custom Search quality filters (SafeSearch, imgType=photo, imgSize=large)
 
 ### When Working with OSM Data
 
@@ -285,7 +298,7 @@ import { Spinner } from "@/components/ui/spinner";
 1. **Phase 1 (Cache Check)**: Try cache with just `osmId` (no geocoding needed)
    - If HIT: Return immediately (20-50ms) ✅
    - If MISS: Proceed to Phase 2
-2. **Phase 2 (Full Enrichment)**: Fetch location + call Perplexity API
+2. **Phase 2 (Full Enrichment)**: Fetch location + call Gemini API + fetch images from Google Custom Search
 
 **Batch Optimization:** Check cache for ALL playgrounds first, then:
 - Separate cache hits from misses
@@ -305,9 +318,9 @@ import { Spinner } from "@/components/ui/spinner";
 | OSM search (cached) | <50ms | Database lookup |
 | OSM search (uncached) | 500-2000ms | Overpass API |
 | AI enrichment (cached) | 20-50ms | Cache-first with osmId (no geocoding) |
-| AI enrichment (uncached) | 3-8s | Perplexity API + validation |
+| AI enrichment (uncached) | 3-8s | Gemini API + Google Custom Search + validation |
 | Batch enrichment (5 cached) | 100-150ms | Skip geocoding for cached playgrounds |
-| Batch enrichment (5 uncached) | 15-30s | Geocode + AI enrichment for all |
+| Batch enrichment (5 uncached) | 15-30s | Geocode + Gemini + images for all |
 
 ## Testing
 
@@ -342,10 +355,11 @@ import { Spinner } from "@/components/ui/spinner";
 - **Deployment**: Vercel Dashboard
 - **shadcn/ui docs**: https://ui.shadcn.com
 - **Mapbox docs**: https://docs.mapbox.com
-- **Perplexity API**: https://docs.perplexity.ai
+- **Google Gemini API**: https://ai.google.dev/
+- **Google Custom Search**: https://developers.google.com/custom-search
 
 ---
 
-**Last Updated:** 2025-11-08
-**Version:** 3.2.1
+**Last Updated:** 2025-11-09
+**Version:** 4.0.0 (Migrated from Perplexity AI to Google Gemini + Custom Search)
 **Maintainer:** Ivan Seredkin

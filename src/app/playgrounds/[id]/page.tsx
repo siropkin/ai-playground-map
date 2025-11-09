@@ -24,7 +24,7 @@ import {
   ParkingCircle,
   Accessibility,
 } from "lucide-react";
-import { calculatePlaygroundTier } from "@/lib/tier-calculator";
+// Tier calculation now done by Gemini AI - no longer needed
 import ClearCacheButton from "./clear-cache-button";
 import ReportIssueForm from "./report-issue-form";
 import CollapsibleSources from "./collapsible-sources";
@@ -104,25 +104,16 @@ export default async function PlaygroundDetail({
     excludeOsmId: playground.osmId,
   });
 
-  // Calculate tier with reasons for display
-  const tierResult = playground.enriched
-    ? calculatePlaygroundTier({
-        name: playground.name,
-        description: playground.description,
-        features: playground.features,
-        parking: playground.parking,
-        accessibility: playground.accessibility,
-        images: playground.images,
-        sources: playground.sources,
-      })
-    : null;
+  // Tier now comes directly from Gemini AI in the playground data
+  const playgroundWithTier = playground;
 
-  // Add tier to playground object for map display
-  const playgroundWithTier = {
-    ...playground,
-    tier: tierResult?.tier || null,
-    tierScore: tierResult?.score || null,
-  };
+  console.log('[Page] 🎯 Playground tier data:', {
+    id: resolvedParams.id,
+    name: playground.name,
+    tier: playground.tier,
+    tierReasoning: playground.tierReasoning ? playground.tierReasoning.substring(0, 50) + '...' : null,
+    enriched: playground.enriched,
+  });
 
   return (
     <>
@@ -155,8 +146,8 @@ export default async function PlaygroundDetail({
               <h1 className="text-3xl font-bold sm:text-4xl">
                 {playground.name || UNNAMED_PLAYGROUND}
               </h1>
-              {tierResult && tierResult.tier !== "neighborhood" && (
-                <TierBadge tier={tierResult.tier} size="lg" />
+              {playground.tier && playground.tier !== "neighborhood" && (
+                <TierBadge tier={playground.tier} size="lg" />
               )}
             </div>
           </div>
@@ -191,20 +182,17 @@ export default async function PlaygroundDetail({
           </p>
         )}
 
-        {/* Why This Is Special - Tier Reasons */}
-        {tierResult && tierResult.tier !== "neighborhood" && tierResult.reasons.length > 0 && (
+        {/* Why This Is Special - Tier Reasoning from Gemini AI */}
+        {playground.tier && playground.tier !== "neighborhood" && playground.tierReasoning && (
           <div className="flex items-start gap-2 rounded-lg border-2 border-purple-200 bg-gradient-to-br from-purple-50/50 to-pink-50/50 p-3 dark:border-purple-800/50 dark:from-purple-950/20 dark:to-pink-950/20">
-            <span className="flex-shrink-0 text-base leading-5">{tierResult.tier === "star" ? "⭐" : "💎"}</span>
+            <span className="flex-shrink-0 text-base leading-5">{playground.tier === "star" ? "⭐" : "💎"}</span>
             <div className="flex-1">
               <p className="text-sm font-medium leading-5 text-purple-900 dark:text-purple-200">Why This Is Special</p>
-              <div className="text-muted-foreground mt-2 space-y-1 text-sm text-purple-800 dark:text-purple-300">
-                {tierResult.reasons.map((reason, i) => (
-                  <div key={i} className="capitalize">{reason}</div>
-                ))}
-              </div>
+              <p className="text-muted-foreground mt-2 text-sm text-purple-800 dark:text-purple-300">{playground.tierReasoning}</p>
             </div>
           </div>
         )}
+
 
         {/* Features */}
         {playground.features && playground.features.length > 0 && (

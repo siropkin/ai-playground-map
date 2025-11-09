@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PerplexityLocation } from "@/types/perplexity";
-import { fetchPerplexityInsightsBatch } from "@/lib/perplexity";
+import { AILocation } from "@/types/ai-insights";
+import { fetchGeminiInsightsBatch } from "@/lib/gemini";
 import { batchReverseGeocode } from "@/lib/osm";
 
 export async function POST(
@@ -48,7 +48,7 @@ export async function POST(
       osmId: pg.osmId,
     }));
 
-    const cacheResults = await fetchPerplexityInsightsBatch({
+    const cacheResults = await fetchGeminiInsightsBatch({
       requests: cacheOnlyRequests,
       signal,
       cacheOnly: true, // Only check cache, don't try to fetch from API
@@ -80,7 +80,7 @@ export async function POST(
         // Type cast the nominatim response
         const address = (result.data as { address?: Record<string, string> }).address;
 
-        const location: PerplexityLocation = {
+        const location: AILocation = {
           latitude: pg.lat,
           longitude: pg.lon,
           city: address?.city || address?.town || address?.village,
@@ -98,10 +98,18 @@ export async function POST(
       .filter((loc): loc is NonNullable<typeof loc> => loc !== null);
 
     // Fetch insights for cache misses with full location data
-    const missResults = await fetchPerplexityInsightsBatch({
+    console.log('[insights-batch] Fetching insights for playgrounds:',
+      missRequests.map(r => ({ id: r.playgroundId, name: r.name, coords: `${r.location.latitude.toFixed(6)},${r.location.longitude.toFixed(6)}` }))
+    );
+
+    const missResults = await fetchGeminiInsightsBatch({
       requests: missRequests,
       signal,
     });
+
+    console.log('[insights-batch] Results:',
+      missResults.map(r => ({ id: r.playgroundId, hasInsights: !!r.insights, name: r.insights?.name }))
+    );
 
     // Merge cache hits and API results
     const missMap = new Map(missResults.map((r) => [r.playgroundId, r]));

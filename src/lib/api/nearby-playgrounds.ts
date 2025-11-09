@@ -58,7 +58,7 @@ export async function fetchNearbyPlaygrounds({
         enriched: false,
         accessibility: null,
         tier: null,
-        tierScore: null,
+        tierReasoning: null,
       }))
       .filter(
         (playground) =>

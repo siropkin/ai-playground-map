@@ -1,4 +1,4 @@
-import { PerplexityInsights } from "@/types/perplexity";
+import { AIInsights } from "@/types/ai-insights";
 
 /**
  * Playground Tier System: "Playground Gems"
@@ -16,7 +16,7 @@ export interface TierScore {
 /**
  * Calculate playground tier based on features, amenities, and description quality
  */
-export function calculatePlaygroundTier(insights: PerplexityInsights | null): TierScore {
+export function calculatePlaygroundTier(insights: AIInsights | null): TierScore {
   if (!insights) {
     return {
       tier: "neighborhood",

@@ -1,7 +1,7 @@
 import { Playground } from "@/types/playground";
 import { fetchMultipleOSMPlaceDetails } from "@/lib/osm";
-import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
-import { PerplexityLocation } from "@/types/perplexity";
+import { fetchGeminiInsightsWithCache } from "@/lib/gemini";
+import { AILocation } from "@/types/ai-insights";
 import { parseOsmIdentifier } from "@/lib/utils";
 
 export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playground | null> {
@@ -50,11 +50,11 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       enriched: false,
       accessibility: null,
       tier: null,
-      tierScore: null,
+      tierReasoning: null,
     };
 
     // Build location object from OSM address data
-    const location: PerplexityLocation = {
+    const location: AILocation = {
       latitude: playground.lat,
       longitude: playground.lon,
       city: osmPlaceDetails.address.city,
@@ -66,7 +66,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
     const typePrefix = osmPlaceDetails.osm_type.charAt(0).toUpperCase();
     const correctOsmId = `${typePrefix}${osmPlaceDetails.osm_id}`;
 
-    const insight = await fetchPerplexityInsightsWithCache({
+    const insight = await fetchGeminiInsightsWithCache({
       location,
       name: playground.name || undefined,
       osmId: correctOsmId,
@@ -81,6 +81,8 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       playground.sources = insight.sources || playground.sources;
       playground.images = insight.images || playground.images;
       playground.accessibility = insight.accessibility || playground.accessibility;
+      playground.tier = insight.tier || playground.tier;
+      playground.tierReasoning = insight.tier_reasoning || playground.tierReasoning;
       playground.enriched = true;
     }
 

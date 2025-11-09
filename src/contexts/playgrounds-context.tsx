@@ -19,7 +19,7 @@ import {
   generatePlaygroundAiInsights,
   generatePlaygroundAiInsightsBatch,
 } from "@/lib/api/client";
-import { calculatePlaygroundTier } from "@/lib/tier-calculator";
+// Tier calculation now done by Gemini AI - no longer needed locally
 import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
@@ -78,6 +78,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   // Ref to store enrichPlaygroundsBatch function for eager enrichment
   const enrichPlaygroundsBatchRef = useRef<(ids: number[]) => Promise<void>>(() => Promise.resolve());
 
+  // Track recently enriched playgrounds to prevent duplicate requests
+  const recentlyEnrichedRef = useRef<Map<number, number>>(new Map()); // playgroundId -> timestamp
+
   const localFetchPlaygrounds = useCallback(
     async (signal?: AbortSignal) => {
       if (!mapBounds) return;
@@ -113,7 +116,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   images: existingEnriched.images,
                   accessibility: validateAccessibility(existingEnriched.accessibility),
                   tier: existingEnriched.tier,
-                  tierScore: existingEnriched.tierScore,
+                  tierReasoning: existingEnriched.tierReasoning,
                   enriched: true,
                 };
               }
@@ -122,7 +125,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               return {
                 ...newPlayground,
                 tier: null,
-                tierScore: null,
+                tierReasoning: null,
               };
             });
 
@@ -221,9 +224,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           });
         }
 
-        // Calculate tier from insights
-        const tierResult = calculatePlaygroundTier(insight);
-
+        // Tier now comes directly from Gemini AI
         setPlaygrounds((prev) =>
           prev.map((p) =>
             p.osmId === playgroundId
@@ -236,8 +237,8 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   sources: insight?.sources || p.sources,
                   images: insight?.images || p.images,
                   accessibility: validateAccessibility(insight?.accessibility) || p.accessibility,
-                  tier: tierResult.tier,
-                  tierScore: tierResult.score,
+                  tier: insight?.tier || null,
+                  tierReasoning: insight?.tier_reasoning || null,
                   enriched: true,
                 }
               : p,
@@ -253,12 +254,36 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   // Enrich multiple playgrounds in a batch (max 5)
   const enrichPlaygroundsBatch = useCallback(
     async (playgroundIds: number[]) => {
+      // Filter out recently enriched playgrounds (within last 5 seconds)
+      const now = Date.now();
+      const DEDUPE_WINDOW = 5000; // 5 seconds
+      const filteredIds = playgroundIds.filter(id => {
+        const lastEnriched = recentlyEnrichedRef.current.get(id);
+        return !lastEnriched || (now - lastEnriched) > DEDUPE_WINDOW;
+      });
+
+      if (filteredIds.length === 0) {
+        console.log('[Enrichment] Skipping batch - all playgrounds recently enriched');
+        return;
+      }
+
+      // Mark these playgrounds as being enriched
+      filteredIds.forEach(id => recentlyEnrichedRef.current.set(id, now));
+
+      // Clean up old entries (older than 10 seconds)
+      const cutoff = now - 10000;
+      for (const [id, timestamp] of recentlyEnrichedRef.current.entries()) {
+        if (timestamp < cutoff) {
+          recentlyEnrichedRef.current.delete(id);
+        }
+      }
+
       // Get current playground state using setState callback to avoid stale closures
       let playgroundsToEnrich: Playground[] = [];
       await new Promise<void>(resolve => {
         setPlaygrounds((prev) => {
           playgroundsToEnrich = prev
-            .filter((p) => playgroundIds.includes(p.osmId))
+            .filter((p) => filteredIds.includes(p.osmId))
             .slice(0, 5); // Limit to 5 per batch
           resolve();
           return prev; // Don't modify state here
@@ -289,9 +314,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             const result = results.find((r) => r.playgroundId === p.osmId);
             if (!result) return p; // No result for this playground
 
-            // Calculate tier from insights
-            const tierResult = calculatePlaygroundTier(result.insights);
-
+            // Tier now comes directly from Gemini AI (no local calculation)
             // Mark as enriched even if insights is null (enrichment completed but found nothing)
             return {
               ...p,
@@ -302,8 +325,8 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               sources: result.insights?.sources || p.sources,
               images: result.insights?.images || p.images,
               accessibility: validateAccessibility(result.insights?.accessibility) || p.accessibility,
-              tier: tierResult.tier,
-              tierScore: tierResult.score,
+              tier: result.insights?.tier || null,
+              tierReasoning: result.insights?.tier_reasoning || null,
               enriched: true, // Always mark as enriched, even if insights is null
             };
           }),

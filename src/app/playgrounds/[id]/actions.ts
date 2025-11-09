@@ -1,6 +1,6 @@
 "use server";
 
-import { clearPerplexityInsightsCache } from "@/lib/cache";
+import { clearAIInsightsCache } from "@/lib/cache";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -57,12 +57,12 @@ export async function clearPlaygroundCacheAction({
     // This ensures we clear cached data regardless of which key was used when storing
 
     if (osmId) {
-      await clearPerplexityInsightsCache({ cacheKey: osmId });
+      await clearAIInsightsCache({ cacheKey: osmId });
     }
 
     // Also clear coordinate-based key for backward compatibility
     const coordinateCacheKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
-    await clearPerplexityInsightsCache({ cacheKey: coordinateCacheKey });
+    await clearAIInsightsCache({ cacheKey: coordinateCacheKey });
 
     revalidatePath(`/playgrounds/${playgroundId}`);
 
