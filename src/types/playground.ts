@@ -1,3 +1,27 @@
+import { PlaygroundTier } from "@/lib/tier-calculator";
+
+export type AccessibilityInfo = {
+  wheelchair_accessible: boolean;
+  surface_type: string | null;
+  transfer_stations: boolean;
+  ground_level_activities: number | null;
+  sensory_friendly: {
+    quiet_zones: boolean;
+    tactile_elements: boolean;
+    visual_aids: boolean;
+  } | null;
+  shade_coverage: string | null;
+  accessible_parking: {
+    available: boolean;
+    van_accessible: boolean;
+    distance_to_playground: string | null;
+  } | null;
+  accessible_restrooms: {
+    available: boolean;
+    adult_changing_table: boolean;
+  } | null;
+};
+
 export type Playground = {
   id: number;
   name: string | null;
@@ -20,4 +44,7 @@ export type Playground = {
   osmType: "node" | "way" | "relation";
   osmTags: Record<string, string> | null;
   enriched: boolean | null;
+  accessibility: AccessibilityInfo | null;
+  tier: PlaygroundTier | null;
+  tierScore: number | null;
 };

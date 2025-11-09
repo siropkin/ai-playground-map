@@ -48,6 +48,9 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       osmType: osmPlaceDetails.osm_type,
       osmTags: null,
       enriched: false,
+      accessibility: null,
+      tier: null,
+      tierScore: null,
     };
 
     // Build location object from OSM address data
@@ -67,6 +70,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       location,
       name: playground.name || undefined,
       osmId: correctOsmId,
+      priority: 'high', // Detail view should use high priority for best quality images
     });
 
     if (insight) {
@@ -76,6 +80,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       playground.parking = insight.parking || playground.parking;
       playground.sources = insight.sources || playground.sources;
       playground.images = insight.images || playground.images;
+      playground.accessibility = insight.accessibility || playground.accessibility;
       playground.enriched = true;
     }
 

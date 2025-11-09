@@ -1,6 +1,7 @@
 import {
   fetchPerplexityInsightsFromCache,
   savePerplexityInsightsToCache,
+  batchFetchPerplexityInsightsFromCache,
 } from "@/lib/cache";
 import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
 import { perplexityLimiter } from "@/lib/rate-limiter";
@@ -328,8 +329,60 @@ export async function fetchPerplexityInsights({
         description:
           "Brief parking description (e.g., 'Street parking available' or 'Dedicated lot at entrance'). Use null if no playground found, no info available, or confidence is low.",
       },
+      accessibility: {
+        type: ["object", "null"],
+        properties: {
+          wheelchair_accessible: {
+            type: "boolean",
+            description: "True if playground has ramps, accessible routes, or transfer stations to play equipment"
+          },
+          surface_type: {
+            type: ["string", "null"],
+            description: "Primary surface type: 'pour-in-place rubber', 'engineered wood fiber', 'rubber tiles', 'loose-fill' (not wheelchair accessible), 'concrete', 'grass', 'mulch'. Null if unknown."
+          },
+          transfer_stations: {
+            type: "boolean",
+            description: "Presence of transfer stations/platforms for moving from wheelchair to equipment"
+          },
+          ground_level_activities: {
+            type: ["number", "null"],
+            description: "Count of ground-level play activities accessible without transfers (e.g., panels, sandboxes, music stations). Null if unknown."
+          },
+          sensory_friendly: {
+            type: ["object", "null"],
+            properties: {
+              quiet_zones: { type: "boolean", description: "Quiet zones or calm areas for sensory breaks" },
+              tactile_elements: { type: "boolean", description: "Textured surfaces, sensory walls, or tactile play elements" },
+              visual_aids: { type: "boolean", description: "Visual aids, clear signage, or wayfinding elements" }
+            },
+            description: "Sensory-friendly features for children with autism or sensory processing needs. Null if unknown."
+          },
+          shade_coverage: {
+            type: ["string", "null"],
+            description: "Shade description: 'full' (80%+), 'partial' (30-80%), 'minimal' (10-30%), or 'none' (<10%). Null if unknown."
+          },
+          accessible_parking: {
+            type: ["object", "null"],
+            properties: {
+              available: { type: "boolean", description: "Accessible/handicapped parking spaces available" },
+              van_accessible: { type: "boolean", description: "Van-accessible spaces (wider) available" },
+              distance_to_playground: { type: ["string", "null"], description: "Distance description: 'adjacent', 'within 100 feet', 'within 200 feet', 'over 200 feet'. Null if unknown." }
+            },
+            description: "Accessible parking information. Null if unknown."
+          },
+          accessible_restrooms: {
+            type: ["object", "null"],
+            properties: {
+              available: { type: "boolean", description: "Wheelchair-accessible restrooms available" },
+              adult_changing_table: { type: "boolean", description: "Adult-sized changing table available (critical for older children with disabilities)" }
+            },
+            description: "Accessible restroom information. Null if unknown."
+          }
+        },
+        description: "Accessibility features for children with disabilities. Include all available information. Use false for boolean fields if feature is explicitly absent, use null for entire object if no accessibility info found."
+      },
     },
-    required: ["location_confidence", "location_verification", "name", "description", "features", "parking"],
+    required: ["location_confidence", "location_verification", "name", "description", "features", "parking", "accessibility"],
     additionalProperties: false,
   };
 
@@ -353,6 +406,14 @@ DATA REQUIREMENTS:
 2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
 3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
 4. Describe parking availability
+5. ACCESSIBILITY FEATURES (CRITICAL FOR FAMILIES WITH DISABLED CHILDREN):
+   - Wheelchair access: ramps, transfer stations, or accessible routes to equipment
+   - Surface type: pour-in-place rubber (best), engineered wood fiber, rubber tiles, loose-fill (NOT accessible), concrete, grass
+   - Ground-level activities: panels, sandboxes, music stations accessible without transfers
+   - Sensory-friendly: quiet zones, tactile elements, visual aids for autism/sensory needs
+   - Shade coverage: full/partial/minimal/none (critical for medical conditions)
+   - Accessible parking: availability, van-accessible spaces, distance from playground
+   - Accessible restrooms: wheelchair-accessible, adult changing tables
 
 IMAGE REQUIREMENTS (STRICT - CRITICAL FOR QUALITY):
 ONLY return images that show:
@@ -517,6 +578,7 @@ CONFIDENCE ASSESSMENT:
     sources:
       base.sources ?? (Array.isArray(data?.citations) ? (data.citations as string[]) : null),
     images: filterImages(rawImages), // Apply image quality filtering
+    accessibility: base.accessibility ?? null,
     // Internal metadata (not part of PerplexityInsights type)
     _locationConfidence: base.location_confidence || 'low',
     _locationVerification: base.location_verification || null,
@@ -533,7 +595,7 @@ export async function fetchPerplexityInsightsWithCache({
   signal,
   priority = 'medium',
 }: {
-  location: PerplexityLocation;
+  location?: PerplexityLocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
@@ -545,7 +607,12 @@ export async function fetchPerplexityInsightsWithCache({
 
   // Create cache key from OSM ID (preferred) or location coordinates (fallback)
   // Using OSM ID ensures each playground has unique cached data
-  const cacheKey = osmId || `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`;
+  const cacheKey = osmId || (location ? `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}` : null);
+
+  if (!cacheKey) {
+    console.warn('[Perplexity] No cache key available (missing both osmId and location)');
+    return null;
+  }
 
   // Wrap entire cache check + API call in request deduplication
   // This prevents multiple concurrent users from triggering the same API call
@@ -558,6 +625,12 @@ export async function fetchPerplexityInsightsWithCache({
       });
       if (cachedInsights) {
         return cachedInsights;
+      }
+
+      // Cache miss - need location to fetch from API
+      if (!location) {
+        console.log('[Perplexity] Cache miss and no location provided, cannot fetch from API');
+        return null;
       }
 
       // Cache miss - fetch from API
@@ -619,6 +692,7 @@ export async function fetchPerplexityInsightsWithCache({
         parking: freshInsights.parking,
         sources: freshInsights.sources,
         images: freshInsights.images,
+        accessibility: freshInsights.accessibility,
       };
 
       // Save to cache only if quality is high enough
@@ -640,13 +714,15 @@ export async function fetchPerplexityInsightsWithCache({
 }
 
 // Batch function to fetch insights for multiple playgrounds efficiently
+// Optimized with cache-first approach: fetches all cache entries at once,
+// then only queries AI for cache misses
 export async function fetchPerplexityInsightsBatch({
   requests,
   signal,
 }: {
   requests: Array<{
     playgroundId: number;
-    location: PerplexityLocation;
+    location?: PerplexityLocation;
     name?: string;
     osmId?: string;
   }>;
@@ -665,31 +741,79 @@ export async function fetchPerplexityInsightsBatch({
   const batchSize = Math.min(requests.length, 5);
   const batch = requests.slice(0, batchSize);
 
-  // Process all requests in parallel with caching and rate limiting
-  const results = await Promise.all(
-    batch.map((req) =>
-      perplexityLimiter(async () => {
-        try {
-          const insights = await fetchPerplexityInsightsWithCache({
-            location: req.location,
-            name: req.name,
-            osmId: req.osmId,
-            signal,
-          });
-          return {
-            playgroundId: req.playgroundId,
-            insights,
-          };
-        } catch (error) {
-          console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
-          return {
-            playgroundId: req.playgroundId,
-            insights: null,
-          };
-        }
-      })
-    ),
-  );
+  // PHASE 1: Generate cache keys and batch fetch from cache
+  const cacheKeyMap = new Map<number, string>(); // playgroundId -> cacheKey
+  const cacheKeys: string[] = [];
+
+  for (const req of batch) {
+    // Create cache key from OSM ID (preferred) or location coordinates (fallback)
+    const cacheKey = req.osmId ||
+      (req.location ? `${req.location.latitude.toFixed(6)},${req.location.longitude.toFixed(6)}` : null);
+
+    if (cacheKey) {
+      cacheKeyMap.set(req.playgroundId, cacheKey);
+      cacheKeys.push(cacheKey);
+    }
+  }
+
+  // Batch fetch all cache entries at once (single query)
+  const cachedResults = await batchFetchPerplexityInsightsFromCache({
+    cacheKeys,
+  });
+
+  console.log(`[Batch Enrichment] Cache hit: ${cachedResults.size}/${batch.length}`);
+
+  // PHASE 2: Build results array and identify cache misses
+  const results: Array<{ playgroundId: number; insights: PerplexityInsights | null }> = [];
+  const misses: typeof batch = [];
+
+  for (const req of batch) {
+    const cacheKey = cacheKeyMap.get(req.playgroundId);
+    const cachedInsight = cacheKey ? cachedResults.get(cacheKey) : null;
+
+    if (cachedInsight) {
+      // Cache hit - use cached data
+      results.push({
+        playgroundId: req.playgroundId,
+        insights: cachedInsight,
+      });
+    } else {
+      // Cache miss - need to fetch from API
+      misses.push(req);
+    }
+  }
+
+  // PHASE 3: Fetch cache misses from Perplexity API
+  if (misses.length > 0) {
+    console.log(`[Batch Enrichment] Fetching ${misses.length} from AI`);
+
+    const apiResults = await Promise.all(
+      misses.map((req) =>
+        perplexityLimiter(async () => {
+          try {
+            const insights = await fetchPerplexityInsightsWithCache({
+              location: req.location,
+              name: req.name,
+              osmId: req.osmId,
+              signal,
+            });
+            return {
+              playgroundId: req.playgroundId,
+              insights,
+            };
+          } catch (error) {
+            console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
+            return {
+              playgroundId: req.playgroundId,
+              insights: null,
+            };
+          }
+        })
+      ),
+    );
+
+    results.push(...apiResults);
+  }
 
   return results;
 }

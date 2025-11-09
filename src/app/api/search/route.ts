@@ -96,6 +96,9 @@ export async function POST(
         osmType: item.type,
         osmTags: item.tags,
         enriched: false,
+        accessibility: null,
+        tier: null,
+        tierScore: null,
       }))
       .filter((playground) => playground.lat && playground.lon);
 

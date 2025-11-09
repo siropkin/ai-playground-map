@@ -52,21 +52,29 @@ const SECONDARY_KEYWORDS = [
   'safety',
   'accessible',
   'equipment',
+  // Accessibility features
+  'wheelchair',
+  'ramp',
+  'transfer station',
+  'sensory',
+  'ada compliant',
+  'inclusive',
+  'surface',
+  'shade',
+  'restroom',
 ];
 
-// Keywords that indicate non-playground content
+// Keywords that strongly indicate non-playground content
+// Note: Reduced list - playgrounds CAN be near restaurants, in hotels, etc.
+// Only flag truly incompatible contexts
 const NEGATIVE_KEYWORDS = [
-  'restaurant',
-  'shopping',
-  'hotel',
-  'apartment',
-  'condo',
-  'real estate',
-  'for sale',
-  'for rent',
-  'zillow',
-  'listing',
-  'business',
+  'for sale', // Real estate listing
+  'for rent', // Real estate listing
+  'zillow listing',
+  'apartment complex', // Too generic
+  'condo for',
+  'real estate agent',
+  'property listing',
 ];
 
 // Common US states (abbreviated and full names) for location conflict detection
@@ -162,45 +170,53 @@ export function validateDescription(
     }
   }
 
-  // Check for location conflicts
+  // Check for location conflicts (only check multi-word city/state names to avoid false positives)
   if (targetCity && targetRegion) {
     const targetCityLower = targetCity.toLowerCase();
     const targetRegionLower = targetRegion.toLowerCase();
 
+    // Only check multi-word cities/states (less false positives)
+    const multiWordCities = MAJOR_CITIES.filter(city => city.includes(' '));
+    const multiWordStates = US_STATES.filter(state => state.includes(' '));
+
     // Check if description mentions different cities
-    for (const city of MAJOR_CITIES) {
+    for (const city of multiWordCities) {
       if (city === targetCityLower) continue; // Skip target city
 
-      // Look for city mentions
-      if (combinedText.includes(city)) {
+      // Use word boundary regex for more accurate matching
+      const cityRegex = new RegExp(`\\b${city}\\b`, 'i');
+      if (cityRegex.test(combinedText)) {
         // Make sure it's not in context of "near" or "similar to"
         const cityIndex = combinedText.indexOf(city);
-        const beforeContext = combinedText.substring(Math.max(0, cityIndex - 20), cityIndex);
-        const afterContext = combinedText.substring(cityIndex, Math.min(combinedText.length, cityIndex + city.length + 20));
+        const beforeContext = combinedText.substring(Math.max(0, cityIndex - 30), cityIndex);
+        const afterContext = combinedText.substring(cityIndex, Math.min(combinedText.length, cityIndex + city.length + 30));
         const context = beforeContext + afterContext;
 
-        // If it mentions the city without "near", "like", "similar" context, it's a conflict
-        if (!context.includes('near') && !context.includes('like') && !context.includes('similar')) {
+        // If it mentions the city without "near", "like", "similar", "style", "inspired" context, it's a conflict
+        if (!context.includes('near') && !context.includes('like') && !context.includes('similar') &&
+            !context.includes('style') && !context.includes('inspired')) {
           result.locationConflicts.push(city);
-          result.score -= 20;
+          result.score -= 15; // Reduced penalty
           result.flags.push(`location_conflict: ${city}`);
         }
       }
     }
 
-    // Check if description mentions different states
-    for (const state of US_STATES) {
-      if (state === targetRegionLower || state.length <= 2) continue; // Skip target state and abbreviations
+    // Check if description mentions different states (only full multi-word names)
+    for (const state of multiWordStates) {
+      if (state === targetRegionLower) continue; // Skip target state
 
-      if (combinedText.includes(state)) {
+      const stateRegex = new RegExp(`\\b${state}\\b`, 'i');
+      if (stateRegex.test(combinedText)) {
         const stateIndex = combinedText.indexOf(state);
-        const beforeContext = combinedText.substring(Math.max(0, stateIndex - 20), stateIndex);
-        const afterContext = combinedText.substring(stateIndex, Math.min(combinedText.length, stateIndex + state.length + 20));
+        const beforeContext = combinedText.substring(Math.max(0, stateIndex - 30), stateIndex);
+        const afterContext = combinedText.substring(stateIndex, Math.min(combinedText.length, stateIndex + state.length + 30));
         const context = beforeContext + afterContext;
 
-        if (!context.includes('near') && !context.includes('like') && !context.includes('similar')) {
+        if (!context.includes('near') && !context.includes('like') && !context.includes('similar') &&
+            !context.includes('style') && !context.includes('inspired')) {
           result.locationConflicts.push(state);
-          result.score -= 20;
+          result.score -= 15; // Reduced penalty
           result.flags.push(`location_conflict: ${state}`);
         }
       }
@@ -222,38 +238,4 @@ export function validateDescription(
   }
 
   return result;
-}
-
-/**
- * Quick check if description has minimum playground relevance
- */
-export function hasPlaygroundContent(description: string | null): boolean {
-  if (!description) return false;
-
-  const lowerDesc = description.toLowerCase();
-  return CORE_PLAYGROUND_KEYWORDS.some(keyword => lowerDesc.includes(keyword));
-}
-
-/**
- * Extract mentioned locations from text (for debugging/monitoring)
- */
-export function extractMentionedLocations(text: string): string[] {
-  const mentioned: string[] = [];
-  const lowerText = text.toLowerCase();
-
-  // Check cities
-  for (const city of MAJOR_CITIES) {
-    if (lowerText.includes(city)) {
-      mentioned.push(city);
-    }
-  }
-
-  // Check states (only full names, not abbreviations)
-  for (const state of US_STATES) {
-    if (state.length > 2 && lowerText.includes(state)) {
-      mentioned.push(state);
-    }
-  }
-
-  return mentioned;
 }

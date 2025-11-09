@@ -26,7 +26,7 @@ export async function fetchPerplexityInsightsFromCache({
     const { data, error } = await supabase
       .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "name, description, features, parking, sources, images, created_at, schema_version",
+        "name, description, features, parking, sources, images, accessibility, created_at, schema_version",
       )
       .eq("cache_key", cacheKey)
       .single();
@@ -68,6 +68,7 @@ export async function fetchPerplexityInsightsFromCache({
       parking: data.parking,
       sources: data.sources,
       images: data.images,
+      accessibility: data.accessibility,
     };
   } catch (error) {
     console.error("Error getting AI insights from cache:", error);
@@ -131,6 +132,94 @@ export async function clearPerplexityInsightsCache({
     }
   } catch (error) {
     console.error("Error clearing Perplexity insights cache:", error);
+  }
+}
+
+/**
+ * Batch fetch multiple cache entries at once (optimized for performance)
+ * Returns a Map of cacheKey -> insights for all found entries
+ */
+export async function batchFetchPerplexityInsightsFromCache({
+  cacheKeys,
+}: {
+  cacheKeys: string[];
+}): Promise<Map<string, PerplexityInsights>> {
+  const results = new Map<string, PerplexityInsights>();
+
+  if (cacheKeys.length === 0) {
+    return results;
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+      .select(
+        "cache_key, name, description, features, parking, sources, images, accessibility, created_at, schema_version",
+      )
+      .in("cache_key", cacheKeys);
+
+    if (error || !data) {
+      console.error("Error batch fetching from cache:", error);
+      return results;
+    }
+
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+
+    // Process each cached entry
+    for (const row of data) {
+      // Check schema version
+      if (row.schema_version !== CURRENT_SCHEMA_VERSION) {
+        keysToDelete.push(row.cache_key);
+        continue;
+      }
+
+      // Check TTL and data validity
+      const createdAt = new Date(row.created_at).getTime();
+      if (
+        now - createdAt > PERPLEXITY_CACHE_TTL_MS ||
+        row.name === null ||
+        row.description === null
+      ) {
+        keysToDelete.push(row.cache_key);
+        continue;
+      }
+
+      // Valid cache entry - add to results
+      results.set(row.cache_key, {
+        name: row.name,
+        description: row.description,
+        features: row.features,
+        parking: row.parking,
+        sources: row.sources,
+        images: row.images,
+        accessibility: row.accessibility,
+      });
+    }
+
+    // Clean up expired/invalid entries in background
+    if (keysToDelete.length > 0) {
+      supabase
+        .from(PERPLEXITY_INSIGHTS_CACHE_TABLE_NAME)
+        .delete()
+        .in("cache_key", keysToDelete)
+        .then(({ error }) => {
+          if (error) {
+            console.error("Error deleting invalid cache entries:", error);
+          }
+        });
+    }
+
+    console.log(
+      `[Cache] Batch fetched ${results.size}/${cacheKeys.length} entries`,
+    );
+
+    return results;
+  } catch (error) {
+    console.error("Error batch fetching AI insights from cache:", error);
+    return results;
   }
 }
 

@@ -42,8 +42,7 @@ export function PlaygroundListSheet() {
         <SheetHeader>
           <SheetTitle>Playgrounds</SheetTitle>
           <SheetDescription>
-            List of playgrounds on the map. Click a playground title to view its
-            page, or click the address to see it on the map.
+            Click a playground to view its details.
           </SheetDescription>
         </SheetHeader>
         <PlaygroundList displayEmptyState />

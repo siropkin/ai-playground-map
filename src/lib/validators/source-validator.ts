@@ -36,39 +36,43 @@ const TRUSTED_DOMAINS = [
 
   // Local news and community sites
   '.edu', // Schools/universities often have good playground info
+
+  // Reputable review and attraction sites
+  'tripadvisor.com', // Accurate location data, reviews, photos for attractions
+  'yelp.com', // Local business reviews with accurate location data
+  'google.com/maps', // Google Maps reviews and info
+  'alltrails.com', // Trail and recreation area information
 ];
 
 // Domains to avoid (often have wrong-location or low-quality data)
 const SUSPICIOUS_DOMAINS = [
-  // Real estate (often mix locations)
+  // Real estate (often mix locations with property listings)
   'zillow.com',
   'trulia.com',
   'realtor.com',
   'redfin.com',
   'apartments.com',
 
-  // Business listings (mix locations, stale data)
-  'yelp.com',
-  'foursquare.com',
-  'tripadvisor.com',
-
-  // Stock photos and generic content
+  // Stock photos and generic content (not location-specific)
   'shutterstock.com',
   'istockphoto.com',
   'gettyimages.com',
   'pexels.com',
   'unsplash.com',
 
-  // Social media (unreliable, often outdated)
-  'facebook.com',
-  'twitter.com',
-  'instagram.com',
-  'linkedin.com',
+  // Social media personal posts (variable quality, but note: official pages can be good)
+  'facebook.com/profile',
+  'facebook.com/photo',
+  'twitter.com/status',
+  'instagram.com/p/',
+  'linkedin.com/in/',
 
-  // Blog platforms (variable quality)
+  // Blog platforms - only mark personal blogs as suspicious
+  // Note: Many parks depts use these, so we're lenient
   'blogspot.com',
-  'wordpress.com',
-  'medium.com',
+
+  // Deprecated/inactive services
+  'foursquare.com', // Less actively maintained
 ];
 
 // Geographic keywords that should appear in sources for the target location
@@ -146,41 +150,24 @@ export function validateSources(
     result.flags.push('low_source_quality');
   }
 
-  if (result.suspiciousDomains > result.trustedDomains) {
-    result.isValid = false;
-    result.flags.push('more_suspicious_than_trusted');
-  }
-
-  if (result.trustedDomains === 0 && sources.length > 0) {
+  // Only fail if suspicious sources dominate by 2x or more AND we have trusted sources
+  // OR if we have 3+ suspicious and no trusted sources at all
+  if (result.trustedDomains > 0) {
+    // We have some trusted sources - only fail if suspicious dominates heavily
+    if (result.suspiciousDomains >= result.trustedDomains * 2) {
+      result.flags.push('more_suspicious_than_trusted');
+      result.score -= 10; // Penalty but don't auto-fail
+    }
+  } else if (sources.length > 0) {
+    // No trusted sources at all
     result.flags.push('no_trusted_domains');
-    // Don't automatically fail, but lower score
     result.score = Math.min(result.score, 40);
+
+    // Only fail if we have multiple suspicious sources with no trusted ones
+    if (result.suspiciousDomains >= 3) {
+      result.isValid = false;
+    }
   }
 
   return result;
-}
-
-/**
- * Quick check if sources contain any trusted domains
- */
-export function hasTrustedSources(sources: string[] | null): boolean {
-  if (!sources || sources.length === 0) return false;
-
-  return sources.some(source =>
-    TRUSTED_DOMAINS.some(domain =>
-      source.toLowerCase().includes(domain)
-    )
-  );
-}
-
-/**
- * Extract domain from URL
- */
-export function extractDomain(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch {
-    return url;
-  }
 }

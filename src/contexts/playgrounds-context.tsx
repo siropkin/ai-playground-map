@@ -19,6 +19,7 @@ import {
   generatePlaygroundAiInsights,
   generatePlaygroundAiInsightsBatch,
 } from "@/lib/api/client";
+import { calculatePlaygroundTier } from "@/lib/tier-calculator";
 import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
@@ -32,6 +33,9 @@ interface PlaygroundsContextType {
   clearFlyToRequest: () => void;
   enrichPlayground: (playgroundId: number) => Promise<void>;
   enrichPlaygroundsBatch: (playgroundIds: number[]) => Promise<void>;
+  selectedPlayground: Playground | null;
+  selectPlayground: (playground: Playground) => void;
+  clearSelectedPlayground: () => void;
 }
 
 const PlaygroundsContext = createContext<PlaygroundsContextType | undefined>(
@@ -42,9 +46,10 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const { mapBounds } = useFilters();
 
   const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
+  const [selectedPlayground, setSelectedPlayground] = useState<Playground | null>(null);
 
   // Abort controller for canceling enrichment requests
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -81,11 +86,19 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   parking: existingEnriched.parking,
                   sources: existingEnriched.sources,
                   images: existingEnriched.images,
+                  accessibility: existingEnriched.accessibility,
+                  tier: existingEnriched.tier,
+                  tierScore: existingEnriched.tierScore,
                   enriched: true,
                 };
               }
 
-              return newPlayground;
+              // New playground - ensure tier fields are null
+              return {
+                ...newPlayground,
+                tier: null,
+                tierScore: null,
+              };
             });
           });
         }
@@ -129,22 +142,38 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       if (!playground || playground.enriched) return;
 
       try {
-        const location = await fetchLocationData(
-          playground.lat,
-          playground.lon,
-          abortControllerRef.current?.signal,
-        );
+        const osmIdFormatted = playground.osmType && playground.osmId
+          ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
+          : undefined;
 
-        if (!location) return;
-
-        const insight = await generatePlaygroundAiInsights({
-          location,
+        // PERFORMANCE OPTIMIZATION: Try cache-only check first with osmId
+        // This saves 100-500ms of Nominatim reverse geocoding for cached results
+        let insight = await generatePlaygroundAiInsights({
           name: playground.name || undefined,
-          osmId: playground.osmType && playground.osmId
-            ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
-            : undefined,
+          osmId: osmIdFormatted,
           signal: abortControllerRef.current?.signal,
         });
+
+        // If cache miss and we have osmId, fetch location and try full enrichment
+        if (!insight && osmIdFormatted) {
+          const location = await fetchLocationData(
+            playground.lat,
+            playground.lon,
+            abortControllerRef.current?.signal,
+          );
+
+          if (!location) return;
+
+          insight = await generatePlaygroundAiInsights({
+            location,
+            name: playground.name || undefined,
+            osmId: osmIdFormatted,
+            signal: abortControllerRef.current?.signal,
+          });
+        }
+
+        // Calculate tier from insights
+        const tierResult = calculatePlaygroundTier(insight);
 
         setPlaygrounds((prev) =>
           prev.map((p) =>
@@ -157,6 +186,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   parking: insight?.parking || p.parking,
                   sources: insight?.sources || p.sources,
                   images: insight?.images || p.images,
+                  accessibility: insight?.accessibility || p.accessibility,
+                  tier: tierResult.tier,
+                  tierScore: tierResult.score,
                   enriched: true,
                 }
               : p,
@@ -198,6 +230,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             const result = results.find((r) => r.playgroundId === p.osmId);
             if (!result) return p; // No result for this playground
 
+            // Calculate tier from insights
+            const tierResult = calculatePlaygroundTier(result.insights);
+
             // Mark as enriched even if insights is null (enrichment completed but found nothing)
             return {
               ...p,
@@ -207,6 +242,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               parking: result.insights?.parking || p.parking,
               sources: result.insights?.sources || p.sources,
               images: result.insights?.images || p.images,
+              accessibility: result.insights?.accessibility || p.accessibility,
+              tier: tierResult.tier,
+              tierScore: tierResult.score,
               enriched: true, // Always mark as enriched, even if insights is null
             };
           }),
@@ -234,6 +272,14 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     setFlyToCoords(null);
   }, []);
 
+  const selectPlayground = useCallback((playground: Playground) => {
+    setSelectedPlayground(playground);
+  }, []);
+
+  const clearSelectedPlayground = useCallback(() => {
+    setSelectedPlayground(null);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
     () => ({
@@ -245,6 +291,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       clearFlyToRequest,
       enrichPlayground,
       enrichPlaygroundsBatch,
+      selectedPlayground,
+      selectPlayground,
+      clearSelectedPlayground,
     }),
     [
       playgrounds,
@@ -255,6 +304,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       clearFlyToRequest,
       enrichPlayground,
       enrichPlaygroundsBatch,
+      selectedPlayground,
+      selectPlayground,
+      clearSelectedPlayground,
     ],
   );
 

@@ -125,7 +125,7 @@ export function scoreResult(
   // 3. Check data completeness (20%)
   let completenessScore = 0;
   let fieldsPresent = 0;
-  const totalFields = 5; // name, description, features, parking, images
+  const totalFields = 6; // name, description, features, parking, images, accessibility
 
   if (result.name) {
     fieldsPresent++;
@@ -137,7 +137,7 @@ export function scoreResult(
   }
   if (result.features && result.features.length > 0) {
     fieldsPresent++;
-    completenessScore += 20;
+    completenessScore += 15;
   }
   if (result.parking) {
     fieldsPresent++;
@@ -145,11 +145,17 @@ export function scoreResult(
   }
   if (result.images && result.images.length > 0) {
     fieldsPresent++;
-    completenessScore += 20;
+    completenessScore += 15;
+  }
+  if (result.accessibility) {
+    fieldsPresent++;
+    completenessScore += 10;
   }
 
   score.breakdown.dataCompletenessScore = completenessScore * (SCORING_WEIGHTS.dataCompleteness / 100);
 
+  // Only flag as incomplete if we have fewer than 3 of the 6 fields
+  // This is lenient - allows missing parking, images, or accessibility
   if (fieldsPresent < 3) {
     score.flags.push(`incomplete_data: ${fieldsPresent}/${totalFields} fields`);
   }
@@ -202,7 +208,11 @@ export function scoreResult(
     score.flags.push('location_conflict_detected');
   }
 
-  if (sourceValidation.suspiciousDomains > sourceValidation.trustedDomains * 2) {
+  // Only reject if suspicious sources overwhelmingly dominate (3x or more)
+  // AND there are no trusted sources at all
+  if (sourceValidation.suspiciousDomains >= 3 &&
+      sourceValidation.trustedDomains === 0 &&
+      sourceValidation.suspiciousDomains > sourceValidation.trustedDomains * 3) {
     score.shouldAccept = false;
     score.shouldCache = false;
     score.flags.push('too_many_suspicious_sources');
@@ -228,19 +238,4 @@ export function getScoreSummary(score: ResultScore): string {
   }
 
   return parts.join(' | ');
-}
-
-/**
- * Quick check if result meets minimum quality standards
- */
-export function meetsMinimumQuality(
-  result: PerplexityInsights | null,
-  locationConfidence: string
-): boolean {
-  if (!result) return false;
-  if (locationConfidence === 'low') return false;
-  if (!result.description || result.description.length < 20) return false;
-  if (!result.sources || result.sources.length === 0) return false;
-
-  return true;
 }
