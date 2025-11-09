@@ -1,6 +1,6 @@
 {
   "name": "playground-map",
-  "version": "3.2.1",
+  "version": "4.0.0",
   "private": true,
   "packageManager": "pnpm@9.15.1",
   "scripts": {
