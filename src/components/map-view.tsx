@@ -233,9 +233,9 @@ export const MapView = React.memo(function MapView() {
             "circle-radius": [
               "match",
               ["get", "tier"],
-              "star", 8, // Larger for Star
-              "gem", 7, // Slightly larger for Gem
-              6, // Default for neighborhood
+              "star", 12, // Larger for Star
+              "gem", 10, // Slightly larger for Gem
+              9, // Default for neighborhood
             ],
             "circle-stroke-width": [
               "match",
