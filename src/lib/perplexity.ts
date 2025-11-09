@@ -10,7 +10,7 @@ import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
 // Cache version - increment this to invalidate all cached data when schema changes
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3"; // v3: Removed name from prompt to accept playgrounds inside recreation centers
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -314,7 +314,7 @@ export async function fetchPerplexityInsights({
       name: {
         type: ["string", "null"],
         description:
-          "The official name of the playground or facility containing it (e.g., 'Sunset Park Playground'). Use null if no playground found or confidence is low.",
+          "The official name of the playground or the facility containing it (e.g., 'Sunset Park Playground' or 'Hamilton Recreation Center'). Return the name found in sources at the coordinates, even if it differs from any suggested name. Use null if no playground found or confidence is low.",
       },
       description: {
         type: ["string", "null"],
@@ -390,19 +390,22 @@ export async function fetchPerplexityInsights({
   };
 
   // Enhanced prompt with explicit geographic constraints
-  const prompt = `Find detailed information about a children's playground${name ? ` named "${name}"` : ""}${locationContext}.
+  // NOTE: We intentionally do NOT include the OSM name in the prompt because:
+  // 1. OSM names are often generic/unofficial (e.g., "Hamilton Street Playground")
+  // 2. Many playgrounds are inside recreation centers or parks with different official names
+  // 3. Strict name matching causes AI to reject valid playgrounds at the correct location
+  const prompt = `Find detailed information about a children's playground${locationContext}.
 
 CRITICAL GEOGRAPHIC CONSTRAINTS:
 - Search ONLY within ${location.city || 'the specified location'}, ${location.region || location.country}
 - Location must be at or within 0.1 miles (160 meters) of coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}
 - DO NOT return results from other cities, states, or countries
-- If "${name || 'a playground'}" exists in multiple locations, return ONLY the one in ${cityState}
 - Verify ALL sources explicitly mention ${location.city || 'the target city'}, ${location.region || location.country}
 - If sources mention any different city/state, return null for all fields
 - If uncertain about location match (less than 90% confident), return null rather than potentially wrong results
 
 SEARCH FOCUS:
-Search within 0.1-mile radius from ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} for playgrounds in parks, recreation centers, schools, or public facilities${name ? ` matching the name "${name}"` : ""} located in ${cityState}.
+Search within 0.1-mile radius from ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} for playgrounds in parks, recreation centers, schools, or public facilities located in ${cityState}. The playground may be inside a larger facility (e.g., recreation center, community center, park) - this is acceptable as long as the coordinates match.
 
 DATA REQUIREMENTS:
 1. Find the playground's official name or facility name
