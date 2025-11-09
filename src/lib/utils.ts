@@ -48,7 +48,7 @@ export function roundMapBounds(bounds: MapBounds | null): MapBounds | null {
     north: parseFloat(bounds.north.toFixed(7)),
     west: parseFloat(bounds.west.toFixed(7)),
     east: parseFloat(bounds.east.toFixed(7)),
-    zoom: bounds.zoom,
+    zoom: parseFloat(bounds.zoom.toFixed(1)),
   };
 }
 
@@ -95,11 +95,11 @@ export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   const params = new URLSearchParams(url.search);
 
   if (bounds) {
-    params.set("south", String(bounds.south));
-    params.set("north", String(bounds.north));
-    params.set("west", String(bounds.west));
-    params.set("east", String(bounds.east));
-    params.set("zoom", String(bounds.zoom));
+    params.set("south", bounds.south.toFixed(7));
+    params.set("north", bounds.north.toFixed(7));
+    params.set("west", bounds.west.toFixed(7));
+    params.set("east", bounds.east.toFixed(7));
+    params.set("zoom", bounds.zoom.toFixed(1));
   } else {
     params.delete("south");
     params.delete("north");
