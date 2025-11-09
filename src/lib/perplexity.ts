@@ -10,7 +10,7 @@ import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
 // Cache version - increment this to invalidate all cached data when schema changes
-const CACHE_VERSION = "v3"; // v3: Removed name from prompt to accept playgrounds inside recreation centers
+const CACHE_VERSION = "v4"; // v4: Relaxed geographic constraints (0.25mi radius, accept medium confidence)
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -304,7 +304,7 @@ export async function fetchPerplexityInsights({
         type: "string",
         enum: ["high", "medium", "low"],
         description:
-          "High: Sources explicitly mention the target city/state AND coordinates are within 0.1 miles. Medium: Coordinates match but city not explicitly confirmed in sources. Low: Uncertain, ambiguous, or sources mention different locations.",
+          "High: Sources explicitly mention the target city/state AND playground is in the target neighborhood. Medium: Playground appears to be in the target area but sources don't provide exact location confirmation. Low: Uncertain, ambiguous, or sources mention different city/state.",
       },
       location_verification: {
         type: ["string", "null"],
@@ -396,16 +396,20 @@ export async function fetchPerplexityInsights({
   // 3. Strict name matching causes AI to reject valid playgrounds at the correct location
   const prompt = `Find detailed information about a children's playground${locationContext}.
 
-CRITICAL GEOGRAPHIC CONSTRAINTS:
-- Search ONLY within ${location.city || 'the specified location'}, ${location.region || location.country}
-- Location must be at or within 0.1 miles (160 meters) of coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}
-- DO NOT return results from other cities, states, or countries
-- Verify ALL sources explicitly mention ${location.city || 'the target city'}, ${location.region || location.country}
-- If sources mention any different city/state, return null for all fields
-- If uncertain about location match (less than 90% confident), return null rather than potentially wrong results
+GEOGRAPHIC SEARCH AREA:
+- Search within ${location.city || 'the specified location'}, ${location.region || location.country}
+- Target coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}
+- Search radius: within 0.25 miles (400 meters) of the target coordinates
+- Focus on playgrounds in the immediate neighborhood of these coordinates
+- The playground may be inside a larger facility (e.g., recreation center, community center, park, school)
 
-SEARCH FOCUS:
-Search within 0.1-mile radius from ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} for playgrounds in parks, recreation centers, schools, or public facilities located in ${cityState}. The playground may be inside a larger facility (e.g., recreation center, community center, park) - this is acceptable as long as the coordinates match.
+IMPORTANT LOCATION GUIDELINES:
+- Most online sources do NOT provide exact GPS coordinates for playgrounds
+- Accept playgrounds if they are in the same neighborhood/area as the target coordinates
+- If sources describe a playground in ${location.city || 'the target city'} near the target coordinates, that's sufficient
+- DO NOT return results from different cities, states, or countries
+- If sources mention a different city/state than ${cityState}, return null for all fields
+- If you find a playground in ${cityState} that appears to be in the target area, return the data even if exact coordinates aren't confirmed
 
 DATA REQUIREMENTS:
 1. Find the playground's official name or facility name
@@ -451,9 +455,11 @@ FORMATTING:
 - Sources will be tracked separately
 
 CONFIDENCE ASSESSMENT:
-- Only return results if you are at least 90% confident this playground exists in ${cityState}
-- If sources are ambiguous or mention other locations, return all fields as null
-- Better to return null than provide incorrect information for a different location`;
+- Return results if you find a playground in ${cityState} that appears to be in the target neighborhood
+- Set location_confidence to "medium" if sources describe the playground but don't provide exact coordinates
+- Set location_confidence to "high" if sources explicitly confirm the location
+- Set location_confidence to "low" (and return null for data fields) ONLY if sources mention a different city/state
+- It's acceptable to return data with "medium" confidence - approximate location matches are valid`;
 
   // Phase 4: Apply enrichment strategy based on priority
   const enrichmentStrategy = getEnrichmentStrategy({

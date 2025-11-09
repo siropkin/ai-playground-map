@@ -40,10 +40,10 @@ const SCORING_WEIGHTS = {
  * Thresholds for acceptance and caching decisions
  */
 const THRESHOLDS = {
-  minAcceptScore: 60,      // Minimum score to accept result
-  minCacheScore: 70,       // Minimum score to cache (higher bar)
-  highConfidence: 80,      // Score for "high" confidence
-  mediumConfidence: 60,    // Score for "medium" confidence
+  minAcceptScore: 50,      // Minimum score to accept result (lowered to be more lenient)
+  minCacheScore: 65,       // Minimum score to cache (higher bar)
+  highConfidence: 75,      // Score for "high" confidence
+  mediumConfidence: 50,    // Score for "medium" confidence
 };
 
 /**
@@ -165,7 +165,7 @@ export function scoreResult(
   if (locationConfidence === 'high') {
     locationScore = 100;
   } else if (locationConfidence === 'medium') {
-    locationScore = 60;
+    locationScore = 70; // Increased from 60 to be more lenient with medium confidence
   } else {
     locationScore = 20;
     score.flags.push('low_location_confidence');
