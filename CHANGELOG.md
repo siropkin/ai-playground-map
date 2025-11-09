@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2025-01-09
+
+### Changed - Accessibility Schema Simplification
+
+#### Data Structure
+- **Simplified accessibility schema from complex nested object to simple array of strings** (similar to features)
+- Changed from nested structure with multiple levels (wheelchair_accessible, surface_type, sensory_friendly, etc.) to flat array of accessibility features
+- Updated cache version to v7 to clear old nested object data
+- Added validation to reject old v5/v6 accessibility object format
+
+#### AI Prompt Optimization
+- Updated Perplexity AI schema to accept array of accessibility feature strings
+- Simplified prompt to list accessibility features found in sources instead of filling complex nested structure
+- Examples: `wheelchair_accessible`, `accessible_surface`, `ramps`, `transfer_stations`, `sensory_play`, `shade_structures`, etc.
+- Results in better AI response rates - consistently achieving 20/20 completeness scores (all 6 fields populated)
+
+#### UI Updates
+- Updated playground detail page to display accessibility as badges (like features) instead of complex nested display
+- Updated playground preview component to show first 3 accessibility badges + count
+- Simplified accessibility indicators on map cards to check array length
+- More consistent UI across all playground information sections
+
+#### Tier Calculator
+- Updated to work with new array format by searching for keywords in accessibility strings
+- Searches for: "wheelchair", "shade", "restroom", "sensory", "tactile", "quiet" in array items
+- Maintains same scoring logic while working with simpler data structure
+
+### Fixed - Desktop Map Popup Issues
+
+#### Popup Race Condition
+- **Fixed issue where clicking a new playground marker while popup is open would close the new popup immediately**
+- Added manual popup cleanup in click handlers before state update to prevent race condition
+- Prevents timing issues between React state updates and Mapbox popup behavior
+- Added `preventDefault()` to click handlers to stop interfering behaviors
+
+#### Toggle Behavior
+- **Fixed issue where clicking same marker 3+ times would stop working**
+- Implemented proper toggle behavior: clicking same playground marker now toggles popup on/off
+- First click opens popup, second click closes it, third click opens again, etc.
+- Added early return when clicking already-selected playground to properly toggle state
+
+### Improved - Data Quality
+
+- Accessibility data now consistently returned by AI (20/20 completeness instead of 15-17/20)
+- Simpler schema is easier for AI to understand and populate
+- Better validation catches geographic conflicts (e.g., "New York Avenue" in DC vs actual New York)
+- Source quality tracking continues to flag suspicious domains while accepting high-quality results
+
+---
+
 ## [4.0.0] - 2025-01-09
 
 ### Added - Major Features
