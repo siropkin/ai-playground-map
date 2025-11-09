@@ -133,3 +133,46 @@ export function getAllPossibleCacheKeys(params: {
 
   return { aiInsightsKeys, imageKeys };
 }
+
+/**
+ * Clear all cache entries for a single playground
+ * Convenience function that clears both AI insights and images
+ *
+ * @example
+ * await invalidatePlaygroundCache({
+ *   osmId: "N123456",
+ *   lat: 40.7484,
+ *   lon: -73.9857,
+ *   name: "Central Park Playground",
+ *   city: "New York"
+ * });
+ */
+export async function invalidatePlaygroundCache(params: {
+  osmId?: string;
+  lat: number;
+  lon: number;
+  name?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+}): Promise<{
+  success: boolean;
+  aiInsightsCleared: number;
+  imagesCleared: number;
+}> {
+  const { bulkClearAIInsightsCache } = await import("@/lib/cache");
+  const { bulkClearImagesCache } = await import("@/lib/images");
+
+  const { aiInsightsKeys, imageKeys } = getAllPossibleCacheKeys(params);
+
+  const [aiResult, imagesResult] = await Promise.all([
+    bulkClearAIInsightsCache({ cacheKeys: aiInsightsKeys }),
+    bulkClearImagesCache({ cacheKeys: imageKeys }),
+  ]);
+
+  return {
+    success: aiResult.success && imagesResult.success,
+    aiInsightsCleared: aiResult.deletedCount,
+    imagesCleared: imagesResult.deletedCount,
+  };
+}

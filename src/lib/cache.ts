@@ -136,6 +136,69 @@ export async function clearAIInsightsCache({
 }
 
 /**
+ * Bulk clear AI insights cache for multiple playgrounds
+ * Useful for admin operations and batch invalidation
+ */
+export async function bulkClearAIInsightsCache({
+  cacheKeys,
+}: {
+  cacheKeys: string[];
+}): Promise<{ success: boolean; deletedCount: number }> {
+  if (cacheKeys.length === 0) {
+    return { success: true, deletedCount: 0 };
+  }
+
+  try {
+    const supabase = await createClient();
+    const { error, count } = await supabase
+      .from(AI_INSIGHTS_CACHE_TABLE_NAME)
+      .delete({ count: "exact" })
+      .in("cache_key", cacheKeys);
+
+    if (error) {
+      console.error("[CacheAI] ❌ Error bulk clearing AI insights cache:", error);
+      return { success: false, deletedCount: 0 };
+    }
+
+    console.log(`[CacheAI] 🗑️ Bulk cleared ${count || 0} cache entries`);
+    return { success: true, deletedCount: count || 0 };
+  } catch (error) {
+    console.error("[CacheAI] ❌ Error bulk clearing AI insights cache:", error);
+    return { success: false, deletedCount: 0 };
+  }
+}
+
+/**
+ * Clear AI insights cache by pattern matching
+ * Useful for clearing all playgrounds in a specific region or with specific prefix
+ * Example: clearAIInsightsCacheByPattern('v17-tier-fields-fixed:N%') clears all nodes
+ */
+export async function clearAIInsightsCacheByPattern({
+  pattern,
+}: {
+  pattern: string;
+}): Promise<{ success: boolean; deletedCount: number }> {
+  try {
+    const supabase = await createClient();
+    const { error, count } = await supabase
+      .from(AI_INSIGHTS_CACHE_TABLE_NAME)
+      .delete({ count: "exact" })
+      .like("cache_key", pattern);
+
+    if (error) {
+      console.error("[CacheAI] ❌ Error clearing AI insights cache by pattern:", error);
+      return { success: false, deletedCount: 0 };
+    }
+
+    console.log(`[CacheAI] 🗑️ Cleared ${count || 0} cache entries matching pattern: ${pattern}`);
+    return { success: true, deletedCount: count || 0 };
+  } catch (error) {
+    console.error("[CacheAI] ❌ Error clearing AI insights cache by pattern:", error);
+    return { success: false, deletedCount: 0 };
+  }
+}
+
+/**
  * Batch fetch multiple cache entries at once (optimized for performance)
  * Returns a Map of cacheKey -> insights for all found entries
  * Cache invalidation: Version is in cache_key (e.g., "v17-tier-fields-fixed:N123456")

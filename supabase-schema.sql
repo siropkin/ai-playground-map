@@ -57,7 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_insights_cache_created_at
 ON ai_insights_cache(created_at);
 
 -- Add comment
-COMMENT ON TABLE ai_insights_cache IS 'Caches AI-generated playground insights with 1 year TTL';
+COMMENT ON TABLE ai_insights_cache IS 'Caches AI-generated playground insights with 90 day TTL';
 
 -- Disable RLS for cache table (no user-specific data)
 ALTER TABLE ai_insights_cache DISABLE ROW LEVEL SECURITY;
@@ -78,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_playground_images_cache_created_at
 ON playground_images_cache(created_at);
 
 -- Add comment
-COMMENT ON TABLE playground_images_cache IS 'Caches playground images from Google Custom Search with 1 year TTL';
+COMMENT ON TABLE playground_images_cache IS 'Caches playground images from Google Custom Search with 90 day TTL';
 
 -- Disable RLS for cache table (no user-specific data)
 ALTER TABLE playground_images_cache DISABLE ROW LEVEL SECURITY;

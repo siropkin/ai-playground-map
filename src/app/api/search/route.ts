@@ -83,6 +83,17 @@ export async function POST(
     }
 
     // Filter invalid items BEFORE expensive mapping for better performance
+    // Track filtered count for data quality monitoring
+    const invalidCount = osmResults.filter((item) => {
+      const lat = item.type === "node" ? item.lat : item.center?.lat;
+      const lon = item.type === "node" ? item.lon : item.center?.lon;
+      return lat == null || lon == null;
+    }).length;
+
+    if (invalidCount > 0) {
+      console.warn(`[APISearch] ⚠️ Filtered ${invalidCount} playgrounds without coordinates`);
+    }
+
     const playgrounds: Playground[] = osmResults
       .filter((item) => {
         // Extract coordinates based on type

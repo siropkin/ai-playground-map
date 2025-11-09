@@ -134,6 +134,69 @@ export async function clearImagesCache({
 }
 
 /**
+ * Bulk clear images cache for multiple playgrounds
+ * Useful for admin operations and batch invalidation
+ */
+export async function bulkClearImagesCache({
+  cacheKeys,
+}: {
+  cacheKeys: string[];
+}): Promise<{ success: boolean; deletedCount: number }> {
+  if (cacheKeys.length === 0) {
+    return { success: true, deletedCount: 0 };
+  }
+
+  try {
+    const supabase = await createClient();
+    const { error, count } = await supabase
+      .from(IMAGES_CACHE_TABLE_NAME)
+      .delete({ count: "exact" })
+      .in("cache_key", cacheKeys);
+
+    if (error) {
+      console.error("[CacheImages] ❌ Error bulk clearing images cache:", error);
+      return { success: false, deletedCount: 0 };
+    }
+
+    console.log(`[CacheImages] 🗑️ Bulk cleared ${count || 0} cache entries`);
+    return { success: true, deletedCount: count || 0 };
+  } catch (error) {
+    console.error("[CacheImages] ❌ Error bulk clearing images cache:", error);
+    return { success: false, deletedCount: 0 };
+  }
+}
+
+/**
+ * Clear images cache by pattern matching
+ * Useful for clearing all playgrounds with specific prefix
+ * Example: clearImagesCacheByPattern('v1:N%') clears all node images
+ */
+export async function clearImagesCacheByPattern({
+  pattern,
+}: {
+  pattern: string;
+}): Promise<{ success: boolean; deletedCount: number }> {
+  try {
+    const supabase = await createClient();
+    const { error, count } = await supabase
+      .from(IMAGES_CACHE_TABLE_NAME)
+      .delete({ count: "exact" })
+      .like("cache_key", pattern);
+
+    if (error) {
+      console.error("[CacheImages] ❌ Error clearing images cache by pattern:", error);
+      return { success: false, deletedCount: 0 };
+    }
+
+    console.log(`[CacheImages] 🗑️ Cleared ${count || 0} cache entries matching pattern: ${pattern}`);
+    return { success: true, deletedCount: count || 0 };
+  } catch (error) {
+    console.error("[CacheImages] ❌ Error clearing images cache by pattern:", error);
+    return { success: false, deletedCount: 0 };
+  }
+}
+
+/**
  * Fetch images for a playground with caching
  */
 export async function fetchPlaygroundImages({

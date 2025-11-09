@@ -132,9 +132,13 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             return updatedPlaygrounds;
           });
 
-          // Eagerly enrich ALL playgrounds from cache (including already-enriched ones)
-          // This ensures tier badges show immediately even for previously-enriched playgrounds
-          if (updatedPlaygrounds.length > 0 && !signal?.aborted) {
+          // Eagerly enrich only unenriched playgrounds
+          // Already-enriched playgrounds retain their data from smart merge above
+          const unenrichedPlaygrounds = updatedPlaygrounds.filter(p => !p.enriched);
+
+          if (unenrichedPlaygrounds.length > 0 && !signal?.aborted) {
+            console.log(`[ContextPlaygrounds] 🚀 Enriching ${unenrichedPlaygrounds.length} unenriched playgrounds`);
+
             // Calculate map center for distance-based prioritization
             const mapCenter = mapBounds ? {
               lat: (mapBounds.north + mapBounds.south) / 2,
@@ -143,7 +147,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             // Sort playgrounds by distance from center (center-to-edge prioritization)
             const sortedPlaygrounds = mapCenter
-              ? [...updatedPlaygrounds].sort((a, b) => {
+              ? [...unenrichedPlaygrounds].sort((a, b) => {
                   const distA = Math.sqrt(
                     Math.pow(a.lat - mapCenter.lat, 2) +
                     Math.pow(a.lon - mapCenter.lon, 2)
@@ -154,7 +158,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   );
                   return distA - distB;
                 })
-              : updatedPlaygrounds;
+              : unenrichedPlaygrounds;
 
             const allPlaygroundIds = sortedPlaygrounds.map(p => p.osmId);
 
