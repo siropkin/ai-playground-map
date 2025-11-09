@@ -48,7 +48,7 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error generating playground AI insights:", error);
+    console.error("[API /insights] ❌ Error generating playground AI insights:", error);
     return NextResponse.json(
       { error: "Failed to generate playground AI insights" },
       { status: 500 },

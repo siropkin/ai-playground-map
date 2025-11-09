@@ -98,18 +98,14 @@ export async function POST(
       .filter((loc): loc is NonNullable<typeof loc> => loc !== null);
 
     // Fetch insights for cache misses with full location data
-    console.log('[insights-batch] Fetching insights for playgrounds:',
-      missRequests.map(r => ({ id: r.playgroundId, name: r.name, coords: `${r.location.latitude.toFixed(6)},${r.location.longitude.toFixed(6)}` }))
-    );
+    console.log(`[API /insights-batch] 🚀 Fetching ${missRequests.length} playgrounds`);
 
     const missResults = await fetchGeminiInsightsBatch({
       requests: missRequests,
       signal,
     });
 
-    console.log('[insights-batch] Results:',
-      missResults.map(r => ({ id: r.playgroundId, hasInsights: !!r.insights, name: r.insights?.name }))
-    );
+    console.log(`[API /insights-batch] ✅ Completed: ${missResults.filter(r => r.insights).length}/${missResults.length}`);
 
     // Merge cache hits and API results
     const missMap = new Map(missResults.map((r) => [r.playgroundId, r]));
@@ -127,7 +123,7 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error in batch insights generation:", error);
+    console.error("[API /insights-batch] ❌ Error in batch insights generation:", error);
     return NextResponse.json(
       { error: "Failed to generate batch insights" },
       { status: 500 },

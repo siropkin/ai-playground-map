@@ -74,16 +74,11 @@ export async function fetchAIInsightsFromCache({
       tier_reasoning: data.tier_reasoning ?? null,
     };
 
-    console.log('[Cache] 📖 Retrieved from cache:', {
-      cacheKey,
-      tier: result.tier,
-      tier_reasoning: result.tier_reasoning ? result.tier_reasoning.substring(0, 50) + '...' : null,
-      name: result.name,
-    });
+    console.log(`[Cache] 📖 Retrieved "${result.name}" (${result.tier})`);
 
     return result;
   } catch (error) {
-    console.error("Error getting AI insights from cache:", error);
+    console.error("[Cache] ❌ Error getting AI insights from cache:", error);
     return null;
   }
 }
@@ -99,13 +94,6 @@ export async function saveAIInsightsToCache({
 }): Promise<void> {
   try {
     const supabase = await createClient();
-
-    console.log('[Cache] 💾 Saving to cache:', {
-      cacheKey,
-      tier: insights.tier,
-      tier_reasoning: insights.tier_reasoning ? insights.tier_reasoning.substring(0, 50) + '...' : null,
-      name: insights.name,
-    });
 
     const { error } = await supabase
       .from(AI_INSIGHTS_CACHE_TABLE_NAME)
@@ -128,12 +116,12 @@ export async function saveAIInsightsToCache({
       );
 
     if (error) {
-      console.error("Error saving AI insights to cache:", error);
+      console.error("[Cache] ❌ Error saving AI insights to cache:", error);
     } else {
-      console.log('[Cache] ✅ Successfully saved to cache with tier:', insights.tier);
+      console.log(`[Cache] ✅ Saved "${insights.name}" (${insights.tier})`);
     }
   } catch (error) {
-    console.error("Error saving AI insights to cache:", error);
+    console.error("[Cache] ❌ Error saving AI insights to cache:", error);
   }
 }
 
@@ -152,10 +140,10 @@ export async function clearAIInsightsCache({
       .eq("cache_key", cacheKey);
 
     if (error) {
-      console.error("Error clearing AI insights cache:", error);
+      console.error("[Cache] ❌ Error clearing AI insights cache:", error);
     }
   } catch (error) {
-    console.error("Error clearing AI insights cache:", error);
+    console.error("[Cache] ❌ Error clearing AI insights cache:", error);
   }
 }
 
@@ -185,7 +173,7 @@ export async function batchFetchAIInsightsFromCache({
       .in("cache_key", cacheKeys);
 
     if (error || !data) {
-      console.error("Error batch fetching from cache:", error);
+      console.error("[Cache] ❌ Error batch fetching from cache:", error);
       return results;
     }
 
@@ -234,18 +222,18 @@ export async function batchFetchAIInsightsFromCache({
         .in("cache_key", keysToDelete)
         .then(({ error }) => {
           if (error) {
-            console.error("Error deleting invalid cache entries:", error);
+            console.error("[Cache] ❌ Error deleting invalid cache entries:", error);
           }
         });
     }
 
     console.log(
-      `[Cache] Batch fetched ${results.size}/${cacheKeys.length} entries`,
+      `[Cache] 📦 Batch fetched ${results.size}/${cacheKeys.length} entries`,
     );
 
     return results;
   } catch (error) {
-    console.error("Error batch fetching AI insights from cache:", error);
+    console.error("[Cache] ❌ Error batch fetching AI insights from cache:", error);
     return results;
   }
 }

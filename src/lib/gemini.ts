@@ -135,12 +135,6 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
     const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-exp";
     const temperature = Number(process.env.GEMINI_TEMPERATURE ?? 0.2);
 
-    console.log('[Gemini] Making request with model:', model);
-    console.log('[Gemini] Coordinates:', location.latitude.toFixed(6), location.longitude.toFixed(6));
-    console.log('[Gemini] Location:', cityState);
-    console.log('[Gemini] OSM Name hint:', name || 'none');
-    console.log('[Gemini] Prompt length:', prompt.length);
-
     const response: GenerateContentResponse = await genai.models.generateContent({
       model,
       contents: prompt,
@@ -152,8 +146,6 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       },
     });
 
-    console.log('[Gemini] Response received, checking contents...');
-
     if (signal?.aborted) {
       return null;
     }
@@ -161,27 +153,25 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
     // Check for blocked content or other issues
     const candidate = response.candidates?.[0];
     if (!candidate) {
-      console.error('[Gemini] No candidates in response:', JSON.stringify(response, null, 2));
+      console.error('[Gemini] ❌ No candidates in response');
       return null;
     }
 
     // Check finish reason
     if (candidate.finishReason && candidate.finishReason !== 'STOP') {
-      console.warn('[Gemini] Unexpected finish reason:', candidate.finishReason);
       if (candidate.finishReason === 'SAFETY') {
-        console.warn('[Gemini] Content blocked by safety filters');
+        console.warn('[Gemini] ⚠️ Content blocked by safety filters');
+      } else {
+        console.warn('[Gemini] ⚠️ Unexpected finish reason:', candidate.finishReason);
       }
     }
 
     // Extract the text response
     const contentText = candidate.content?.parts?.[0]?.text;
     if (!contentText) {
-      console.warn('[Gemini] No content in response');
-      console.warn('[Gemini] Full candidate:', JSON.stringify(candidate, null, 2));
+      console.warn('[Gemini] ⚠️ No content in response');
       return null;
     }
-
-    console.log('[Gemini] Raw response text (first 300 chars):', contentText.substring(0, 300));
 
     // Parse the JSON response
     // Gemini might wrap JSON in markdown code blocks despite responseMimeType setting
@@ -196,13 +186,11 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
         try {
           parsed = JSON.parse(jsonMatch[1]);
         } catch (error) {
-          console.error('[Gemini] Failed to parse JSON from markdown:', error);
-          console.error('[Gemini] Raw response:', contentText.substring(0, 500));
+          console.error('[Gemini] ❌ Failed to parse JSON from markdown:', error);
           return null;
         }
       } else {
-        console.error('[Gemini] Could not extract JSON from response');
-        console.error('[Gemini] Raw response:', contentText.substring(0, 500));
+        console.error('[Gemini] ❌ Could not extract JSON from response');
         return null;
       }
     }
@@ -215,42 +203,15 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
           })
         : {};
 
-    console.log('[Gemini] Parsed result:', {
-      confidence: base.location_confidence,
-      name: base.name,
-      hasDescription: !!base.description,
-      featureCount: base.features?.length || 0,
-      tier: base.tier,
-      tierReasoning: base.tier_reasoning,
-      hasSources: !!base.sources,
-      coordinates: `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
-      cityState,
-    });
-
     // Phase 1 Enhancement: Reject low-confidence results to prevent wrong-location data
     if (base.location_confidence === "low") {
-      console.warn(
-        `[Gemini] Low confidence result for ${cityState} - rejecting to avoid wrong-location data`,
-        {
-          name: base.name,
-          verification: base.location_verification,
-          location: cityState,
-          coords: `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`
-        }
-      );
+      console.warn(`[Gemini] ⚠️ Low confidence result for ${cityState} - rejecting`);
       return null;
     }
 
     // Log medium confidence results for monitoring
     if (base.location_confidence === "medium") {
-      console.info(
-        `[Gemini] Medium confidence result for ${cityState} - proceeding with caution`,
-        {
-          name: base.name,
-          verification: base.location_verification,
-          coords: `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`
-        }
-      );
+      console.info(`[Gemini] ℹ️ Medium confidence result for ${cityState} - "${base.name}"`);
     }
 
     // Extract sources from grounding metadata
@@ -265,8 +226,6 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       }
     }
 
-    console.log('[Gemini] Found', sources.length, 'sources from grounding metadata');
-
     // Fetch images using Google Custom Search API
     let images: AIInsights['images'] = null;
     if (base.name && base.location_confidence !== 'low') {
@@ -278,8 +237,6 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
           country: location.country,
         });
 
-        console.log('[Gemini] Searching images with query:', imageQuery);
-
         const rawImages = await searchImages(imageQuery, {
           maxResults: 10,
           signal,
@@ -289,9 +246,9 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
         // Google's SafeSearch and imgType=photo filters provide good quality results
         images = rawImages.length > 0 ? rawImages : null;
 
-        console.log('[Gemini] Found', rawImages.length, 'images from Google Custom Search');
+        console.log(`[Gemini] 🖼️ Found ${rawImages.length} images for "${base.name}"`);
       } catch (error) {
-        console.error('[Gemini] Error fetching images:', error);
+        console.error('[Gemini] ❌ Error fetching images:', error);
         // Continue without images rather than failing the whole request
       }
     }
@@ -313,21 +270,14 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       _locationVerification: base.location_verification || null,
     };
 
-    console.log('[Gemini] 🎯 Tier Rating Result:', {
-      tier: result.tier,
-      tier_reasoning: result.tier_reasoning,
-      name: result.name,
-      raw_base_tier: base.tier,
-      raw_base_tier_reasoning: base.tier_reasoning,
-    });
-
     return result;
   } catch (error) {
     // Check if it's a rate limit error
     if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
-      console.warn('[Gemini] Rate limit exceeded - consider upgrading to paid tier or switching models');
+      console.warn('[Gemini] ⚠️ Rate limit exceeded - consider upgrading to paid tier');
+    } else {
+      console.error('[Gemini] ❌ API error:', error);
     }
-    console.error('[Gemini] API error:', error);
     throw error;
   }
 }
@@ -357,7 +307,7 @@ export async function fetchGeminiInsightsWithCache({
   const cacheKey = baseCacheKey ? `${CACHE_VERSION}:${baseCacheKey}` : null;
 
   if (!cacheKey) {
-    console.warn('[Gemini] No cache key available (missing both osmId and location)');
+    console.warn('[Gemini] ⚠️ No cache key available (missing both osmId and location)');
     return null;
   }
 
@@ -376,7 +326,7 @@ export async function fetchGeminiInsightsWithCache({
 
       // Cache miss - need location to fetch from API
       if (!location) {
-        console.log('[Gemini] Cache miss and no location provided, cannot fetch from API');
+        console.log('[Gemini] ℹ️ Cache miss and no location provided, cannot fetch from API');
         return null;
       }
 
@@ -408,26 +358,9 @@ export async function fetchGeminiInsightsWithCache({
         location.region
       );
 
-      // Log scoring details for monitoring and debugging
-      console.info(
-        `[Gemini] Result score for ${cityState}: ${getScoreSummary(resultScore)}`,
-        {
-          shouldAccept: resultScore.shouldAccept,
-          shouldCache: resultScore.shouldCache,
-          confidence: resultScore.confidence,
-        }
-      );
-
       // Reject results that don't meet quality standards
       if (!resultScore.shouldAccept) {
-        console.warn(
-          `[Gemini] Rejecting low-quality result for ${cityState}`,
-          {
-            score: resultScore.overallScore,
-            flags: resultScore.flags,
-            name: freshInsights.name
-          }
-        );
+        console.warn(`[Gemini] ⚠️ Rejecting low-quality result for ${cityState}: ${getScoreSummary(resultScore)}`);
         return null;
       }
 
@@ -444,26 +377,11 @@ export async function fetchGeminiInsightsWithCache({
         tier_reasoning: freshInsights.tier_reasoning,
       };
 
-      console.log('[Gemini] 💾 Preparing to cache result:', {
-        cacheKey,
-        tier: cleanResult.tier,
-        tier_reasoning: cleanResult.tier_reasoning,
-        shouldCache: resultScore.shouldCache,
-        name: cleanResult.name,
-      });
-
       // Save to cache only if quality is high enough
       if (resultScore.shouldCache) {
         await saveAIInsightsToCache({ cacheKey, insights: cleanResult });
-        console.log('[Gemini] ✅ Cached result with tier:', cleanResult.tier);
       } else {
-        console.warn(
-          `[Gemini] NOT caching result for ${cityState} due to quality concerns`,
-          {
-            score: resultScore.overallScore,
-            flags: resultScore.flags
-          }
-        );
+        console.warn(`[Gemini] ⚠️ NOT caching result for ${cityState} due to quality concerns`);
       }
 
       return cleanResult;
@@ -519,7 +437,7 @@ export async function fetchGeminiInsightsBatch({
     cacheKeys,
   });
 
-  console.log(`[Batch Enrichment] Cache hit: ${cachedResults.size}/${batch.length}`);
+  console.log(`[Gemini] 📦 Batch cache hit: ${cachedResults.size}/${batch.length}`);
 
   // PHASE 2: Build results array and identify cache misses
   const results: Array<{ playgroundId: number; insights: AIInsights | null }> = [];
@@ -541,7 +459,7 @@ export async function fetchGeminiInsightsBatch({
 
   // PHASE 3: Fetch cache misses from Gemini API
   if (misses.length > 0 && !cacheOnly) {
-    console.log(`[Batch Enrichment] Fetching ${misses.length} from Gemini AI`);
+    console.log(`[Gemini] 🚀 Fetching ${misses.length} from API`);
 
     const apiResults = await Promise.all(
       misses.map((req) =>
@@ -558,7 +476,7 @@ export async function fetchGeminiInsightsBatch({
               insights,
             };
           } catch (error) {
-            console.error(`Error fetching insights for playground ${req.playgroundId}:`, error);
+            console.error(`[Gemini] ❌ Error fetching insights for playground ${req.playgroundId}:`, error);
             return {
               playgroundId: req.playgroundId,
               insights: null,

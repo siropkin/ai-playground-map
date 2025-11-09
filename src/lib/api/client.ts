@@ -29,7 +29,7 @@ export async function searchPlaygrounds(
     if (error instanceof DOMException && error.name === "AbortError") {
       return [];
     }
-    console.error("Error fetching playgrounds:", error);
+    console.error("[API Client] ❌ Error fetching playgrounds:", error);
     return [];
   }
 }
@@ -63,7 +63,7 @@ export async function fetchLocationData(
     if (error instanceof DOMException && error.name === "AbortError") {
       return null;
     }
-    console.error("Error fetching location data:", error);
+    console.error("[API Client] ❌ Error fetching location data:", error);
     return null;
   }
 }
@@ -103,7 +103,7 @@ export async function generatePlaygroundAiInsights({
     if (error instanceof DOMException && error.name === "AbortError") {
       return null;
     }
-    console.error("Error generating playground AI insights:", error);
+    console.error("[API Client] ❌ Error generating playground AI insights:", error);
     return null;
   }
 }
@@ -150,7 +150,7 @@ export async function generatePlaygroundAiInsightsBatch({
     if (error instanceof DOMException && error.name === "AbortError") {
       return [];
     }
-    console.error("Error generating batch playground AI insights:", error);
+    console.error("[API Client] ❌ Error generating batch playground AI insights:", error);
     return [];
   }
 }

@@ -69,7 +69,7 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error fetching location data:", error);
+    console.error("[API /osm-location] ❌ Error fetching location data:", error);
     return NextResponse.json(
       { error: "Failed to fetch location data" },
       { status: 500 },

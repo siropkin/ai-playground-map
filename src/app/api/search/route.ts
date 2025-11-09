@@ -70,7 +70,7 @@ export async function POST(
       // Save to cache for future requests (async, non-blocking)
       // Update cache even if empty to prevent repeated queries for areas with no playgrounds
       saveOSMToCache(cacheKey, bounds, bounds.zoom, osmResults).catch(err =>
-        console.error("Failed to save OSM cache:", err)
+        console.error("[API /search] ❌ Failed to save OSM cache:", err)
       );
     }
 
@@ -104,13 +104,14 @@ export async function POST(
       }))
       .filter((playground) => playground.lat && playground.lon);
 
+    console.log(`[API /search] ✅ Returning ${playgrounds.length} playgrounds`);
     return NextResponse.json(playgrounds);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error fetching playgrounds from OSM:", error);
+    console.error("[API /search] ❌ Error fetching playgrounds from OSM:", error);
     return NextResponse.json(
       { error: "Failed to fetch playgrounds" },
       { status: 500 },

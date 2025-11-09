@@ -38,7 +38,7 @@ export default function ReportIssueForm({
         setIsSuccess(false);
       }, 3000);
     } catch (error) {
-      console.error("Failed to report issue:", error);
+      console.error("[ReportIssueForm] ❌ Failed to report issue:", error);
     } finally {
       setIsSubmitting(false);
     }

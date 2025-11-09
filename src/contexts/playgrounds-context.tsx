@@ -32,13 +32,13 @@ function validateAccessibility(accessibility: unknown): Playground["accessibilit
     if (accessibility.every(item => typeof item === "string")) {
       return accessibility;
     }
-    console.warn("[PlaygroundsContext] Rejecting malformed accessibility array");
+    console.warn("[Context] ⚠️ Rejecting malformed accessibility array");
     return null;
   }
 
   // Old format: object (v5 and earlier) - reject
   if (accessibility && typeof accessibility === "object") {
-    console.warn("[PlaygroundsContext] Rejecting old accessibility object format");
+    console.warn("[Context] ⚠️ Rejecting old accessibility object format");
     return null;
   }
 
@@ -150,7 +150,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           !(err instanceof DOMException && err.name === "AbortError") &&
           !signal?.aborted
         ) {
-          console.error("Error fetching playgrounds:", err);
+          console.error("[Context] ❌ Error fetching playgrounds:", err);
           setError("Failed to load playgrounds. Please try again.");
         }
       } finally {
@@ -245,7 +245,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           ),
         );
       } catch (error) {
-        console.error(`Error enriching playground ${playgroundId}:`, error);
+        console.error(`[Context] ❌ Error enriching playground ${playgroundId}:`, error);
       }
     },
     [], // No dependencies - we get playground from setState callback
@@ -263,7 +263,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       });
 
       if (filteredIds.length === 0) {
-        console.log('[Enrichment] Skipping batch - all playgrounds recently enriched');
         return;
       }
 
@@ -332,7 +331,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           }),
         );
       } catch (error) {
-        console.error("Error enriching playgrounds batch:", error);
+        console.error("[Context] ❌ Error enriching playgrounds batch:", error);
       }
     },
     [], // No dependencies - we get playgrounds from setState callback

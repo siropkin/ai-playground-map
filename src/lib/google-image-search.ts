@@ -75,12 +75,12 @@ export async function searchImages(
   const cx = process.env.GOOGLE_SEARCH_CX;
 
   if (!apiKey) {
-    console.warn('[GoogleImageSearch] Missing GOOGLE_SEARCH_API_KEY or GEMINI_API_KEY');
+    console.warn('[Google Images] ⚠️ Missing GOOGLE_SEARCH_API_KEY or GEMINI_API_KEY');
     return [];
   }
 
   if (!cx) {
-    console.warn('[GoogleImageSearch] Missing GOOGLE_SEARCH_CX (Search Engine ID)');
+    console.warn('[Google Images] ⚠️ Missing GOOGLE_SEARCH_CX (Search Engine ID)');
     return [];
   }
 
@@ -96,9 +96,6 @@ export async function searchImages(
     url.searchParams.set('imgSize', 'large'); // Prefer larger images
     url.searchParams.set('imgType', 'photo'); // Photos only, no clipart
 
-    console.log('[GoogleImageSearch] Searching for:', query);
-    console.log('[GoogleImageSearch] Max results:', maxResults);
-
     const response = await fetch(url.toString(), {
       signal,
       headers: {
@@ -108,10 +105,10 @@ export async function searchImages(
 
     if (!response.ok) {
       const errorData = await response.json() as CustomSearchResponse;
-      console.error('[GoogleImageSearch] API error:', errorData.error);
+      console.error('[Google Images] ❌ API error:', errorData.error);
 
       if (response.status === 429) {
-        console.warn('[GoogleImageSearch] Rate limit exceeded (100 queries/day on free tier)');
+        console.warn('[Google Images] ⚠️ Rate limit exceeded (100 queries/day on free tier)');
       }
 
       return [];
@@ -120,7 +117,6 @@ export async function searchImages(
     const data = await response.json() as CustomSearchResponse;
 
     if (!data.items || data.items.length === 0) {
-      console.log('[GoogleImageSearch] No images found for query:', query);
       return [];
     }
 
@@ -134,16 +130,13 @@ export async function searchImages(
       thumbnail_url: item.image.thumbnailLink,
     }));
 
-    console.log('[GoogleImageSearch] Found', results.length, 'images');
-
     return results;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      console.log('[GoogleImageSearch] Request aborted');
       return [];
     }
 
-    console.error('[GoogleImageSearch] Error:', error);
+    console.error('[Google Images] ❌ Error:', error);
     return [];
   }
 }

@@ -21,7 +21,7 @@ import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 // Safely set Mapbox access token with proper error handling
 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 if (!mapboxToken) {
-  console.error("Mapbox Access Token is not set. Map will not function.");
+  console.error("[MapView] ❌ Mapbox Access Token is not set. Map will not function.");
 }
 mapboxgl.accessToken = mapboxToken || "";
 
@@ -133,7 +133,7 @@ export const MapView = React.memo(function MapView() {
         }
       },
       (error) => {
-        console.error("Error fetching location:", error);
+        console.error("[MapView] ❌ Error fetching location:", error);
         alert("Oops! Can't get your location. Maybe geolocation is blocked?");
       },
     );
@@ -345,7 +345,7 @@ export const MapView = React.memo(function MapView() {
       setError(
         "Oops! The map is taking a timeout on the swings. Check back soon!",
       );
-      console.error("Error initializing map:", error);
+      console.error("[MapView] ❌ Error initializing map:", error);
     }
   }, [mapContainer, theme, mapBounds, setMapBounds]);
 

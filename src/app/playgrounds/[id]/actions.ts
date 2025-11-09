@@ -28,13 +28,13 @@ export async function reportIssue({
     });
 
     if (error) {
-      console.error("Error reporting issue:", error);
+      console.error("[Actions] ❌ Error reporting issue:", error);
       return { success: false, message: "Failed to report issue" };
     }
 
     return { success: true, message: "Issue reported successfully" };
   } catch (error) {
-    console.error("Error reporting issue:", error);
+    console.error("[Actions] ❌ Error reporting issue:", error);
     return { success: false, message: "Failed to report issue" };
   }
 }
@@ -68,7 +68,7 @@ export async function clearPlaygroundCacheAction({
 
     return { success: true, message: "Playground cache cleared successfully" };
   } catch (error) {
-    console.error("Error clearing playground cache:", error);
+    console.error("[Actions] ❌ Error clearing playground cache:", error);
     return { success: false, message: "Failed to clear playground cache" };
   }
 }

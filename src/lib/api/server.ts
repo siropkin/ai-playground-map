@@ -88,7 +88,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
 
     return playground;
   } catch (error) {
-    console.error("Error fetching playground details:", error);
+    console.error("[API Server] ❌ Error fetching playground details:", error);
     return playground;
   }
 }

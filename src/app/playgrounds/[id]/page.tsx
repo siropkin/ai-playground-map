@@ -107,14 +107,6 @@ export default async function PlaygroundDetail({
   // Tier now comes directly from Gemini AI in the playground data
   const playgroundWithTier = playground;
 
-  console.log('[Page] 🎯 Playground tier data:', {
-    id: resolvedParams.id,
-    name: playground.name,
-    tier: playground.tier,
-    tierReasoning: playground.tierReasoning ? playground.tierReasoning.substring(0, 50) + '...' : null,
-    enriched: playground.enriched,
-  });
-
   return (
     <>
       <StructuredData playground={playground} />

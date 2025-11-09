@@ -12,19 +12,20 @@ export async function POST() {
       .neq("cache_key", ""); // Delete all entries (neq with empty string matches all)
 
     if (error) {
-      console.error("Error clearing cache:", error);
+      console.error("[API /admin/clear-cache] ❌ Error clearing cache:", error);
       return NextResponse.json(
         { error: "Failed to clear cache", details: error.message },
         { status: 500 }
       );
     }
 
+    console.log("[API /admin/clear-cache] ✅ AI insights cache cleared successfully");
     return NextResponse.json({
       success: true,
       message: "AI insights cache cleared successfully"
     });
   } catch (error) {
-    console.error("Error clearing cache:", error);
+    console.error("[API /admin/clear-cache] ❌ Error clearing cache:", error);
     return NextResponse.json(
       { error: "Failed to clear cache" },
       { status: 500 }
