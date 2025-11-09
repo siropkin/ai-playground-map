@@ -1,7 +1,7 @@
 /**
  * Result Scoring System
  * Combines all validation layers into a comprehensive quality score
- * for AI results (Gemini/Perplexity).
+ * for AI results from Gemini and other AI providers.
  */
 
 import { validateSources, SourceValidationResult } from './source-validator';

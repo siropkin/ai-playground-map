@@ -25,7 +25,3 @@ export type AIInsights = {
   tier: "neighborhood" | "gem" | "star" | null;
   tier_reasoning: string | null; // Why Gemini assigned this tier
 };
-
-// Legacy exports for backwards compatibility during migration
-export type PerplexityLocation = AILocation;
-export type PerplexityInsights = AIInsights;

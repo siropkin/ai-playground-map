@@ -361,5 +361,5 @@ import { Spinner } from "@/components/ui/spinner";
 ---
 
 **Last Updated:** 2025-11-09
-**Version:** 4.0.0 (Migrated from Perplexity AI to Google Gemini + Custom Search)
+**Version:** 4.0.0 (Google Gemini AI + Custom Search for Images)
 **Maintainer:** Ivan Seredkin

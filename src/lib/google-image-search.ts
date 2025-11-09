@@ -2,7 +2,7 @@
  * Google Custom Search API for Image Search
  *
  * Provides high-quality playground image search using Google's Custom Search JSON API.
- * Integrated as part of the Perplexity → Gemini migration (Nov 2025).
+ * Integrated as part of the Gemini AI implementation (Nov 2025).
  *
  * Features:
  * - SafeSearch enabled (filters inappropriate content)

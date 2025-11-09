@@ -5,7 +5,7 @@ import pLimit from "p-limit";
  * smooth operation during peak usage.
  */
 
-// AI API rate limiter (used for both Perplexity and Gemini)
+// AI API rate limiter (used for Gemini and other AI providers)
 // Limits to 2 concurrent requests to be conservative with Gemini free tier
-// Gemini 1.5 Flash free tier: 15 RPM, so 2 concurrent with delays should stay under limit
-export const perplexityLimiter = pLimit(2);
+// Gemini 2.0 Flash: 10 RPM free tier, so 2 concurrent with delays should stay under limit
+export const aiLimiter = pLimit(2);

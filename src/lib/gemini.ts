@@ -28,7 +28,7 @@ import {
   batchFetchAIInsightsFromCache,
 } from "@/lib/cache";
 import { AIInsights, AILocation } from "@/types/ai-insights";
-import { perplexityLimiter } from "@/lib/rate-limiter";
+import { aiLimiter } from "@/lib/rate-limiter";
 import { deduplicatedFetch } from "@/lib/request-dedup";
 import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
@@ -545,7 +545,7 @@ export async function fetchGeminiInsightsBatch({
 
     const apiResults = await Promise.all(
       misses.map((req) =>
-        perplexityLimiter(async () => {
+        aiLimiter(async () => {
           try {
             const insights = await fetchGeminiInsightsWithCache({
               location: req.location,
