@@ -27,13 +27,11 @@ import {
   saveAIInsightsToCache,
   batchFetchAIInsightsFromCache,
 } from "@/lib/cache";
+import { buildAIInsightsCacheKey } from "@/lib/cache-keys";
 import { AIInsights, AILocation } from "@/types/ai-insights";
 import { aiLimiter } from "@/lib/rate-limiter";
 import { deduplicatedFetch } from "@/lib/request-dedup";
 import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
-
-// Cache version - increment this to invalidate all cached data when schema changes
-const CACHE_VERSION = "v17-tier-fields-fixed"; // v17: Fixed bug where tier/accessibility fields weren't being saved to cache
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -262,11 +260,21 @@ export async function fetchGeminiInsightsWithCache({
     return null;
   }
 
-  // Create cache key from OSM ID (preferred) or location coordinates (fallback)
-  // Using OSM ID ensures each playground has unique cached data
-  // Include CACHE_VERSION to invalidate old caches when schema changes
-  const baseCacheKey = osmId || (location ? `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}` : null);
-  const cacheKey = baseCacheKey ? `${CACHE_VERSION}:${baseCacheKey}` : null;
+  // Create cache key using centralized function (prefers OSM ID over coordinates)
+  let cacheKey: string | null = null;
+  try {
+    if (osmId) {
+      cacheKey = buildAIInsightsCacheKey({ osmId });
+    } else if (location) {
+      cacheKey = buildAIInsightsCacheKey({
+        lat: location.latitude,
+        lon: location.longitude,
+      });
+    }
+  } catch {
+    console.warn('[Gemini] ⚠️ No cache key available (missing both osmId and location)');
+    return null;
+  }
 
   if (!cacheKey) {
     console.warn('[Gemini] ⚠️ No cache key available (missing both osmId and location)');
@@ -384,9 +392,20 @@ export async function fetchGeminiInsightsBatch({
   const cacheKeys: string[] = [];
 
   for (const req of batch) {
-    const baseCacheKey = req.osmId ||
-      (req.location ? `${req.location.latitude.toFixed(6)},${req.location.longitude.toFixed(6)}` : null);
-    const cacheKey = baseCacheKey ? `${CACHE_VERSION}:${baseCacheKey}` : null;
+    let cacheKey: string | null = null;
+    try {
+      if (req.osmId) {
+        cacheKey = buildAIInsightsCacheKey({ osmId: req.osmId });
+      } else if (req.location) {
+        cacheKey = buildAIInsightsCacheKey({
+          lat: req.location.latitude,
+          lon: req.location.longitude,
+        });
+      }
+    } catch {
+      // Skip this request if cache key generation fails
+      continue;
+    }
 
     if (cacheKey) {
       cacheKeyMap.set(req.playgroundId, cacheKey);

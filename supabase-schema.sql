@@ -33,6 +33,7 @@ ALTER TABLE osm_query_cache DISABLE ROW LEVEL SECURITY;
 -- ============================================
 -- NOTE: 'images' field is deprecated - use playground_images_cache table instead
 -- Kept for backward compatibility during migration
+-- Cache invalidation: Version is in cache_key (e.g., "v17-tier-fields-fixed:N123456")
 CREATE TABLE IF NOT EXISTS ai_insights_cache (
   cache_key TEXT PRIMARY KEY,
   name TEXT,
@@ -44,8 +45,7 @@ CREATE TABLE IF NOT EXISTS ai_insights_cache (
   accessibility JSONB,
   tier TEXT CHECK (tier IN ('neighborhood', 'gem', 'star')),
   tier_reasoning TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  schema_version INTEGER DEFAULT 1
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Add index for accessibility queries
@@ -66,11 +66,11 @@ ALTER TABLE ai_insights_cache DISABLE ROW LEVEL SECURITY;
 -- ============================================
 -- 3. Playground Images Cache Table (NEW)
 -- ============================================
+-- Cache invalidation: Version is in cache_key (e.g., "v1:N123456")
 CREATE TABLE IF NOT EXISTS playground_images_cache (
   cache_key TEXT PRIMARY KEY,
   images JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  schema_version INTEGER DEFAULT 1
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Add index for created_at for TTL checks
@@ -191,12 +191,24 @@ ON ai_insights_cache(tier) WHERE tier IS NOT NULL;
 
 
 -- ============================================
+-- MIGRATION: Remove schema_version columns (Option A: Cache Key Only)
+-- ============================================
+-- Drop schema_version columns if they exist (we use cache key versioning instead)
+ALTER TABLE ai_insights_cache DROP COLUMN IF EXISTS schema_version;
+ALTER TABLE playground_images_cache DROP COLUMN IF EXISTS schema_version;
+
+-- Note: Old cache entries with version in cache_key will still work
+-- e.g., "v17-tier-fields-fixed:N123456" will never match "v16:N123456"
+
+
+-- ============================================
 -- CLEAR CACHE (Optional: Run after major changes)
 -- ============================================
 -- Uncomment the lines below to clear all cache entries
 -- This will force fresh data with tier ratings from Gemini AI
 -- DELETE FROM osm_query_cache;
 -- DELETE FROM ai_insights_cache;
+-- DELETE FROM playground_images_cache;
 
 
 -- ============================================

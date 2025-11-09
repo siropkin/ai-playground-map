@@ -99,14 +99,14 @@ export async function POST(
 
     // Fetch insights for cache misses with full location data
     // NOTE: Images are NOT fetched here - use src/lib/images.ts instead
-    console.log(`[API /insights-batch] 🚀 Fetching ${missRequests.length} playgrounds (AI insights only)`);
+    console.log(`[APIInsightsBatch] 🚀 Fetching ${missRequests.length} playgrounds (AI insights only)`);
 
     const missResults = await fetchGeminiInsightsBatch({
       requests: missRequests,
       signal,
     });
 
-    console.log(`[API /insights-batch] ✅ Completed: ${missResults.filter(r => r.insights).length}/${missResults.length}`);
+    console.log(`[APIInsightsBatch] ✅ Completed: ${missResults.filter(r => r.insights).length}/${missResults.length}`);
 
     // Merge cache hits and API results
     const missMap = new Map(missResults.map((r) => [r.playgroundId, r]));
@@ -124,7 +124,7 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("[API /insights-batch] ❌ Error in batch insights generation:", error);
+    console.error("[APIInsightsBatch] ❌ Error in batch insights generation:", error);
     return NextResponse.json(
       { error: "Failed to generate batch insights" },
       { status: 500 },

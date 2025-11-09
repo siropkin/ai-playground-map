@@ -1,6 +1,8 @@
 "use server";
 
 import { clearAIInsightsCache } from "@/lib/cache";
+import { clearImagesCache } from "@/lib/images";
+import { getAllPossibleCacheKeys } from "@/lib/cache-keys";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -8,22 +10,25 @@ import { createClient } from "@/lib/supabase/server";
 // TODO: Create lib file for report issues
 interface ReportIssueParams {
   playgroundId: string;
+  issueType: "wrong-location" | "incorrect-info" | "inappropriate-content" | "other";
   description: string;
-  contact: string | null;
+  userEmail: string | null;
 }
 
 export async function reportIssue({
   playgroundId,
+  issueType,
   description,
-  contact,
+  userEmail,
 }: ReportIssueParams) {
   try {
     const supabase = await createClient();
 
     const { error } = await supabase.from("playground_issues").insert({
       playground_id: playgroundId,
+      issue_type: issueType,
       description,
-      contact,
+      user_email: userEmail,
       created_at: new Date().toISOString(),
     });
 
@@ -44,28 +49,45 @@ export async function clearPlaygroundCacheAction({
   lat,
   lon,
   osmId,
+  name,
+  city,
+  region,
+  country,
 }: {
   playgroundId: string;
   lat: number;
   lon: number;
   osmId?: string;
+  name?: string;
+  city?: string;
+  region?: string;
+  country?: string;
 }) {
   try {
-    // Clear both possible cache keys to handle the inconsistency:
-    // 1. OSM ID-based key (if available)
-    // 2. Coordinate-based key (fallback)
-    // This ensures we clear cached data regardless of which key was used when storing
+    // Get all possible cache keys with proper version prefixes
+    const { aiInsightsKeys, imageKeys } = getAllPossibleCacheKeys({
+      osmId,
+      lat,
+      lon,
+      name,
+      city,
+      region,
+      country,
+    });
 
-    if (osmId) {
-      await clearAIInsightsCache({ cacheKey: osmId });
+    // Clear all AI insights cache keys
+    for (const cacheKey of aiInsightsKeys) {
+      await clearAIInsightsCache({ cacheKey });
     }
 
-    // Also clear coordinate-based key for backward compatibility
-    const coordinateCacheKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
-    await clearAIInsightsCache({ cacheKey: coordinateCacheKey });
+    // Clear all image cache keys
+    for (const cacheKey of imageKeys) {
+      await clearImagesCache({ cacheKey });
+    }
 
     revalidatePath(`/playgrounds/${playgroundId}`);
 
+    console.log(`[Actions] ✅ Cleared cache for playground ${playgroundId}`);
     return { success: true, message: "Playground cache cleared successfully" };
   } catch (error) {
     console.error("[Actions] ❌ Error clearing playground cache:", error);

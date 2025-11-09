@@ -31,13 +31,13 @@ function validateAccessibility(accessibility: unknown): Playground["accessibilit
     if (accessibility.every(item => typeof item === "string")) {
       return accessibility;
     }
-    console.warn("[Context] ⚠️ Rejecting malformed accessibility array");
+    console.warn("[ContextPlaygrounds] ⚠️ Rejecting malformed accessibility array");
     return null;
   }
 
   // Old format: object (v5 and earlier) - reject
   if (accessibility && typeof accessibility === "object") {
-    console.warn("[Context] ⚠️ Rejecting old accessibility object format");
+    console.warn("[ContextPlaygrounds] ⚠️ Rejecting old accessibility object format");
     return null;
   }
 
@@ -174,7 +174,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           !(err instanceof DOMException && err.name === "AbortError") &&
           !signal?.aborted
         ) {
-          console.error("[Context] ❌ Error fetching playgrounds:", err);
+          console.error("[ContextPlaygrounds] ❌ Error fetching playgrounds:", err);
           setError("Failed to load playgrounds. Please try again.");
         }
       } finally {
@@ -292,7 +292,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           }),
         );
       } catch (error) {
-        console.error("[Context] ❌ Error enriching playgrounds batch:", error);
+        console.error("[ContextPlaygrounds] ❌ Error enriching playgrounds batch:", error);
       }
     },
     [], // No dependencies - we get playgrounds from setState callback
@@ -347,10 +347,10 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 : p,
             ),
           );
-          console.log(`[Context] 🖼️ Loaded ${images.length} images for playground ${playgroundId}`);
+          console.log(`[ContextPlaygrounds] 🖼️ Loaded ${images.length} images for playground ${playgroundId}`);
         }
       } catch (error) {
-        console.error(`[Context] ❌ Error loading images for playground ${playgroundId}:`, error);
+        console.error(`[ContextPlaygrounds] ❌ Error loading images for playground ${playgroundId}:`, error);
       }
     },
     [], // No dependencies - we get playground from setState callback

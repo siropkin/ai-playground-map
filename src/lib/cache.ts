@@ -2,19 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { AIInsights } from "@/types/ai-insights";
 
 const AI_INSIGHTS_CACHE_TTL_MS = parseInt(
-  process.env.AI_INSIGHTS_CACHE_TTL_MS || "31536000000",
-); // Cache TTL (1 year in milliseconds)
+  process.env.AI_INSIGHTS_CACHE_TTL_MS || "7776000000",
+); // Cache TTL (90 days in milliseconds, was 1 year)
 const AI_INSIGHTS_CACHE_TABLE_NAME =
   process.env.AI_INSIGHTS_CACHE_TABLE_NAME ||
   "ai_insights_cache";
 
-// Schema version for AI insights cache
-// Increment this when the prompt or response structure changes
-// Old cache entries will be automatically invalidated
-const CURRENT_SCHEMA_VERSION = 1;
-
 // Function to get AI insights from cache
-// cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
+// Cache invalidation: Version is in cache_key (e.g., "v17-tier-fields-fixed:N123456")
+// cacheKey can be either an OSM ID or coordinates
 export async function fetchAIInsightsFromCache({
   cacheKey,
 }: {
@@ -26,7 +22,7 @@ export async function fetchAIInsightsFromCache({
     const { data, error } = await supabase
       .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at, schema_version",
+        "name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at",
       )
       .eq("cache_key", cacheKey)
       .single();
@@ -35,16 +31,7 @@ export async function fetchAIInsightsFromCache({
       return null;
     }
 
-    // Check schema version first - invalidate if outdated
-    if (data.schema_version !== CURRENT_SCHEMA_VERSION) {
-      await supabase
-        .from(AI_INSIGHTS_CACHE_TABLE_NAME)
-        .delete()
-        .eq("cache_key", cacheKey);
-
-      return null;
-    }
-
+    // Check TTL and data validity
     const createdAt = new Date(data.created_at).getTime();
     const now = Date.now();
 
@@ -74,17 +61,17 @@ export async function fetchAIInsightsFromCache({
       tier_reasoning: data.tier_reasoning ?? null,
     };
 
-    console.log(`[Cache] 📖 Retrieved "${result.name}" (${result.tier})`);
+    console.log(`[CacheAI] 📖 Retrieved "${result.name}" (${result.tier})`);
 
     return result;
   } catch (error) {
-    console.error("[Cache] ❌ Error getting AI insights from cache:", error);
+    console.error("[CacheAI] ❌ Error getting AI insights from cache:", error);
     return null;
   }
 }
 
 // Function to save AI insights to cache
-// cacheKey can be either an OSM ID (e.g., "N123456") or coordinates (e.g., "40.748817,-73.985428")
+// Cache invalidation: Version is in cache_key (e.g., "v17-tier-fields-fixed:N123456")
 export async function saveAIInsightsToCache({
   cacheKey,
   insights,
@@ -110,18 +97,17 @@ export async function saveAIInsightsToCache({
           tier: insights.tier,
           tier_reasoning: insights.tier_reasoning,
           created_at: new Date().toISOString(),
-          schema_version: CURRENT_SCHEMA_VERSION,
         },
         { onConflict: "cache_key" },
       );
 
     if (error) {
-      console.error("[Cache] ❌ Error saving AI insights to cache:", error);
+      console.error("[CacheAI] ❌ Error saving AI insights to cache:", error);
     } else {
-      console.log(`[Cache] ✅ Saved "${insights.name}" (${insights.tier})`);
+      console.log(`[CacheAI] ✅ Saved "${insights.name}" (${insights.tier})`);
     }
   } catch (error) {
-    console.error("[Cache] ❌ Error saving AI insights to cache:", error);
+    console.error("[CacheAI] ❌ Error saving AI insights to cache:", error);
   }
 }
 
@@ -140,16 +126,19 @@ export async function clearAIInsightsCache({
       .eq("cache_key", cacheKey);
 
     if (error) {
-      console.error("[Cache] ❌ Error clearing AI insights cache:", error);
+      console.error("[CacheAI] ❌ Error clearing AI insights cache:", error);
+    } else {
+      console.log(`[CacheAI] 🗑️ Cleared cache for ${cacheKey}`);
     }
   } catch (error) {
-    console.error("[Cache] ❌ Error clearing AI insights cache:", error);
+    console.error("[CacheAI] ❌ Error clearing AI insights cache:", error);
   }
 }
 
 /**
  * Batch fetch multiple cache entries at once (optimized for performance)
  * Returns a Map of cacheKey -> insights for all found entries
+ * Cache invalidation: Version is in cache_key (e.g., "v17-tier-fields-fixed:N123456")
  */
 export async function batchFetchAIInsightsFromCache({
   cacheKeys,
@@ -168,12 +157,12 @@ export async function batchFetchAIInsightsFromCache({
     const { data, error } = await supabase
       .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "cache_key, name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at, schema_version",
+        "cache_key, name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at",
       )
       .in("cache_key", cacheKeys);
 
     if (error || !data) {
-      console.error("[Cache] ❌ Error batch fetching from cache:", error);
+      console.error("[CacheAI] ❌ Error batch fetching from cache:", error);
       return results;
     }
 
@@ -182,12 +171,6 @@ export async function batchFetchAIInsightsFromCache({
 
     // Process each cached entry
     for (const row of data) {
-      // Check schema version
-      if (row.schema_version !== CURRENT_SCHEMA_VERSION) {
-        keysToDelete.push(row.cache_key);
-        continue;
-      }
-
       // Check TTL and data validity
       const createdAt = new Date(row.created_at).getTime();
       if (
@@ -222,18 +205,18 @@ export async function batchFetchAIInsightsFromCache({
         .in("cache_key", keysToDelete)
         .then(({ error }) => {
           if (error) {
-            console.error("[Cache] ❌ Error deleting invalid cache entries:", error);
+            console.error("[CacheAI] ❌ Error deleting invalid cache entries:", error);
           }
         });
     }
 
     console.log(
-      `[Cache] 📦 Batch fetched ${results.size}/${cacheKeys.length} entries`,
+      `[CacheAI] 📦 Batch fetched ${results.size}/${cacheKeys.length} entries`,
     );
 
     return results;
   } catch (error) {
-    console.error("[Cache] ❌ Error batch fetching AI insights from cache:", error);
+    console.error("[CacheAI] ❌ Error batch fetching AI insights from cache:", error);
     return results;
   }
 }

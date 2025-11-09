@@ -17,6 +17,7 @@ export default function ReportIssueForm({
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [issueType, setIssueType] = useState<"wrong-location" | "incorrect-info" | "inappropriate-content" | "other">("incorrect-info");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,13 +25,14 @@ export default function ReportIssueForm({
 
     const formData = new FormData(event.currentTarget);
     const description = formData.get("description") as string;
-    const contact = formData.get("contact") as string;
+    const userEmail = formData.get("userEmail") as string;
 
     try {
       await reportIssue({
         playgroundId,
+        issueType,
         description,
-        contact: contact || null,
+        userEmail: userEmail || null,
       });
       setIsSuccess(true);
       setTimeout(() => {
@@ -67,6 +69,25 @@ export default function ReportIssueForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label
+              htmlFor="issueType"
+              className="text-amber-800 dark:text-amber-400"
+            >
+              Issue Type
+            </Label>
+            <select
+              id="issueType"
+              value={issueType}
+              onChange={(e) => setIssueType(e.target.value as typeof issueType)}
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              <option value="incorrect-info">Incorrect Information</option>
+              <option value="wrong-location">Wrong Location</option>
+              <option value="inappropriate-content">Inappropriate Content</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <Label
               htmlFor="description"
               className="text-amber-800 dark:text-amber-400"
             >
@@ -83,16 +104,16 @@ export default function ReportIssueForm({
           </div>
           <div>
             <Label
-              htmlFor="contact"
+              htmlFor="userEmail"
               className="text-amber-800 dark:text-amber-400"
             >
-              Contact (optional)
+              Email (optional)
             </Label>
             <Input
-              id="contact"
-              name="contact"
-              type="text"
-              placeholder="Email or phone number"
+              id="userEmail"
+              name="userEmail"
+              type="email"
+              placeholder="your@email.com"
               className="mt-1 w-full bg-white dark:bg-zinc-900"
             />
           </div>

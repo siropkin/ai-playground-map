@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { useTheme } from "next-themes";
 import { MapPin } from "lucide-react";
@@ -21,7 +27,9 @@ import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 // Safely set Mapbox access token with proper error handling
 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 if (!mapboxToken) {
-  console.error("[MapView] ❌ Mapbox Access Token is not set. Map will not function.");
+  console.error(
+    "[MapView] ❌ Mapbox Access Token is not set. Map will not function.",
+  );
 }
 mapboxgl.accessToken = mapboxToken || "";
 
@@ -82,7 +90,10 @@ const getMapBounds = (map: mapboxgl.Map | null): MapBounds => {
 
 const createGeoJson = (
   playgrounds: Playground[],
-): FeatureCollection<Point, { id: number; name: string; tier: string | null }> => {
+): FeatureCollection<
+  Point,
+  { id: number; name: string; tier: string | null }
+> => {
   return {
     type: "FeatureCollection",
     features: playgrounds.map((playground) => ({
@@ -95,7 +106,9 @@ const createGeoJson = (
         id: playground.osmId,
         type: (playground.osmType || "").toString(),
         name: playground.enriched ? playground.name || UNNAMED_PLAYGROUND : "",
-        tier: playground.enriched ? (playground.tier || "neighborhood") : "neighborhood",
+        tier: playground.enriched
+          ? playground.tier || "neighborhood"
+          : "neighborhood",
       },
     })),
   };
@@ -105,8 +118,18 @@ const createGeoJson = (
 export const MapView = React.memo(function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading, selectPlayground, enrichPlayground, selectedPlayground, clearSelectedPlayground, requestFlyTo } =
-    usePlaygrounds();
+  const {
+    playgrounds,
+    flyToCoords,
+    clearFlyToRequest,
+    loading,
+    selectPlayground,
+    enrichPlayground,
+    selectedPlayground,
+    clearSelectedPlayground,
+    requestFlyTo,
+    loadImagesForPlayground,
+  } = usePlaygrounds();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -226,29 +249,37 @@ export const MapView = React.memo(function MapView() {
             "circle-color": [
               "match",
               ["get", "tier"],
-              "star", "#f59e0b", // Amber-500 for Star
-              "gem", "#a855f7", // Purple-500 for Gem
+              "star",
+              "#f59e0b", // Amber-500 for Star
+              "gem",
+              "#a855f7", // Purple-500 for Gem
               mapColors.point, // Default for neighborhood
             ],
             "circle-radius": [
               "match",
               ["get", "tier"],
-              "star", 12, // Larger for Star
-              "gem", 10, // Slightly larger for Gem
+              "star",
+              12, // Larger for Star
+              "gem",
+              10, // Slightly larger for Gem
               9, // Default for neighborhood
             ],
             "circle-stroke-width": [
               "match",
               ["get", "tier"],
-              "star", 2, // Thicker stroke for Star
-              "gem", 2, // Thicker stroke for Gem
+              "star",
+              2, // Thicker stroke for Star
+              "gem",
+              2, // Thicker stroke for Gem
               1, // Default for neighborhood
             ],
             "circle-stroke-color": [
               "match",
               ["get", "tier"],
-              "star", "#fbbf24", // Amber-400 for Star stroke
-              "gem", "#c084fc", // Purple-400 for Gem stroke
+              "star",
+              "#fbbf24", // Amber-400 for Star stroke
+              "gem",
+              "#c084fc", // Purple-400 for Gem stroke
               mapColors.pointStroke, // Default for neighborhood
             ],
           },
@@ -386,11 +417,14 @@ export const MapView = React.memo(function MapView() {
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
-          (p) => p.osmId === feature.properties!.id
+          (p) => p.osmId === feature.properties!.id,
         );
         if (playground) {
           // Toggle behavior: if clicking the same playground, close it
-          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
+          if (
+            selectedPlayground &&
+            selectedPlayground.osmId === playground.osmId
+          ) {
             if (popupRef.current) {
               popupRef.current.remove();
               if (popupRootRef.current) {
@@ -434,11 +468,14 @@ export const MapView = React.memo(function MapView() {
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
-          (p) => p.osmId === feature.properties!.id
+          (p) => p.osmId === feature.properties!.id,
         );
         if (playground) {
           // Toggle behavior: if clicking the same playground, close it
-          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
+          if (
+            selectedPlayground &&
+            selectedPlayground.osmId === playground.osmId
+          ) {
             if (popupRef.current) {
               popupRef.current.remove();
               if (popupRootRef.current) {
@@ -572,7 +609,14 @@ export const MapView = React.memo(function MapView() {
         map.current.getCanvas().style.cursor = "";
       }
     };
-  }, [isMapLoaded, playgrounds, selectPlayground, enrichPlayground, selectedPlayground, clearSelectedPlayground]);
+  }, [
+    isMapLoaded,
+    playgrounds,
+    selectPlayground,
+    enrichPlayground,
+    selectedPlayground,
+    clearSelectedPlayground,
+  ]);
 
   useEffect(() => {
     if (map.current) {
@@ -616,7 +660,9 @@ export const MapView = React.memo(function MapView() {
     // Create popup if playground selected
     if (selectedPlayground) {
       // Get the latest playground data from the array (in case it was enriched)
-      const currentPlayground = playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground;
+      const currentPlayground =
+        playgrounds.find((p) => p.osmId === selectedPlayground.osmId) ||
+        selectedPlayground;
 
       const popupNode = document.createElement("div");
 
@@ -626,7 +672,7 @@ export const MapView = React.memo(function MapView() {
         closeOnClick: false,
         maxWidth: "400px",
         className: "playground-popup",
-        anchor: 'left', // Position popup to the right of marker to avoid sidebar
+        anchor: "left", // Position popup to the right of marker to avoid sidebar
         offset: 25, // Offset to the right from marker
       })
         .setLngLat([currentPlayground.lon, currentPlayground.lat])
@@ -643,20 +689,24 @@ export const MapView = React.memo(function MapView() {
       root.render(
         <div className="flex flex-col">
           {/* Header with title and space for close button */}
-          <div className="flex items-center justify-between gap-3 px-3 pb-0 pt-3 sm:pb-3">
-            <div className="flex flex-1 items-center gap-2 min-w-0">
-              <h3 className="text-base font-semibold truncate max-w-[280px]">
+          <div className="flex items-center justify-between gap-3 px-3 pt-3 pb-0 sm:pb-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <h3 className="max-w-[280px] truncate text-base font-semibold">
                 {currentPlayground.name || UNNAMED_PLAYGROUND}
               </h3>
               {currentPlayground.enriched && currentPlayground.tier && (
-                <TierBadge tier={currentPlayground.tier} size="sm" className="flex-shrink-0" />
+                <TierBadge
+                  tier={currentPlayground.tier}
+                  size="sm"
+                  className="flex-shrink-0"
+                />
               )}
             </div>
             {/* Space reserved for Mapbox close button */}
-            <div className="w-6 h-6 flex-shrink-0" />
+            <div className="h-6 w-6 flex-shrink-0" />
           </div>
           {/* Content */}
-          <div className="px-2 pb-2 pt-2 sm:pt-0">
+          <div className="px-2 pt-2 pb-2 sm:pt-0">
             <PlaygroundPreview
               playground={currentPlayground}
               onViewDetails={clearSelectedPlayground}
@@ -669,7 +719,7 @@ export const MapView = React.memo(function MapView() {
               hideBottomIndicators
             />
           </div>
-        </div>
+        </div>,
       );
 
       popupRef.current = popup;
@@ -687,33 +737,50 @@ export const MapView = React.memo(function MapView() {
         setTimeout(() => rootToUnmount.unmount(), 0);
       }
     };
-  }, [selectedPlayground, isMapLoaded, clearSelectedPlayground, requestFlyTo, playgrounds]);
+  }, [
+    selectedPlayground,
+    isMapLoaded,
+    clearSelectedPlayground,
+    requestFlyTo,
+    playgrounds,
+  ]);
 
   // Update popup content when playground data changes (without recreating popup)
   useEffect(() => {
     if (!popupRootRef.current || !selectedPlayground) return;
 
     // Get the latest playground data
-    const currentPlayground = playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground;
+    const currentPlayground =
+      playgrounds.find((p) => p.osmId === selectedPlayground.osmId) ||
+      selectedPlayground;
+
+    // Lazy-load images when popup is visible on desktop and playground is enriched
+    if (currentPlayground.enriched && !currentPlayground.images) {
+      loadImagesForPlayground(currentPlayground.osmId);
+    }
 
     // Re-render the popup content with updated data
     popupRootRef.current.render(
       <div className="flex flex-col">
         {/* Header with title and space for close button */}
-        <div className="flex items-center justify-between gap-3 px-3 pb-0 pt-3 sm:pb-3">
-          <div className="flex flex-1 items-center gap-2 min-w-0">
-            <h3 className="text-base font-semibold truncate max-w-[280px]">
+        <div className="flex items-center justify-between gap-3 px-3 pt-3 pb-0 sm:pb-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <h3 className="max-w-[280px] truncate text-base font-semibold">
               {currentPlayground.name || UNNAMED_PLAYGROUND}
             </h3>
             {currentPlayground.enriched && currentPlayground.tier && (
-              <TierBadge tier={currentPlayground.tier} size="sm" className="flex-shrink-0" />
+              <TierBadge
+                tier={currentPlayground.tier}
+                size="sm"
+                className="flex-shrink-0"
+              />
             )}
           </div>
           {/* Space reserved for Mapbox close button */}
-          <div className="w-6 h-6 flex-shrink-0" />
+          <div className="h-6 w-6 flex-shrink-0" />
         </div>
         {/* Content */}
-        <div className="px-2 pb-2 pt-2 sm:pt-0">
+        <div className="px-2 pt-2 pb-2 sm:pt-0">
           <PlaygroundPreview
             playground={currentPlayground}
             onViewDetails={clearSelectedPlayground}
@@ -726,9 +793,15 @@ export const MapView = React.memo(function MapView() {
             hideBottomIndicators
           />
         </div>
-      </div>
+      </div>,
     );
-  }, [playgrounds, selectedPlayground, clearSelectedPlayground, requestFlyTo]);
+  }, [
+    playgrounds,
+    selectedPlayground,
+    clearSelectedPlayground,
+    requestFlyTo,
+    loadImagesForPlayground,
+  ]);
 
   useEffect(() => {
     return () => {
