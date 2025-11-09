@@ -24,6 +24,35 @@ import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
+// Validate accessibility data structure to reject old/malformed cache data
+function validateAccessibility(accessibility: any): Playground["accessibility"] {
+  if (!accessibility || typeof accessibility !== "object") {
+    return null;
+  }
+
+  // Check for old format (string values instead of structured data)
+  // Old format had fields like "wheelchair_access" (string) instead of "wheelchair_accessible" (boolean)
+  if (
+    typeof accessibility.wheelchair_accessible === "string" ||
+    typeof accessibility.wheelchair_access !== "undefined" ||
+    typeof accessibility.ground_level_activities === "string" ||
+    typeof accessibility.transfer_stations === "string" ||
+    typeof accessibility.sensory_friendly === "string" ||
+    typeof accessibility.accessible_parking === "string" ||
+    typeof accessibility.accessible_restrooms === "string"
+  ) {
+    console.warn("[PlaygroundsContext] Rejecting malformed accessibility data (old schema)");
+    return null;
+  }
+
+  // Validate structure matches expected schema
+  if (typeof accessibility.wheelchair_accessible !== "boolean") {
+    return null;
+  }
+
+  return accessibility;
+}
+
 interface PlaygroundsContextType {
   playgrounds: Playground[];
   loading: boolean;
@@ -83,14 +112,14 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 // Merge: use fresh OSM data but preserve AI-enriched fields
                 return {
                   ...newPlayground, // Fresh OSM data (coordinates, address, tags)
-                  // Preserve AI-enriched fields
+                  // Preserve AI-enriched fields (validate accessibility to reject old schema)
                   name: existingEnriched.name,
                   description: existingEnriched.description,
                   features: existingEnriched.features,
                   parking: existingEnriched.parking,
                   sources: existingEnriched.sources,
                   images: existingEnriched.images,
-                  accessibility: existingEnriched.accessibility,
+                  accessibility: validateAccessibility(existingEnriched.accessibility),
                   tier: existingEnriched.tier,
                   tierScore: existingEnriched.tierScore,
                   enriched: true,
@@ -204,7 +233,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   parking: insight?.parking || p.parking,
                   sources: insight?.sources || p.sources,
                   images: insight?.images || p.images,
-                  accessibility: insight?.accessibility || p.accessibility,
+                  accessibility: validateAccessibility(insight?.accessibility) || p.accessibility,
                   tier: tierResult.tier,
                   tierScore: tierResult.score,
                   enriched: true,
@@ -260,7 +289,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               parking: result.insights?.parking || p.parking,
               sources: result.insights?.sources || p.sources,
               images: result.insights?.images || p.images,
-              accessibility: result.insights?.accessibility || p.accessibility,
+              accessibility: validateAccessibility(result.insights?.accessibility) || p.accessibility,
               tier: tierResult.tier,
               tierScore: tierResult.score,
               enriched: true, // Always mark as enriched, even if insights is null
