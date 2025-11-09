@@ -10,7 +10,7 @@ import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
 // Cache version - increment this to invalidate all cached data when schema changes
-const CACHE_VERSION = "v7"; // v7: Simplified accessibility schema from complex nested object to simple array of strings (like features)
+const CACHE_VERSION = "v8"; // v8: Simplified accessibility schema from complex nested object to simple array of strings (like features)
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -292,10 +292,6 @@ export async function fetchPerplexityInsights({
         ? `${location.region}, ${location.country}`
         : location.country;
 
-  const locationContext = location.city || location.region
-    ? ` in ${cityState}`
-    : ` at coordinates ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)} in ${location.country}`;
-
   // Structured output schema for playground data with confidence tracking
   const playgroundSchema = {
     type: "object",
@@ -345,71 +341,36 @@ export async function fetchPerplexityInsights({
   // Enhanced prompt with explicit geographic constraints
   // Include OSM name as a hint to help AI identify the correct playground
   const osmNameHint = name ? ` The local mapping data suggests this may be called "${name}".` : '';
-  const prompt = `Find detailed information about a children's playground${locationContext}.${osmNameHint}
+  const prompt = `Provide detailed information about the children's playground at coordinates ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} in ${cityState}.${osmNameHint}
 
-GEOGRAPHIC SEARCH AREA:
-- Target coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} in ${cityState}
-- Find the playground that is CLOSEST to these exact coordinates
-- Search radius: within 0.15 miles (250 meters) maximum
-- The playground may be inside a larger facility (e.g., recreation center, community center, park, school)
+LOCATION CONTEXT:
+Target: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} in ${cityState}
+Search radius: 0.15 miles (250 meters) maximum
+The playground may be inside a larger facility (park, recreation center, school)
 
-CRITICAL LOCATION MATCHING RULES:
-- Your goal is to identify the SPECIFIC playground at or nearest to the target coordinates
-- If a name was suggested, prioritize playgrounds with similar names in the target area
-- However, the playground's official name may differ from the suggested name - use the name you find in sources
-- If multiple playgrounds exist in the search area, choose the one CLOSEST to the target coordinates
-- Most sources don't provide exact GPS coordinates, so use addresses, neighborhood descriptions, and facility names to identify the closest match
-- DO NOT return a well-known playground from across the neighborhood if there's likely a different playground closer to the coordinates
-- If you cannot confidently identify which playground is at the target coordinates, return null rather than guessing
-- DO NOT return results from different cities, states, or countries
-- If sources mention a different city/state than ${cityState}, return null for all fields
+REQUIREMENTS - Return null for all fields if:
+- You cannot confidently identify a playground at or near these coordinates
+- Sources mention a different city/state than ${cityState}
+- Multiple playgrounds exist and you're uncertain which is closest to the target coordinates
+- The suggested name (if provided) doesn't match any playground in the area and you can't verify the correct one
 
-DATA REQUIREMENTS:
-1. Find the playground's official name or facility name
-2. Describe equipment, age range, safety features, and atmosphere (2-3 sentences)
-3. List specific equipment using OpenStreetMap playground tags (slide, swing, climbing_frame, sandpit, seesaw, etc.)
-4. Describe parking availability
-5. ACCESSIBILITY FEATURES - List any mentioned in sources (even if only one or two):
-   - Examples: wheelchair_accessible, accessible_surface, ramps, transfer_stations, ground_level_play, accessible_swings, sensory_play, tactile_elements, shade_structures, accessible_parking, accessible_restrooms, adult_changing_table, wide_pathways, handrails, quiet_areas
-   - Include whatever accessibility info you find - partial information is valuable!
-   - If sources mention "ADA compliant" or "wheelchair accessible" add those features
-   - If no accessibility info found in sources, use null (don't guess)
+DATA TO PROVIDE:
+1. Official name (use the name found in sources; it may differ from the suggested name)
+2. Description (2-3 sentences: equipment types, age suitability, safety features, atmosphere)
+3. Equipment list (use OpenStreetMap tags: slide, swing, climbing_frame, sandpit, seesaw - see wiki.openstreetmap.org/wiki/Key:playground)
+4. Parking (brief description: 'Street parking available', 'Dedicated lot at entrance', etc.)
+5. Accessibility features (list any mentioned: wheelchair_accessible, accessible_surface, ramps, transfer_stations, ground_level_play, accessible_swings, sensory_play, shade_structures, accessible_parking, accessible_restrooms, wide_pathways, handrails, quiet_areas - include partial info if available; use null if none found)
 
-IMAGE REQUIREMENTS (STRICT - CRITICAL FOR QUALITY):
-ONLY return images that show:
-- Actual playground equipment in use (slides, swings, climbing structures, playsets)
-- Children actively playing on playground equipment
-- Wide shots of playground areas with clearly visible play equipment
-- Close-ups of play structures, slides, or swings
-- Photos clearly taken at an outdoor children's playground
+IMAGES:
+Include photos showing playground equipment, play structures, or children actively playing. Focus on photos clearly taken at outdoor children's playgrounds with visible equipment. Avoid signs, parking lots, maps, or building exteriors without equipment.
 
-DO NOT return images of:
-- Parking lots, parking signs, street signs, or traffic signs
-- Building exteriors without visible playground equipment
-- Maps, diagrams, floor plans, or location screenshots
-- User interface elements, app screenshots, or website graphics
-- Stock photos with watermarks or copyright text
-- Informational signs, rules signs, warning signs, or text placards
-- Just grass, trees, or open space without equipment visible
-- Group photos or events where equipment isn't the focus
-- Indoor facilities or gyms (unless specifically indoor playground equipment)
+LOCATION CONFIDENCE SCORING:
+- high: Sources explicitly confirm the playground is in ${cityState} at the target location
+- medium: Playground appears to be in the target area but exact location confirmation is limited
+- low: Uncertain or sources mention different city/state (return null for all data fields)
 
-VALIDATION: Before including an image, verify:
-1. It shows actual children's recreational equipment
-2. The equipment appears to be located at the correct geographic location (${cityState})
-3. The image source/URL doesn't contain keywords like: sign, parking, screenshot, logo, icon, map
-
-FORMATTING:
-- Do NOT include citation markers, footnotes, or reference numbers (like [1], [2], [3]) in any field
-- Provide clean, readable text without source indicators
-- Sources will be tracked separately
-
-CONFIDENCE ASSESSMENT:
-- Return results if you find a playground in ${cityState} that appears to be in the target neighborhood
-- Set location_confidence to "medium" if sources describe the playground but don't provide exact coordinates
-- Set location_confidence to "high" if sources explicitly confirm the location
-- Set location_confidence to "low" (and return null for data fields) ONLY if sources mention a different city/state
-- It's acceptable to return data with "medium" confidence - approximate location matches are valid`;
+LOCATION VERIFICATION:
+Explain why you believe this is the correct playground: 1) Confirm it's in ${cityState}, 2) Evidence it's closest to target coordinates (address, neighborhood, landmarks), 3) If multiple playgrounds exist nearby, why you chose this one.`;
 
   // Phase 4: Apply enrichment strategy based on priority
   const enrichmentStrategy = getEnrichmentStrategy({
