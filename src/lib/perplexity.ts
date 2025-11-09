@@ -10,7 +10,7 @@ import { scoreResult, getScoreSummary } from "@/lib/validators/result-scorer";
 import { EnrichmentPriority, getEnrichmentStrategy } from "@/lib/enrichment-priority";
 
 // Cache version - increment this to invalidate all cached data when schema changes
-const CACHE_VERSION = "v4"; // v4: Relaxed geographic constraints (0.25mi radius, accept medium confidence)
+const CACHE_VERSION = "v5"; // v5: Fixed duplicate names by emphasizing CLOSEST playground to coordinates (0.15mi radius)
 
 // Helper function to remove citation markers from text
 function removeCitationMarkers(text: string | null): string | null {
@@ -309,7 +309,7 @@ export async function fetchPerplexityInsights({
       location_verification: {
         type: ["string", "null"],
         description:
-          `Quote from sources that confirms this playground is in ${cityState}. Must mention the city/state name. Use null if no explicit confirmation found.`,
+          `Explain why you believe this is the playground at the target coordinates (${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}). Include: 1) Confirmation this playground is in ${cityState}, 2) Evidence it's the closest playground to the target coordinates (address, neighborhood, landmarks), 3) Why you chose this playground over others in the area if multiple exist. Use null if no confirmation found.`,
       },
       name: {
         type: ["string", "null"],
@@ -397,19 +397,19 @@ export async function fetchPerplexityInsights({
   const prompt = `Find detailed information about a children's playground${locationContext}.
 
 GEOGRAPHIC SEARCH AREA:
-- Search within ${location.city || 'the specified location'}, ${location.region || location.country}
-- Target coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}
-- Search radius: within 0.25 miles (400 meters) of the target coordinates
-- Focus on playgrounds in the immediate neighborhood of these coordinates
+- Target coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} in ${cityState}
+- Find the playground that is CLOSEST to these exact coordinates
+- Search radius: within 0.15 miles (250 meters) maximum
 - The playground may be inside a larger facility (e.g., recreation center, community center, park, school)
 
-IMPORTANT LOCATION GUIDELINES:
-- Most online sources do NOT provide exact GPS coordinates for playgrounds
-- Accept playgrounds if they are in the same neighborhood/area as the target coordinates
-- If sources describe a playground in ${location.city || 'the target city'} near the target coordinates, that's sufficient
+CRITICAL LOCATION MATCHING RULES:
+- Your goal is to identify the SPECIFIC playground at or nearest to the target coordinates
+- If multiple playgrounds exist in the search area, choose the one CLOSEST to the target coordinates
+- Most sources don't provide exact GPS coordinates, so use addresses, neighborhood descriptions, and facility names to identify the closest match
+- DO NOT return a well-known playground from across the neighborhood if there's likely a different playground closer to the coordinates
+- If you cannot determine which playground is at the target coordinates, return null rather than guessing
 - DO NOT return results from different cities, states, or countries
 - If sources mention a different city/state than ${cityState}, return null for all fields
-- If you find a playground in ${cityState} that appears to be in the target area, return the data even if exact coordinates aren't confirmed
 
 DATA REQUIREMENTS:
 1. Find the playground's official name or facility name
