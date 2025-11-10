@@ -146,6 +146,8 @@ export const MapView = React.memo(function MapView() {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [geolocationStatus, setGeolocationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
+  const geolocationStatusRef = useRef<'pending' | 'granted' | 'denied'>('pending'); // Sync ref for moveend handler
   const userLocationMarker = useRef<mapboxgl.Marker | null>(null);
   const userAccuracyCircle = useRef<string | null>(null);
   const hasAutocentered = useRef<boolean>(false);
@@ -229,25 +231,89 @@ export const MapView = React.memo(function MapView() {
 
   // Request geolocation on mount (runs once)
   useEffect(() => {
+    // If URL params exist, user has already chosen a location
+    if (mapBounds) {
+      console.log("[MapView] 🔗 URL params exist, skipping geolocation");
+      setGeolocationStatus('denied'); // Consider it as resolved
+      geolocationStatusRef.current = 'denied';
+      return;
+    }
+
+    console.log("[MapView] 📍 Starting geolocation check...");
     if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
+      // Use watchPosition to continuously listen for location updates
+      const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setUserLocation([longitude, latitude]);
           console.log("[MapView] ✓ User location detected:", latitude, longitude);
+
+          setUserLocation([longitude, latitude]);
+
+          // If map is already initialized, fly to user location
+          if (map.current) {
+            console.log("[MapView] 🚁 Flying to user location");
+            const [lng, lat] = [longitude, latitude];
+            const latOffset = 0.01;
+            const lonOffset = 0.01;
+
+            // Set status BEFORE flying so moveend event can update bounds
+            setGeolocationStatus('granted');
+            geolocationStatusRef.current = 'granted';
+
+            map.current.fitBounds(
+              [
+                [lng - lonOffset, lat - latOffset],
+                [lng + lonOffset, lat + latOffset],
+              ],
+              { duration: 1500 },
+            );
+          } else {
+            // Map not ready yet, just update status
+            setGeolocationStatus('granted');
+            geolocationStatusRef.current = 'granted';
+          }
         },
         (error) => {
-          console.log("[MapView] ℹ️ Geolocation not available or denied:", error.message);
-          // Don't show error - just gracefully fall back to default location
+          console.log("[MapView] ℹ️ Geolocation denied or error:", error.message);
+
+          // If map is already initialized, fly to DC
+          if (map.current) {
+            console.log("[MapView] 🚁 Flying to default location (DC)");
+
+            // Set status BEFORE flying so moveend event can update bounds
+            setGeolocationStatus('denied');
+            geolocationStatusRef.current = 'denied';
+
+            map.current.fitBounds(
+              [
+                [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
+                [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
+              ],
+              { duration: 1500 },
+            );
+          } else {
+            // Map not ready yet, just update status
+            setGeolocationStatus('denied');
+            geolocationStatusRef.current = 'denied';
+          }
         },
         {
           enableHighAccuracy: false,
-          timeout: 5000,
-          maximumAge: 60000 // Cache for 1 minute
+          timeout: 10000,
+          maximumAge: 60000
         }
       );
+
+      // Cleanup: stop watching when component unmounts
+      return () => {
+        navigator.geolocation.clearWatch(watchId);
+      };
+    } else {
+      console.log("[MapView] ℹ️ Geolocation not supported");
+      setGeolocationStatus('denied');
+      geolocationStatusRef.current = 'denied';
     }
-  }, []); // Run once on mount
+  }, [mapBounds]);
 
   const handleNearMeClick = useCallback(() => {
     if (!navigator.geolocation) {
@@ -507,15 +573,19 @@ export const MapView = React.memo(function MapView() {
       return;
     }
 
+    console.log("[MapView] 🗺️ Initializing map");
+
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer,
         style: getMapStyle(theme),
+        center: [0, 20], // Center on world
+        zoom: 1.5, // Zoomed out world view
       });
 
       if (mapBounds) {
-        // URL params present - use them and skip auto-centering
-        console.log("[MapView] ℹ️ Initializing with URL params:", mapBounds);
+        // URL params present - use them immediately
+        console.log("[MapView] ℹ️ Restoring from URL params:", mapBounds);
         map.current.fitBounds(
           [
             [mapBounds.west, mapBounds.south],
@@ -523,32 +593,22 @@ export const MapView = React.memo(function MapView() {
           ],
           { animate: false },
         );
-        hasAutocentered.current = true; // Mark as autocentered to prevent future attempts
-      } else if (userLocation) {
-        // If we have user location but no saved bounds, center on user
-        console.log("[MapView] ℹ️ Initializing with user location:", userLocation);
-        map.current.setCenter(userLocation);
-        map.current.setZoom(14);
-        hasAutocentered.current = true; // Mark as autocentered since we used it in init
-      } else {
-        // Default to DC area
-        console.log("[MapView] ℹ️ Initializing with default bounds (DC area)");
-        map.current.fitBounds(
-          [
-            [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
-            [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
-          ],
-          { animate: false },
-        );
       }
 
       map.current.on("load", () => {
-        setMapBounds(getMapBounds(map.current));
         setIsMapLoaded(true);
+        // Only set map bounds if we have URL params (don't save world view)
+        if (mapBounds) {
+          setMapBounds(getMapBounds(map.current));
+        }
       });
 
+      // Only update URL when geolocation is resolved (not pending)
       map.current.on("moveend", () => {
-        setMapBounds(getMapBounds(map.current));
+        console.log("[MapView] 📍 moveend - status:", geolocationStatusRef.current);
+        if (geolocationStatusRef.current !== 'pending') {
+          setMapBounds(getMapBounds(map.current));
+        }
       });
     } catch (error) {
       setError(
@@ -556,7 +616,7 @@ export const MapView = React.memo(function MapView() {
       );
       console.error("[MapView] ❌ Error initializing map:", error);
     }
-  }, [mapContainer, theme, mapBounds, setMapBounds, userLocation]);
+  }, [mapContainer, theme, mapBounds, setMapBounds, geolocationStatus]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {
@@ -887,7 +947,7 @@ export const MapView = React.memo(function MapView() {
           <span className="hidden md:block">Near me</span>
         </Button>
       </div>
-      {loading && (
+      {loading && geolocationStatus !== 'pending' && (
         <div className="text-muted-foreground bg-background/90 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2.5 py-1.5 text-xs backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Spinner className="size-3" />
