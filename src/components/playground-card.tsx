@@ -451,25 +451,31 @@ export function PlaygroundCard({
         {/* Features */}
         {!playground.enriched ? (
           <Skeleton className="h-20 w-full" />
-        ) : filteredFeatures.length > 0 ? (
+        ) : (
           <div className="bg-muted/50 flex items-start gap-2 rounded-lg p-3">
             <Shapes className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Features</p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {filteredFeatures.map((value, i) => (
-                  <Badge
-                    className="max-w-[calc(100%-0.25rem)] truncate text-xs sm:max-w-full"
-                    variant="outline"
-                    key={i}
-                  >
-                    <span className="truncate">{formatEnumString(value)}</span>
-                  </Badge>
-                ))}
-              </div>
+              {filteredFeatures.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {filteredFeatures.map((value, i) => (
+                    <Badge
+                      className="max-w-[calc(100%-0.25rem)] truncate text-xs sm:max-w-full"
+                      variant="outline"
+                      key={i}
+                    >
+                      <span className="truncate">{formatEnumString(value)}</span>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground mt-1 text-sm italic">
+                  No features information available
+                </p>
+              )}
             </div>
           </div>
-        ) : null}
+        )}
 
         {/* Accessibility Info */}
         {!playground.enriched ? (
