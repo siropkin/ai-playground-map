@@ -24,7 +24,7 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        current: "#000000", // Black for current playground (matches main map)
+        current: "#6b7280", // Gray-500 for current playground (matches main map)
         currentStroke: "#FFFFFF",
         currentHalo: "#FFFFFF",
         nearby: "#94a3b8", // Gray for nearby playgrounds
@@ -32,8 +32,8 @@ const getMapColors = (theme: string | undefined) => {
         nearbyHalo: "#FFFFFF",
       }
     : {
-        current: "#FFFFFF", // White for current playground in dark mode
-        currentStroke: "#000000",
+        current: "#9ca3af", // Gray-400 for current playground in dark mode (matches main map)
+        currentStroke: "#374151", // Gray-700 for stroke
         currentHalo: "#000000",
         nearby: "#64748b",
         nearbyStroke: "#000000",

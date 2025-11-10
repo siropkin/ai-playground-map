@@ -19,6 +19,7 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { MapLegend } from "@/components/map-legend";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 // Safely set Mapbox access token with proper error handling
@@ -51,17 +52,17 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        point: "#000000",
+        point: "#6b7280", // Gray-500 for neighborhood tier
         pointStroke: "#FFFFFF",
-        label: "#000000",
+        label: "#374151", // Gray-700 for better readability
         clusterBg: "#000000",
         clusterText: "#FFFFFF",
         labelHalo: "#FFFFFF",
       }
     : {
-        point: "#FFFFFF",
-        pointStroke: "#000000",
-        label: "#FFFFFF",
+        point: "#9ca3af", // Gray-400 for neighborhood tier
+        pointStroke: "#374151", // Gray-700 for stroke
+        label: "#d1d5db", // Gray-300 for better readability
         clusterBg: "#FFFFFF",
         clusterText: "#000000",
         labelHalo: "#000000",
@@ -790,6 +791,7 @@ export const MapView = React.memo(function MapView() {
         ref={setMapContainer}
         className="absolute top-0 left-0 h-full w-full"
       />
+      <MapLegend />
       <div className="absolute right-4 bottom-10 z-1 flex md:right-4 md:bottom-8">
         <Button
           variant="outline"
