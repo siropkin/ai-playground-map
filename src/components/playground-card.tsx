@@ -171,48 +171,36 @@ export function PlaygroundCard({
               </div>
             )}
           </div>
-
-          {/* Tier Badge - Top Right */}
-          {playground.enriched && !hideTierBadge && playground.tier && (
-            <div className="absolute top-2 right-2">
-              <TierBadge tier={playground.tier} variant="compact" />
-            </div>
-          )}
-
-          {/* Info Indicators - Bottom Left */}
-          {playground.enriched &&
-            !hideInfoIndicators &&
-            (playground.parking || filteredAccessibility.length > 0) && (
-              <div className="absolute bottom-2 left-2 flex gap-1.5">
-                {playground.parking && (
-                  <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                    <ParkingCircle className="text-muted-foreground h-3.5 w-3.5" />
-                  </div>
-                )}
-                {filteredAccessibility.length > 0 && (
-                  <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                    <Accessibility className="text-muted-foreground h-3.5 w-3.5" />
-                  </div>
-                )}
-              </div>
-            )}
         </CardHeader>
 
         {/* Content Section - 2/3 width */}
         <CardContent className="flex w-2/3 flex-col gap-2 p-4">
           <div className="flex flex-1 flex-col gap-2">
-            {/* Title */}
+            {/* Title with tier and info indicators */}
             {!playground.enriched ? (
               <Skeleton className="h-4 w-full" />
             ) : (
-              <h3 className="truncate font-semibold">{name}</h3>
+              <div className="flex items-start gap-2">
+                <h3 className="truncate font-semibold flex-1">{name}</h3>
+                {playground.tier && playground.tier !== "neighborhood" && (
+                  <span className="flex-shrink-0 text-base leading-5">
+                    {playground.tier === "star" ? "⭐" : "💎"}
+                  </span>
+                )}
+                {playground.parking && (
+                  <ParkingCircle className="text-muted-foreground h-4 w-4 flex-shrink-0 mt-0.5" />
+                )}
+                {filteredAccessibility.length > 0 && (
+                  <Accessibility className="text-muted-foreground h-4 w-4 flex-shrink-0 mt-0.5" />
+                )}
+              </div>
             )}
 
-            {/* Description - 3 lines max */}
+            {/* Description - more lines when no features */}
             {!playground.enriched ? (
-              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-16 w-full" />
             ) : playground.description ? (
-              <p className="text-muted-foreground line-clamp-3 text-xs">
+              <p className={`text-muted-foreground text-xs ${filteredFeatures.length > 0 ? "line-clamp-5" : "line-clamp-[9]"}`}>
                 {playground.description}
               </p>
             ) : (
@@ -253,26 +241,6 @@ export function PlaygroundCard({
               </div>
             ) : null}
           </div>
-
-          {/* View Details Button */}
-          {playground.enriched && onViewDetails && (
-            <div className="pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewDetails();
-                }}
-              >
-                <span className="flex items-center justify-center">
-                  View Details
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </span>
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
     );
@@ -583,25 +551,15 @@ export function PlaygroundCard({
 
         {/* CTA Buttons (preview only - not detailed) */}
         {!isDetailed && (
-          <div className="mt-auto flex gap-2 border-t pt-3">
+          <div className="mt-auto border-t pt-3">
             <Button
               variant="default"
-              className="flex-1 gap-2"
+              className="w-full gap-2"
               onClick={handleDirections}
             >
               <Navigation className="h-4 w-4" />
               Get Directions
             </Button>
-            {onViewDetails && playground.enriched && (
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={onViewDetails}
-              >
-                View Details
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
           </div>
         )}
       </div>
