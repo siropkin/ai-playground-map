@@ -273,7 +273,7 @@ export function PlaygroundCard({
   const isDetailed = variant === "detailed";
 
   return (
-    <div className={`flex h-full flex-col gap-3 ${className}`}>
+    <div className={`flex ${isDetailed ? "" : "h-full"} flex-col gap-3 ${className}`}>
       {/* Back Button (detailed only) */}
       {isDetailed && onBack && (
         <Button
@@ -348,7 +348,7 @@ export function PlaygroundCard({
       </div>
 
       {/* Content Section */}
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
+      <div className={`flex ${isDetailed ? "" : "flex-1"} flex-col gap-3 ${isDetailed ? "" : "overflow-y-auto"}`}>
         {/* Title + Quick Actions */}
         {!hideTitle && (
           <div className="flex items-start justify-between gap-2">
