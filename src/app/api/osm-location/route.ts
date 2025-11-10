@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PerplexityLocation } from "@/types/perplexity";
+import { AILocation } from "@/types/ai-insights";
 
 /**
  * API endpoint to get structured location data from coordinates using Nominatim reverse geocoding
@@ -8,7 +8,7 @@ export async function POST(
   request: NextRequest,
 ): Promise<
   | NextResponse<{ error: string }>
-  | NextResponse<{ location: PerplexityLocation }>
+  | NextResponse<{ location: AILocation }>
 > {
   const signal = request.signal;
 
@@ -55,7 +55,7 @@ export async function POST(
     }
 
     // Build location object from Nominatim response
-    const location: PerplexityLocation = {
+    const location: AILocation = {
       latitude: lat,
       longitude: lon,
       city: data.address?.city || data.address?.town || data.address?.village,
@@ -69,7 +69,7 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error fetching location data:", error);
+    console.error("[API /osm-location] ❌ Error fetching location data:", error);
     return NextResponse.json(
       { error: "Failed to fetch location data" },
       { status: 500 },

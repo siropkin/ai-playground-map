@@ -62,13 +62,11 @@ export async function fetchOSMFromCache(
       .single();
 
     if (error || !data) {
-      console.log(`[OSM Cache] Miss: ${cacheKey}`);
       return null;
     }
 
     // Check if cache has expired
     if (isCacheExpired(data.created_at)) {
-      console.log(`[OSM Cache] Expired: ${cacheKey}`);
       // Delete expired entry
       await supabase
         .from(OSM_CACHE_TABLE_NAME)
@@ -88,11 +86,11 @@ export async function fetchOSMFromCache(
       .eq("cache_key", cacheKey);
 
     const playgroundCount = (data.playgrounds as OSMQueryResults[]).length;
-    console.log(`[OSM Cache] Hit: ${cacheKey} (${playgroundCount} playgrounds, accessed ${data.query_count + 1} times)`);
+    console.log(`[OSM Cache] 📖 Hit: ${playgroundCount} playgrounds`);
 
     return data.playgrounds as OSMQueryResults[];
   } catch (error) {
-    console.error("[OSM Cache] Error fetching from cache:", error);
+    console.error("[OSM Cache] ❌ Error fetching from cache:", error);
     return null;
   }
 }
@@ -129,25 +127,19 @@ export async function saveOSMToCache(
       }, { onConflict: "cache_key" });
 
     if (error) {
-      console.error("[OSM Cache] Failed to save cache entry:", {
-        error: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        cacheKey
-      });
+      console.error("[OSM Cache] ❌ Failed to save cache entry:", error.message);
       return;
     }
 
-    console.log(`[OSM Cache] Saved entry: ${cacheKey} (${playgrounds.length} playgrounds)`);
+    console.log(`[OSM Cache] ✅ Saved: ${playgrounds.length} playgrounds`);
 
     // Trigger LRU eviction if cache is too large (async, non-blocking)
     evictLRUIfNeeded().catch(err =>
-      console.error("[OSM Cache] Error evicting LRU cache:", err)
+      console.error("[OSM Cache] ❌ Error evicting LRU cache:", err)
     );
   } catch (error) {
     // Don't throw - cache failures shouldn't break the app
-    console.error("[OSM Cache] Error saving OSM to cache:", error);
+    console.error("[OSM Cache] ❌ Error saving OSM to cache:", error);
   }
 }
 
@@ -189,9 +181,9 @@ async function evictLRUIfNeeded(): Promise<void> {
       .delete()
       .in("cache_key", keysToDelete);
 
-    console.log(`Evicted ${keysToDelete.length} LRU OSM cache entries`);
+    console.log(`[OSM Cache] 🗑️ Evicted ${keysToDelete.length} LRU entries`);
   } catch (error) {
-    console.error("Error in LRU eviction:", error);
+    console.error("[OSM Cache] ❌ Error in LRU eviction:", error);
   }
 }
 
@@ -203,7 +195,7 @@ export async function clearAllOSMCache(): Promise<void> {
     const supabase = await createClient();
     await supabase.from(OSM_CACHE_TABLE_NAME).delete().neq("cache_key", "");
   } catch (error) {
-    console.error("Error clearing OSM cache:", error);
+    console.error("[OSM Cache] ❌ Error clearing OSM cache:", error);
     throw error;
   }
 }
@@ -241,7 +233,7 @@ export async function getOSMCacheStats() {
         Math.floor((Date.now() - new Date(oldestEntry.created_at).getTime()) / 1000 / 60 / 60) : 0 // hours
     };
   } catch (error) {
-    console.error("Error fetching OSM cache stats:", error);
+    console.error("[OSM Cache] ❌ Error fetching OSM cache stats:", error);
     return null;
   }
 }

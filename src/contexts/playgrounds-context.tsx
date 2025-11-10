@@ -15,11 +15,10 @@ import { Playground } from "@/types/playground";
 import { useFilters } from "@/contexts/filters-context";
 import {
   searchPlaygrounds,
-  fetchLocationData,
-  generatePlaygroundAiInsights,
   generatePlaygroundAiInsightsBatch,
+  fetchPlaygroundImages,
 } from "@/lib/api/client";
-import { calculatePlaygroundTier } from "@/lib/tier-calculator";
+// Tier calculation now done by Gemini AI - no longer needed locally
 import { useDebounce } from "@/lib/hooks";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
@@ -32,13 +31,13 @@ function validateAccessibility(accessibility: unknown): Playground["accessibilit
     if (accessibility.every(item => typeof item === "string")) {
       return accessibility;
     }
-    console.warn("[PlaygroundsContext] Rejecting malformed accessibility array");
+    console.warn("[ContextPlaygrounds] ⚠️ Rejecting malformed accessibility array");
     return null;
   }
 
   // Old format: object (v5 and earlier) - reject
   if (accessibility && typeof accessibility === "object") {
-    console.warn("[PlaygroundsContext] Rejecting old accessibility object format");
+    console.warn("[ContextPlaygrounds] ⚠️ Rejecting old accessibility object format");
     return null;
   }
 
@@ -54,6 +53,7 @@ interface PlaygroundsContextType {
   clearFlyToRequest: () => void;
   enrichPlayground: (playgroundId: number) => Promise<void>;
   enrichPlaygroundsBatch: (playgroundIds: number[]) => Promise<void>;
+  loadImagesForPlayground: (playgroundId: number) => Promise<void>;
   selectedPlayground: Playground | null;
   selectPlayground: (playground: Playground) => void;
   clearSelectedPlayground: () => void;
@@ -77,6 +77,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
   // Ref to store enrichPlaygroundsBatch function for eager enrichment
   const enrichPlaygroundsBatchRef = useRef<(ids: number[]) => Promise<void>>(() => Promise.resolve());
+
+  // Track recently enriched playgrounds to prevent duplicate requests
+  const recentlyEnrichedRef = useRef<Map<number, number>>(new Map()); // playgroundId -> timestamp
 
   const localFetchPlaygrounds = useCallback(
     async (signal?: AbortSignal) => {
@@ -113,7 +116,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   images: existingEnriched.images,
                   accessibility: validateAccessibility(existingEnriched.accessibility),
                   tier: existingEnriched.tier,
-                  tierScore: existingEnriched.tierScore,
+                  tierReasoning: existingEnriched.tierReasoning,
                   enriched: true,
                 };
               }
@@ -122,18 +125,46 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               return {
                 ...newPlayground,
                 tier: null,
-                tierScore: null,
+                tierReasoning: null,
               };
             });
 
             return updatedPlaygrounds;
           });
 
-          // Eagerly enrich ALL playgrounds from cache (including already-enriched ones)
-          // This ensures tier badges show immediately even for previously-enriched playgrounds
-          if (updatedPlaygrounds.length > 0 && !signal?.aborted) {
-            const allPlaygroundIds = updatedPlaygrounds.map(p => p.osmId);
+          // Eagerly enrich only unenriched playgrounds
+          // Already-enriched playgrounds retain their data from smart merge above
+          const unenrichedPlaygrounds = updatedPlaygrounds.filter(p => !p.enriched);
+
+          if (unenrichedPlaygrounds.length > 0 && !signal?.aborted) {
+            console.log(`[ContextPlaygrounds] 🚀 Enriching ${unenrichedPlaygrounds.length} unenriched playgrounds`);
+
+            // Calculate map center for distance-based prioritization
+            const mapCenter = mapBounds ? {
+              lat: (mapBounds.north + mapBounds.south) / 2,
+              lon: (mapBounds.east + mapBounds.west) / 2,
+            } : null;
+
+            // Sort playgrounds by distance from center (center-to-edge prioritization)
+            const sortedPlaygrounds = mapCenter
+              ? [...unenrichedPlaygrounds].sort((a, b) => {
+                  const distA = Math.sqrt(
+                    Math.pow(a.lat - mapCenter.lat, 2) +
+                    Math.pow(a.lon - mapCenter.lon, 2)
+                  );
+                  const distB = Math.sqrt(
+                    Math.pow(b.lat - mapCenter.lat, 2) +
+                    Math.pow(b.lon - mapCenter.lon, 2)
+                  );
+                  return distA - distB;
+                })
+              : unenrichedPlaygrounds;
+
+            const allPlaygroundIds = sortedPlaygrounds.map(p => p.osmId);
+
             // Process in batches of 5 sequentially to avoid overwhelming the backend
+            // Center playgrounds (most likely visible) will be enriched first
+            // NOTE: AI enrichment no longer fetches images - images loaded separately
             (async () => {
               for (let i = 0; i < allPlaygroundIds.length; i += 5) {
                 const batch = allPlaygroundIds.slice(i, i + 5);
@@ -147,7 +178,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           !(err instanceof DOMException && err.name === "AbortError") &&
           !signal?.aborted
         ) {
-          console.error("Error fetching playgrounds:", err);
+          console.error("[ContextPlaygrounds] ❌ Error fetching playgrounds:", err);
           setError("Failed to load playgrounds. Please try again.");
         }
       } finally {
@@ -176,89 +207,47 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   }, [mapBounds]);
 
   // Enrich a single playground
+  // Uses batch API internally for consistency (AI insights only, no images)
   const enrichPlayground = useCallback(
     async (playgroundId: number) => {
-      // Get playground from current state to avoid stale closures
-      let playground: Playground | undefined;
-      await new Promise<void>(resolve => {
-        setPlaygrounds((prev) => {
-          playground = prev.find((p) => p.osmId === playgroundId);
-          resolve();
-          return prev;
-        });
-      });
-
-      if (!playground || playground.enriched) return;
-
-      try {
-        const osmIdFormatted = playground.osmType && playground.osmId
-          ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
-          : undefined;
-
-        // PERFORMANCE OPTIMIZATION: Try cache-only check first with osmId
-        // This saves 100-500ms of Nominatim reverse geocoding for cached results
-        let insight = await generatePlaygroundAiInsights({
-          name: playground.name || undefined,
-          osmId: osmIdFormatted,
-          signal: abortControllerRef.current?.signal,
-        });
-
-        // If cache miss and we have osmId, fetch location and try full enrichment
-        if (!insight && osmIdFormatted) {
-          const location = await fetchLocationData(
-            playground.lat,
-            playground.lon,
-            abortControllerRef.current?.signal,
-          );
-
-          if (!location) return;
-
-          insight = await generatePlaygroundAiInsights({
-            location,
-            name: playground.name || undefined,
-            osmId: osmIdFormatted,
-            signal: abortControllerRef.current?.signal,
-          });
-        }
-
-        // Calculate tier from insights
-        const tierResult = calculatePlaygroundTier(insight);
-
-        setPlaygrounds((prev) =>
-          prev.map((p) =>
-            p.osmId === playgroundId
-              ? {
-                  ...p,
-                  name: insight?.name || p.name,
-                  description: insight?.description || p.description,
-                  features: insight?.features || p.features,
-                  parking: insight?.parking || p.parking,
-                  sources: insight?.sources || p.sources,
-                  images: insight?.images || p.images,
-                  accessibility: validateAccessibility(insight?.accessibility) || p.accessibility,
-                  tier: tierResult.tier,
-                  tierScore: tierResult.score,
-                  enriched: true,
-                }
-              : p,
-          ),
-        );
-      } catch (error) {
-        console.error(`Error enriching playground ${playgroundId}:`, error);
-      }
+      await enrichPlaygroundsBatchRef.current([playgroundId]);
     },
-    [], // No dependencies - we get playground from setState callback
+    [], // Uses ref to avoid circular dependency
   );
 
   // Enrich multiple playgrounds in a batch (max 5)
+  // NOTE: This only fetches AI insights - use loadImagesForPlayground for images
   const enrichPlaygroundsBatch = useCallback(
     async (playgroundIds: number[]) => {
+      // Filter out recently enriched playgrounds (within last 5 seconds)
+      const now = Date.now();
+      const DEDUPE_WINDOW = 5000; // 5 seconds
+      const filteredIds = playgroundIds.filter(id => {
+        const lastEnriched = recentlyEnrichedRef.current.get(id);
+        return !lastEnriched || (now - lastEnriched) > DEDUPE_WINDOW;
+      });
+
+      if (filteredIds.length === 0) {
+        return;
+      }
+
+      // Mark these playgrounds as being enriched
+      filteredIds.forEach(id => recentlyEnrichedRef.current.set(id, now));
+
+      // Clean up old entries (older than 10 seconds)
+      const cutoff = now - 10000;
+      for (const [id, timestamp] of recentlyEnrichedRef.current.entries()) {
+        if (timestamp < cutoff) {
+          recentlyEnrichedRef.current.delete(id);
+        }
+      }
+
       // Get current playground state using setState callback to avoid stale closures
       let playgroundsToEnrich: Playground[] = [];
       await new Promise<void>(resolve => {
         setPlaygrounds((prev) => {
           playgroundsToEnrich = prev
-            .filter((p) => playgroundIds.includes(p.osmId))
+            .filter((p) => filteredIds.includes(p.osmId))
             .slice(0, 5); // Limit to 5 per batch
           resolve();
           return prev; // Don't modify state here
@@ -289,9 +278,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             const result = results.find((r) => r.playgroundId === p.osmId);
             if (!result) return p; // No result for this playground
 
-            // Calculate tier from insights
-            const tierResult = calculatePlaygroundTier(result.insights);
-
+            // Tier now comes directly from Gemini AI (no local calculation)
             // Mark as enriched even if insights is null (enrichment completed but found nothing)
             return {
               ...p,
@@ -302,17 +289,75 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               sources: result.insights?.sources || p.sources,
               images: result.insights?.images || p.images,
               accessibility: validateAccessibility(result.insights?.accessibility) || p.accessibility,
-              tier: tierResult.tier,
-              tierScore: tierResult.score,
+              tier: result.insights?.tier || null,
+              tierReasoning: result.insights?.tier_reasoning || null,
               enriched: true, // Always mark as enriched, even if insights is null
             };
           }),
         );
       } catch (error) {
-        console.error("Error enriching playgrounds batch:", error);
+        console.error("[ContextPlaygrounds] ❌ Error enriching playgrounds batch:", error);
       }
     },
     [], // No dependencies - we get playgrounds from setState callback
+  );
+
+  // Load images for a specific playground (lazy loading on visibility)
+  // Uses separate image service (src/lib/images.ts) - not Gemini
+  const loadImagesForPlayground = useCallback(
+    async (playgroundId: number) => {
+      // Get playground from current state
+      let playground: Playground | undefined;
+      await new Promise<void>(resolve => {
+        setPlaygrounds((prev) => {
+          playground = prev.find((p) => p.osmId === playgroundId);
+          resolve();
+          return prev;
+        });
+      });
+
+      // Skip if playground not found, already has images, or not enriched yet
+      if (!playground || playground.images || !playground.enriched) {
+        return;
+      }
+
+      // Skip if no name (can't search for images without a name)
+      if (!playground.name) {
+        return;
+      }
+
+      try {
+        const osmIdFormatted = playground.osmType && playground.osmId
+          ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
+          : undefined;
+
+        // Fetch images from Google Custom Search (separate service)
+        const images = await fetchPlaygroundImages({
+          playgroundName: playground.name,
+          city: playground.address?.split(',')[1]?.trim(),
+          osmId: osmIdFormatted,
+          signal: abortControllerRef.current?.signal,
+        });
+
+        // Update only if we got images
+        if (images && images.length > 0) {
+          setPlaygrounds((prev) =>
+            prev.map((p) =>
+              p.osmId === playgroundId
+                ? {
+                    ...p,
+                    images,
+                  }
+                : p,
+            ),
+          );
+          console.log(`[ContextPlaygrounds] 🖼️ Loaded ${images.length} images for playground ${playgroundId}`);
+        }
+      } catch (error) {
+        console.error(`[ContextPlaygrounds] ❌ Error loading images for playground ${playgroundId}:`, error);
+      }
+    },
+    [], // No dependencies - we get playground from setState callback
   );
 
   // Update ref when enrichPlaygroundsBatch changes
@@ -338,11 +383,33 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
   const selectPlayground = useCallback((playground: Playground) => {
     setSelectedPlayground(playground);
+    // Update URL with query param
+    const url = new URL(window.location.href);
+    url.searchParams.set('playground', playground.osmId.toString());
+    window.history.pushState({}, '', url.toString());
   }, []);
 
   const clearSelectedPlayground = useCallback(() => {
     setSelectedPlayground(null);
+    // Remove query param from URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('playground');
+    window.history.pushState({}, '', url.toString());
   }, []);
+
+  // Initialize from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const playgroundId = params.get('playground');
+
+    if (playgroundId) {
+      // Find playground in current list
+      const playground = playgrounds.find(p => p.osmId.toString() === playgroundId);
+      if (playground) {
+        setSelectedPlayground(playground);
+      }
+    }
+  }, [playgrounds]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
@@ -355,6 +422,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       clearFlyToRequest,
       enrichPlayground,
       enrichPlaygroundsBatch,
+      loadImagesForPlayground,
       selectedPlayground,
       selectPlayground,
       clearSelectedPlayground,
@@ -368,6 +436,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
       clearFlyToRequest,
       enrichPlayground,
       enrichPlaygroundsBatch,
+      loadImagesForPlayground,
       selectedPlayground,
       selectPlayground,
       clearSelectedPlayground,

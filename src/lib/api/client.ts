@@ -1,6 +1,7 @@
 import { Playground } from "@/types/playground";
 import { MapBounds } from "@/types/map";
-import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
+import { AIInsights, AILocation } from "@/types/ai-insights";
+import { PlaygroundImage } from "@/lib/images";
 
 /**
  * Client-side function to search for playgrounds in the API
@@ -29,7 +30,7 @@ export async function searchPlaygrounds(
     if (error instanceof DOMException && error.name === "AbortError") {
       return [];
     }
-    console.error("Error fetching playgrounds:", error);
+    console.error("[API Client] ❌ Error fetching playgrounds:", error);
     return [];
   }
 }
@@ -41,7 +42,7 @@ export async function fetchLocationData(
   lat: number,
   lon: number,
   signal?: AbortSignal,
-): Promise<PerplexityLocation | null> {
+): Promise<AILocation | null> {
   try {
     const response = await fetch("/api/osm-location", {
       method: "POST",
@@ -63,7 +64,7 @@ export async function fetchLocationData(
     if (error instanceof DOMException && error.name === "AbortError") {
       return null;
     }
-    console.error("Error fetching location data:", error);
+    console.error("[API Client] ❌ Error fetching location data:", error);
     return null;
   }
 }
@@ -77,11 +78,11 @@ export async function generatePlaygroundAiInsights({
   osmId,
   signal,
 }: {
-  location?: PerplexityLocation;
+  location?: AILocation;
   name?: string;
   osmId?: string;
   signal?: AbortSignal;
-}): Promise<PerplexityInsights | null> {
+}): Promise<AIInsights | null> {
   try {
     const response = await fetch("/api/insights", {
       method: "POST",
@@ -103,13 +104,14 @@ export async function generatePlaygroundAiInsights({
     if (error instanceof DOMException && error.name === "AbortError") {
       return null;
     }
-    console.error("Error generating playground AI insights:", error);
+    console.error("[API Client] ❌ Error generating playground AI insights:", error);
     return null;
   }
 }
 
 /**
  * Client-side function to enrich multiple playgrounds in a single batch request
+ * NOTE: This does NOT fetch images - use src/lib/images.ts instead
  */
 export async function generatePlaygroundAiInsightsBatch({
   playgrounds,
@@ -126,7 +128,7 @@ export async function generatePlaygroundAiInsightsBatch({
 }): Promise<
   Array<{
     playgroundId: number;
-    insights: PerplexityInsights | null;
+    insights: AIInsights | null;
   }>
 > {
   try {
@@ -150,7 +152,51 @@ export async function generatePlaygroundAiInsightsBatch({
     if (error instanceof DOMException && error.name === "AbortError") {
       return [];
     }
-    console.error("Error generating batch playground AI insights:", error);
+    console.error("[API Client] ❌ Error generating batch playground AI insights:", error);
     return [];
+  }
+}
+
+/**
+ * Client-side function to fetch playground images
+ */
+export async function fetchPlaygroundImages({
+  playgroundName,
+  city,
+  region,
+  country,
+  osmId,
+  signal,
+}: {
+  playgroundName: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  osmId?: string;
+  signal?: AbortSignal;
+}): Promise<PlaygroundImage[] | null> {
+  try {
+    const response = await fetch("/api/images", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-app-origin": "internal",
+      },
+      body: JSON.stringify({ playgroundName, city, region, country, osmId }),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.images || null;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return null;
+    }
+    console.error("[API Client] ❌ Error fetching playground images:", error);
+    return null;
   }
 }

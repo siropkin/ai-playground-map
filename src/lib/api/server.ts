@@ -1,7 +1,8 @@
 import { Playground } from "@/types/playground";
 import { fetchMultipleOSMPlaceDetails } from "@/lib/osm";
-import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
-import { PerplexityLocation } from "@/types/perplexity";
+import { fetchGeminiInsightsWithCache } from "@/lib/gemini";
+import { fetchPlaygroundImages } from "@/lib/images";
+import { AILocation } from "@/types/ai-insights";
 import { parseOsmIdentifier } from "@/lib/utils";
 
 export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playground | null> {
@@ -50,11 +51,11 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       enriched: false,
       accessibility: null,
       tier: null,
-      tierScore: null,
+      tierReasoning: null,
     };
 
     // Build location object from OSM address data
-    const location: PerplexityLocation = {
+    const location: AILocation = {
       latitude: playground.lat,
       longitude: playground.lon,
       city: osmPlaceDetails.address.city,
@@ -66,12 +67,26 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
     const typePrefix = osmPlaceDetails.osm_type.charAt(0).toUpperCase();
     const correctOsmId = `${typePrefix}${osmPlaceDetails.osm_id}`;
 
-    const insight = await fetchPerplexityInsightsWithCache({
+    // Start AI and Images in parallel when possible
+    // Images depend on having at least some name (OSM name or later AI-updated name)
+    const insightPromise = fetchGeminiInsightsWithCache({
       location,
       name: playground.name || undefined,
       osmId: correctOsmId,
-      priority: 'high', // Detail view should use high priority for best quality images
     });
+
+    let imagesPromise: ReturnType<typeof fetchPlaygroundImages> | null = null;
+    if (playground.name) {
+      imagesPromise = fetchPlaygroundImages({
+        playgroundName: playground.name,
+        city: osmPlaceDetails.address.city,
+        region: osmPlaceDetails.address.state,
+        country: osmPlaceDetails.address.country_code,
+        osmId: correctOsmId,
+      });
+    }
+
+    const insight = await insightPromise;
 
     if (insight) {
       playground.name = insight.name || playground.name;
@@ -79,14 +94,35 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       playground.features = insight.features || playground.features;
       playground.parking = insight.parking || playground.parking;
       playground.sources = insight.sources || playground.sources;
-      playground.images = insight.images || playground.images;
       playground.accessibility = insight.accessibility || playground.accessibility;
+      playground.tier = insight.tier || playground.tier;
+      playground.tierReasoning = insight.tier_reasoning || playground.tierReasoning;
       playground.enriched = true;
+    }
+
+    // Resolve images: use concurrent result if started; otherwise try now if we have a name
+    // Note: Images are NOT stored in ai_insights_cache anymore (v17 migration)
+    if (playground.enriched && playground.name) {
+      let images = null;
+      try {
+        images = imagesPromise ? await imagesPromise : await fetchPlaygroundImages({
+          playgroundName: playground.name,
+          city: osmPlaceDetails.address.city,
+          region: osmPlaceDetails.address.state,
+          country: osmPlaceDetails.address.country_code,
+          osmId: correctOsmId,
+        });
+      } catch {
+        images = null;
+      }
+      if (images) {
+        playground.images = images;
+      }
     }
 
     return playground;
   } catch (error) {
-    console.error("Error fetching playground details:", error);
+    console.error("[API Server] ❌ Error fetching playground details:", error);
     return playground;
   }
 }

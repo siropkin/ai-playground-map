@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTheme } from "next-themes";
 import { MapPin } from "lucide-react";
 import mapboxgl from "mapbox-gl";
@@ -14,14 +19,15 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { PlaygroundPreview } from "@/components/playground-preview";
-import { TierBadge } from "@/components/tier-badge";
+import { MapLegend } from "@/components/map-legend";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 // Safely set Mapbox access token with proper error handling
 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 if (!mapboxToken) {
-  console.error("Mapbox Access Token is not set. Map will not function.");
+  console.error(
+    "[MapView] ❌ Mapbox Access Token is not set. Map will not function.",
+  );
 }
 mapboxgl.accessToken = mapboxToken || "";
 
@@ -46,17 +52,17 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        point: "#000000",
+        point: "#4b5563", // Gray-600 for neighborhood tier (darker)
         pointStroke: "#FFFFFF",
-        label: "#000000",
+        label: "#374151", // Gray-700 for better readability
         clusterBg: "#000000",
         clusterText: "#FFFFFF",
         labelHalo: "#FFFFFF",
       }
     : {
-        point: "#FFFFFF",
-        pointStroke: "#000000",
-        label: "#FFFFFF",
+        point: "#6b7280", // Gray-500 for neighborhood tier (darker)
+        pointStroke: "#374151", // Gray-700 for stroke
+        label: "#d1d5db", // Gray-300 for better readability
         clusterBg: "#FFFFFF",
         clusterText: "#000000",
         labelHalo: "#000000",
@@ -82,7 +88,10 @@ const getMapBounds = (map: mapboxgl.Map | null): MapBounds => {
 
 const createGeoJson = (
   playgrounds: Playground[],
-): FeatureCollection<Point, { id: number; name: string; tier: string | null }> => {
+): FeatureCollection<
+  Point,
+  { id: number; name: string; tier: string | null }
+> => {
   return {
     type: "FeatureCollection",
     features: playgrounds.map((playground) => ({
@@ -95,7 +104,9 @@ const createGeoJson = (
         id: playground.osmId,
         type: (playground.osmType || "").toString(),
         name: playground.enriched ? playground.name || UNNAMED_PLAYGROUND : "",
-        tier: playground.enriched ? (playground.tier || "neighborhood") : "neighborhood",
+        tier: playground.enriched
+          ? playground.tier || "neighborhood"
+          : "neighborhood",
       },
     })),
   };
@@ -105,39 +116,171 @@ const createGeoJson = (
 export const MapView = React.memo(function MapView() {
   const { theme } = useTheme();
   const { mapBounds, setMapBounds } = useFilters();
-  const { playgrounds, flyToCoords, clearFlyToRequest, loading, selectPlayground, enrichPlayground, selectedPlayground, clearSelectedPlayground, requestFlyTo } =
-    usePlaygrounds();
+  const {
+    playgrounds,
+    flyToCoords,
+    clearFlyToRequest,
+    loading,
+    selectPlayground,
+    enrichPlayground,
+    selectedPlayground,
+    clearSelectedPlayground,
+    loadImagesForPlayground,
+  } = usePlaygrounds();
 
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const popupRef = useRef<mapboxgl.Popup | null>(null);
-  const popupRootRef = useRef<Root | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const userLocationMarker = useRef<mapboxgl.Marker | null>(null);
+  const userAccuracyCircle = useRef<string | null>(null);
+  const hasAutocentered = useRef<boolean>(false);
+
+  // Helper function to create/update user location marker
+  const updateUserLocationMarker = useCallback((
+    currentMap: mapboxgl.Map,
+    longitude: number,
+    latitude: number,
+    accuracy?: number
+  ) => {
+    // Remove old marker if exists
+    if (userLocationMarker.current) {
+      userLocationMarker.current.remove();
+    }
+
+    // Remove old accuracy circle if exists
+    if (userAccuracyCircle.current && currentMap.getLayer(userAccuracyCircle.current)) {
+      currentMap.removeLayer(userAccuracyCircle.current);
+    }
+    if (userAccuracyCircle.current && currentMap.getSource(userAccuracyCircle.current)) {
+      currentMap.removeSource(userAccuracyCircle.current);
+    }
+
+    // Add accuracy circle if accuracy is provided
+    if (accuracy) {
+      const circleId = 'user-location-accuracy';
+      userAccuracyCircle.current = circleId;
+
+      // Create a circle GeoJSON
+      const circleGeoJSON = {
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [longitude, latitude]
+        },
+        properties: {}
+      };
+
+      currentMap.addSource(circleId, {
+        type: 'geojson',
+        data: circleGeoJSON
+      });
+
+      currentMap.addLayer({
+        id: circleId,
+        type: 'circle',
+        source: circleId,
+        paint: {
+          'circle-radius': {
+            stops: [
+              [0, 0],
+              [20, accuracy * Math.pow(2, 20) / 156543.03392] // Convert meters to pixels at zoom 0
+            ],
+            base: 2
+          },
+          'circle-color': '#4285F4',
+          'circle-opacity': 0.1,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#4285F4',
+          'circle-stroke-opacity': 0.3
+        }
+      });
+    }
+
+    // Create the user location marker (blue dot)
+    const el = document.createElement('div');
+    el.className = 'user-location-marker';
+    el.style.width = '20px';
+    el.style.height = '20px';
+    el.style.borderRadius = '50%';
+    el.style.backgroundColor = '#4285F4';
+    el.style.border = '3px solid white';
+    el.style.boxShadow = '0 0 10px rgba(66, 133, 244, 0.5)';
+    el.style.cursor = 'pointer';
+
+    userLocationMarker.current = new mapboxgl.Marker({ element: el })
+      .setLngLat([longitude, latitude])
+      .addTo(currentMap);
+  }, []);
+
+  // Request geolocation on mount (runs once)
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation([longitude, latitude]);
+          console.log("[MapView] ✓ User location detected:", latitude, longitude);
+        },
+        (error) => {
+          console.log("[MapView] ℹ️ Geolocation not available or denied:", error.message);
+          // Don't show error - just gracefully fall back to default location
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 60000 // Cache for 1 minute
+        }
+      );
+    }
+  }, []); // Run once on mount
 
   const handleNearMeClick = useCallback(() => {
     if (!navigator.geolocation) {
-      alert("Oops! Geolocation is not supported by your browser.");
+      console.error("[MapView] ❌ Geolocation is not supported by your browser.");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
+        const { latitude, longitude, accuracy } = position.coords;
+        setUserLocation([longitude, latitude]);
+
         if (map.current) {
+          updateUserLocationMarker(map.current, longitude, latitude, accuracy);
           map.current.flyTo({
             center: [longitude, latitude],
             zoom: 14,
-            duration: 800, // Fast animation (800ms instead of default 2000ms)
+            duration: 800,
           });
         }
       },
       (error) => {
-        console.error("Error fetching location:", error);
-        alert("Oops! Can't get your location. Maybe geolocation is blocked?");
+        console.error("[MapView] ❌ Error fetching location:", error);
+        let errorMessage = "Can't get your location.";
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Location access denied. Please enable location permissions in your browser settings.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Location information is unavailable. Please try again.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+        }
+
+        alert(errorMessage);
       },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
     );
-  }, []);
+  }, [updateUserLocationMarker]);
 
   // Memoize GeoJSON data to prevent recreation on every render
   const playgroundsGeoJson = useMemo((): FeatureCollection<
@@ -226,29 +369,40 @@ export const MapView = React.memo(function MapView() {
             "circle-color": [
               "match",
               ["get", "tier"],
-              "star", "#f59e0b", // Amber-500 for Star
-              "gem", "#a855f7", // Purple-500 for Gem
+              "star",
+              "#f59e0b", // Amber-500 for Star
+              "gem",
+              "#a855f7", // Purple-500 for Gem
               mapColors.point, // Default for neighborhood
             ],
             "circle-radius": [
               "match",
               ["get", "tier"],
+              "star",
+              10, // Same size as Gem
+              "gem",
+              10, // Slightly larger for Gem
               "star", 12, // Larger for Star
               "gem", 10, // Slightly larger for Gem
+>>>>>>> origin/main
               9, // Default for neighborhood
             ],
             "circle-stroke-width": [
               "match",
               ["get", "tier"],
-              "star", 2, // Thicker stroke for Star
-              "gem", 2, // Thicker stroke for Gem
+              "star",
+              2, // Thicker stroke for Star
+              "gem",
+              2, // Thicker stroke for Gem
               1, // Default for neighborhood
             ],
             "circle-stroke-color": [
               "match",
               ["get", "tier"],
-              "star", "#fbbf24", // Amber-400 for Star stroke
-              "gem", "#c084fc", // Purple-400 for Gem stroke
+              "star",
+              "#fbbf24", // Amber-400 for Star stroke
+              "gem",
+              "#c084fc", // Purple-400 for Gem stroke
               mapColors.pointStroke, // Default for neighborhood
             ],
           },
@@ -295,6 +449,8 @@ export const MapView = React.memo(function MapView() {
       });
 
       if (mapBounds) {
+        // URL params present - use them and skip auto-centering
+        console.log("[MapView] ℹ️ Initializing with URL params:", mapBounds);
         map.current.fitBounds(
           [
             [mapBounds.west, mapBounds.south],
@@ -302,28 +458,16 @@ export const MapView = React.memo(function MapView() {
           ],
           { animate: false },
         );
-        // } else if (navigator.geolocation) {
-        //   navigator.geolocation.getCurrentPosition(
-        //     (position) => {
-        //       const { latitude, longitude } = position.coords;
-        //       map.current?.flyTo({
-        //         center: [longitude, latitude],
-        //         zoom: 14,
-        //         essential: true,
-        //       });
-        //     },
-        //     (error) => {
-        //       map.current.fitBounds(
-        //         [
-        //           [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
-        //           [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
-        //         ],
-        //         { animate: false },
-        //       );
-        //       console.error("Error fetching location:", error);
-        //     },
-        //   );
+        hasAutocentered.current = true; // Mark as autocentered to prevent future attempts
+      } else if (userLocation) {
+        // If we have user location but no saved bounds, center on user
+        console.log("[MapView] ℹ️ Initializing with user location:", userLocation);
+        map.current.setCenter(userLocation);
+        map.current.setZoom(14);
+        hasAutocentered.current = true; // Mark as autocentered since we used it in init
       } else {
+        // Default to DC area
+        console.log("[MapView] ℹ️ Initializing with default bounds (DC area)");
         map.current.fitBounds(
           [
             [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
@@ -345,9 +489,9 @@ export const MapView = React.memo(function MapView() {
       setError(
         "Oops! The map is taking a timeout on the swings. Check back soon!",
       );
-      console.error("Error initializing map:", error);
+      console.error("[MapView] ❌ Error initializing map:", error);
     }
-  }, [mapContainer, theme, mapBounds, setMapBounds]);
+  }, [mapContainer, theme, mapBounds, setMapBounds, userLocation]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {
@@ -386,33 +530,16 @@ export const MapView = React.memo(function MapView() {
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
-          (p) => p.osmId === feature.properties!.id
+          (p) => p.osmId === feature.properties!.id,
         );
         if (playground) {
           // Toggle behavior: if clicking the same playground, close it
-          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
-            if (popupRef.current) {
-              popupRef.current.remove();
-              if (popupRootRef.current) {
-                const rootToUnmount = popupRootRef.current;
-                setTimeout(() => rootToUnmount.unmount(), 0);
-                popupRootRef.current = null;
-              }
-              popupRef.current = null;
-            }
+          if (
+            selectedPlayground &&
+            selectedPlayground.osmId === playground.osmId
+          ) {
             clearSelectedPlayground();
             return;
-          }
-
-          // Close existing popup before selecting new one to prevent race condition
-          if (popupRef.current) {
-            popupRef.current.remove();
-            if (popupRootRef.current) {
-              const rootToUnmount = popupRootRef.current;
-              setTimeout(() => rootToUnmount.unmount(), 0);
-              popupRootRef.current = null;
-            }
-            popupRef.current = null;
           }
 
           selectPlayground(playground);
@@ -434,33 +561,16 @@ export const MapView = React.memo(function MapView() {
       const feature = e.features?.[0];
       if (feature?.properties && feature.properties.id) {
         const playground = playgrounds.find(
-          (p) => p.osmId === feature.properties!.id
+          (p) => p.osmId === feature.properties!.id,
         );
         if (playground) {
           // Toggle behavior: if clicking the same playground, close it
-          if (selectedPlayground && selectedPlayground.osmId === playground.osmId) {
-            if (popupRef.current) {
-              popupRef.current.remove();
-              if (popupRootRef.current) {
-                const rootToUnmount = popupRootRef.current;
-                setTimeout(() => rootToUnmount.unmount(), 0);
-                popupRootRef.current = null;
-              }
-              popupRef.current = null;
-            }
+          if (
+            selectedPlayground &&
+            selectedPlayground.osmId === playground.osmId
+          ) {
             clearSelectedPlayground();
             return;
-          }
-
-          // Close existing popup before selecting new one to prevent race condition
-          if (popupRef.current) {
-            popupRef.current.remove();
-            if (popupRootRef.current) {
-              const rootToUnmount = popupRootRef.current;
-              setTimeout(() => rootToUnmount.unmount(), 0);
-              popupRootRef.current = null;
-            }
-            popupRef.current = null;
           }
 
           selectPlayground(playground);
@@ -572,7 +682,14 @@ export const MapView = React.memo(function MapView() {
         map.current.getCanvas().style.cursor = "";
       }
     };
-  }, [isMapLoaded, playgrounds, selectPlayground, enrichPlayground, selectedPlayground, clearSelectedPlayground]);
+  }, [
+    isMapLoaded,
+    playgrounds,
+    selectPlayground,
+    enrichPlayground,
+    selectedPlayground,
+    clearSelectedPlayground,
+  ]);
 
   useEffect(() => {
     if (map.current) {
@@ -594,86 +711,44 @@ export const MapView = React.memo(function MapView() {
   }, [flyToCoords, clearFlyToRequest]);
 
   // Desktop popup management - Create/Remove popup when selection changes
+>>>>>>> origin/main
   useEffect(() => {
-    if (!map.current || !isMapLoaded) return;
+    if (!selectedPlayground) return;
 
-    // Check if desktop (768px+)
-    const isDesktop = window.innerWidth >= 768;
-    if (!isDesktop) return; // Mobile uses Sheet instead
+    // Get the latest playground data
+    const currentPlayground =
+      playgrounds.find((p) => p.osmId === selectedPlayground.osmId) ||
+      selectedPlayground;
 
-    // Clean up existing popup with delay to prevent flicker
-    if (popupRef.current) {
-      popupRef.current.remove();
-      if (popupRootRef.current) {
-        // Defer unmount to avoid race condition with React rendering
-        const rootToUnmount = popupRootRef.current;
-        setTimeout(() => rootToUnmount.unmount(), 0);
-        popupRootRef.current = null;
-      }
-      popupRef.current = null;
+    // Lazy-load images when playground is selected and enriched
+    if (currentPlayground.enriched && !currentPlayground.images) {
+      loadImagesForPlayground(currentPlayground.osmId);
     }
+  }, [
+    playgrounds,
+    selectedPlayground,
+    loadImagesForPlayground,
+  ]);
 
-    // Create popup if playground selected
-    if (selectedPlayground) {
-      // Get the latest playground data from the array (in case it was enriched)
-      const currentPlayground = playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground;
+  // Update user location marker when map loads and location is available
+  useEffect(() => {
+    if (map.current && isMapLoaded && userLocation) {
+      console.log("[MapView] ✓ Displaying user location marker at:", userLocation);
+      updateUserLocationMarker(map.current, userLocation[0], userLocation[1]);
 
-      const popupNode = document.createElement("div");
-
-      // Create popup at playground location with smart positioning
-      const popup = new mapboxgl.Popup({
-        closeButton: true,
-        closeOnClick: false,
-        maxWidth: "400px",
-        className: "playground-popup",
-        anchor: 'left', // Position popup to the right of marker to avoid sidebar
-        offset: 25, // Offset to the right from marker
-      })
-        .setLngLat([currentPlayground.lon, currentPlayground.lat])
-        .setDOMContent(popupNode)
-        .addTo(map.current);
-
-      // Handle popup close
-      popup.on("close", () => {
-        clearSelectedPlayground();
-      });
-
-      // Render React component into popup
-      const root = createRoot(popupNode);
-      root.render(
-        <div className="flex flex-col">
-          {/* Header with title and space for close button */}
-          <div className="flex items-center justify-between gap-3 px-3 pb-0 pt-3 sm:pb-3">
-            <div className="flex flex-1 items-center gap-2 min-w-0">
-              <h3 className="text-base font-semibold truncate max-w-[280px]">
-                {currentPlayground.name || UNNAMED_PLAYGROUND}
-              </h3>
-              {currentPlayground.enriched && currentPlayground.tier && (
-                <TierBadge tier={currentPlayground.tier} size="sm" className="flex-shrink-0" />
-              )}
-            </div>
-            {/* Space reserved for Mapbox close button */}
-            <div className="w-6 h-6 flex-shrink-0" />
-          </div>
-          {/* Content */}
-          <div className="px-2 pb-2 pt-2 sm:pt-0">
-            <PlaygroundPreview
-              playground={currentPlayground}
-              onViewDetails={clearSelectedPlayground}
-              onFlyTo={(coords) => {
-                requestFlyTo(coords);
-                clearSelectedPlayground();
-              }}
-              hideTitle
-              hideTierBadge
-              hideBottomIndicators
-            />
-          </div>
-        </div>
-      );
-
-      popupRef.current = popup;
-      popupRootRef.current = root;
+      // Auto-center on user location only on initial load (once) and only if no URL params exist
+      if (!hasAutocentered.current && !mapBounds) {
+        console.log("[MapView] ✓ Auto-centering on user location (first load, no URL params)");
+        hasAutocentered.current = true;
+        map.current.flyTo({
+          center: userLocation,
+          zoom: 14,
+          duration: 800,
+        });
+      } else if (mapBounds) {
+        console.log("[MapView] ℹ️ Skipping auto-center (URL params present)");
+        hasAutocentered.current = true; // Mark as autocentered to prevent future attempts
+      }
     }
 
     // Cleanup on unmount
@@ -729,9 +804,27 @@ export const MapView = React.memo(function MapView() {
       </div>
     );
   }, [playgrounds, selectedPlayground, clearSelectedPlayground, requestFlyTo]);
+>>>>>>> origin/main
 
   useEffect(() => {
     return () => {
+      // Cleanup user location marker
+      if (userLocationMarker.current) {
+        userLocationMarker.current.remove();
+        userLocationMarker.current = null;
+      }
+
+      // Cleanup accuracy circle
+      if (userAccuracyCircle.current && map.current) {
+        if (map.current.getLayer(userAccuracyCircle.current)) {
+          map.current.removeLayer(userAccuracyCircle.current);
+        }
+        if (map.current.getSource(userAccuracyCircle.current)) {
+          map.current.removeSource(userAccuracyCircle.current);
+        }
+        userAccuracyCircle.current = null;
+      }
+
       if (map.current) {
         map.current.remove();
         map.current = null;
@@ -754,6 +847,7 @@ export const MapView = React.memo(function MapView() {
         ref={setMapContainer}
         className="absolute top-0 left-0 h-full w-full"
       />
+      <MapLegend />
       <div className="absolute right-4 bottom-10 z-1 flex md:right-4 md:bottom-8">
         <Button
           variant="outline"

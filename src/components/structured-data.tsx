@@ -25,7 +25,7 @@ export default function StructuredData({ playground }: StructuredDataProps) {
       latitude: playground.lat,
       longitude: playground.lon,
     },
-    url: `${SITE_URL}/playgrounds/${playground.id}`,
+    url: `${SITE_URL}?playground=${playground.osmId}`,
     image: playground.images?.[0]?.image_url,
     amenityFeature:
       playground.features && playground.features.length > 0

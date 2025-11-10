@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { PerplexityInsights, PerplexityLocation } from "@/types/perplexity";
-import { fetchPerplexityInsightsWithCache } from "@/lib/perplexity";
+import { AIInsights, AILocation } from "@/types/ai-insights";
+import { fetchGeminiInsightsWithCache } from "@/lib/gemini";
 
 export async function POST(
   request: NextRequest,
 ): Promise<
   | NextResponse<{ error: string }>
-  | NextResponse<{ insights: PerplexityInsights | null }>
+  | NextResponse<{ insights: AIInsights | null }>
 > {
   const signal = request.signal;
 
@@ -18,7 +18,7 @@ export async function POST(
 
     const body = await request.json();
     const { location, name, osmId } = body as {
-      location?: PerplexityLocation;
+      location?: AILocation;
       name?: string;
       osmId?: string;
     };
@@ -31,7 +31,7 @@ export async function POST(
       );
     }
 
-    const insight = await fetchPerplexityInsightsWithCache({
+    const insight = await fetchGeminiInsightsWithCache({
       location,
       name,
       osmId,
@@ -48,7 +48,7 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error generating playground AI insights:", error);
+    console.error("[API /insights] ❌ Error generating playground AI insights:", error);
     return NextResponse.json(
       { error: "Failed to generate playground AI insights" },
       { status: 500 },

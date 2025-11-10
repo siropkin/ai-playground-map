@@ -1,6 +1,6 @@
 /**
  * Enrichment Priority Strategy
- * Determines the level of detail needed for Perplexity enrichment
+ * Determines the level of detail needed for AI enrichment
  * to optimize cost and performance.
  */
 

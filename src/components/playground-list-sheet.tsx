@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlaygroundList } from "@/components/playground-list";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export function PlaygroundListSheet() {
   const { loading, flyToCoords } = usePlaygrounds();
@@ -37,15 +38,21 @@ export function PlaygroundListSheet() {
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="max-h-[70vh] overflow-y-auto rounded-t-2xl p-4 md:hidden"
+        className="flex max-h-[90vh] flex-col rounded-t-2xl md:hidden"
       >
-        <SheetHeader>
-          <SheetTitle>Playgrounds</SheetTitle>
-          <SheetDescription>
-            Click a playground to view its details.
-          </SheetDescription>
+        {/* Visually hidden for accessibility, with drag handle */}
+        <SheetHeader className="relative flex h-12 flex-shrink-0 items-center justify-center border-b">
+          <VisuallyHidden>
+            <SheetTitle>Playgrounds</SheetTitle>
+            <SheetDescription>Click a playground to view its details</SheetDescription>
+          </VisuallyHidden>
+          <div className="bg-muted absolute left-1/2 top-2 h-1 w-12 -translate-x-1/2 rounded-full" />
         </SheetHeader>
-        <PlaygroundList displayEmptyState />
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+          <PlaygroundList displayEmptyState />
+        </div>
       </SheetContent>
     </Sheet>
   );

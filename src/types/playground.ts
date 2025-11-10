@@ -1,4 +1,5 @@
-import { PlaygroundTier } from "@/lib/tier-calculator";
+// Tier types (now determined by Gemini AI)
+export type PlaygroundTier = "neighborhood" | "gem" | "star";
 
 export type Playground = {
   id: number;
@@ -23,6 +24,7 @@ export type Playground = {
   osmTags: Record<string, string> | null;
   enriched: boolean | null;
   accessibility: string[] | null;
+  // Tier rating from Gemini AI
   tier: PlaygroundTier | null;
-  tierScore: number | null;
+  tierReasoning: string | null; // AI explanation for the tier
 };

@@ -58,7 +58,7 @@ export async function fetchNearbyPlaygrounds({
         enriched: false,
         accessibility: null,
         tier: null,
-        tierScore: null,
+        tierReasoning: null,
       }))
       .filter(
         (playground) =>
@@ -70,7 +70,7 @@ export async function fetchNearbyPlaygrounds({
 
     return playgrounds;
   } catch (error) {
-    console.error("Error fetching nearby playgrounds:", error);
+    console.error("[API Nearby] ❌ Error fetching nearby playgrounds:", error);
     return [];
   }
 }

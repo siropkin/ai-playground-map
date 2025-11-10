@@ -70,7 +70,7 @@ export async function POST(
       // Save to cache for future requests (async, non-blocking)
       // Update cache even if empty to prevent repeated queries for areas with no playgrounds
       saveOSMToCache(cacheKey, bounds, bounds.zoom, osmResults).catch(err =>
-        console.error("Failed to save OSM cache:", err)
+        console.error("[APISearch] ❌ Failed to save OSM cache:", err)
       );
     }
 
@@ -82,13 +82,32 @@ export async function POST(
       return NextResponse.json([]);
     }
 
+    // Filter invalid items BEFORE expensive mapping for better performance
+    // Track filtered count for data quality monitoring
+    const invalidCount = osmResults.filter((item) => {
+      const lat = item.type === "node" ? item.lat : item.center?.lat;
+      const lon = item.type === "node" ? item.lon : item.center?.lon;
+      return lat == null || lon == null;
+    }).length;
+
+    if (invalidCount > 0) {
+      console.warn(`[APISearch] ⚠️ Filtered ${invalidCount} playgrounds without coordinates`);
+    }
+
     const playgrounds: Playground[] = osmResults
+      .filter((item) => {
+        // Extract coordinates based on type
+        const lat = item.type === "node" ? item.lat : item.center?.lat;
+        const lon = item.type === "node" ? item.lon : item.center?.lon;
+        // Only process items with valid coordinates
+        return lat != null && lon != null;
+      })
       .map((item) => ({
         id: item.id,
         name: item.tags?.name || null,
         description: item.tags?.description || null,
-        lat: item.type === "node" ? item.lat : item.center?.lat,
-        lon: item.type === "node" ? item.lon : item.center?.lon,
+        lat: item.type === "node" ? item.lat! : item.center!.lat,
+        lon: item.type === "node" ? item.lon! : item.center!.lon,
         features: null,
         parking: null,
         sources: null,
@@ -100,17 +119,17 @@ export async function POST(
         enriched: false,
         accessibility: null,
         tier: null,
-        tierScore: null,
-      }))
-      .filter((playground) => playground.lat && playground.lon);
+        tierReasoning: null,
+      }));
 
+    console.log(`[APISearch] ✅ Returning ${playgrounds.length} playgrounds`);
     return NextResponse.json(playgrounds);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error fetching playgrounds from OSM:", error);
+    console.error("[APISearch] ❌ Error fetching playgrounds from OSM:", error);
     return NextResponse.json(
       { error: "Failed to fetch playgrounds" },
       { status: 500 },

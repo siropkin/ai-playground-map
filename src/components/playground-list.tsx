@@ -1,16 +1,9 @@
 "use client";
 
-import Image from "next/image";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { TierBadge } from "@/components/tier-badge";
-import { UNNAMED_PLAYGROUND } from "@/lib/constants";
-import { formatEnumString, formatOsmIdentifier } from "@/lib/utils";
-import Link from "next/link";
-import { MapPin, ArrowRight } from "lucide-react";
+import { useFilters } from "@/contexts/filters-context";
+import { PlaygroundCard } from "@/components/playground-card";
 import { useInView } from "react-intersection-observer";
 import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
@@ -87,11 +80,12 @@ function useEnrichmentBatch() {
 }
 
 // Individual playground item with intersection observer
+// Memoized with custom comparison to prevent unnecessary re-renders during batch enrichment
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
-  const { requestFlyTo } = usePlaygrounds();
+  const { requestFlyTo, loadImagesForPlayground, selectPlayground } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
+  const hasTriggeredImageLoad = useRef(false);
 
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -99,6 +93,7 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
     triggerOnce: true, // Only trigger once per item
   });
 
+  // Trigger AI enrichment (without images) when card enters viewport
   useEffect(() => {
     if (inView && !playground.enriched && !hasTriggeredEnrichment.current) {
       hasTriggeredEnrichment.current = true;
@@ -106,138 +101,46 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
     }
   }, [inView, playground.enriched, playground.osmId, requestEnrichment]);
 
-  const name = playground.name || UNNAMED_PLAYGROUND;
-  const displayImage = playground.images?.[0];
+  // Trigger image loading when card is visible and enriched (lazy loading)
+  useEffect(() => {
+    if (inView && playground.enriched && !playground.images && !hasTriggeredImageLoad.current) {
+      hasTriggeredImageLoad.current = true;
+      loadImagesForPlayground(playground.osmId);
+    }
+  }, [inView, playground.enriched, playground.images, playground.osmId, loadImagesForPlayground]);
 
-  // Check if description is long enough to need expansion
-  const isDescriptionLong = playground.description && playground.description.length > 150;
+  const handleViewDetails = () => {
+    selectPlayground(playground);
+  };
+
+  const handleFlyTo = () => {
+    requestFlyTo([playground.lon, playground.lat]);
+  };
 
   return (
-    <div ref={ref}>
-      <Card
-        key={playground.id}
-        className="bg-background/95 flex min-h-[260px] cursor-pointer flex-row gap-0 overflow-hidden py-0 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
-        onClick={() => requestFlyTo([playground.lon, playground.lat])}
-      >
-        <CardHeader className="relative flex w-1/3 gap-0 p-0">
-          <div className="h-full w-full flex-1 items-center justify-center">
-            {!playground.enriched ? (
-              <div className="relative h-full w-full bg-zinc-200 dark:bg-zinc-700">
-                <Skeleton className="h-full w-full rounded-r-none" />
-                <div className="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm">
-                  Thinking...
-                </div>
-              </div>
-            ) : displayImage ? (
-              <Image
-                className="h-full w-full object-cover"
-                src={displayImage.image_url}
-                alt={`Photo of ${name}`}
-                width={displayImage.width}
-                height={displayImage.height}
-                unoptimized={true}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-emerald-100 text-sm text-emerald-700/80 dark:from-sky-950/50 dark:to-emerald-950/50 dark:text-emerald-200/70">
-                No image
-              </div>
-            )}
-          </div>
-
-          {/* Tier Badge - Top Right */}
-          {playground.enriched && playground.tier && (
-            <div className="absolute right-2 top-2">
-              <TierBadge tier={playground.tier} variant="compact" />
-            </div>
-          )}
-        </CardHeader>
-
-        <CardContent className="flex w-2/3 flex-col gap-2 p-4">
-          {/* Content Area - grows to push button to bottom */}
-          <div className="flex flex-1 flex-col gap-2">
-            {/* Title Section */}
-            {!playground.enriched ? (
-              <Skeleton className="h-4 w-full" />
-            ) : name ? (
-              <h3 className="font-semibold truncate">{name}</h3>
-            ) : null}
-
-            {/* Description Section */}
-            {!playground.enriched ? (
-              <Skeleton className="h-16 w-full" />
-            ) : playground.description ? (
-              <div className="text-muted-foreground text-xs">
-                <p className={!isDescriptionExpanded && isDescriptionLong ? "line-clamp-3" : ""}>
-                  {playground.description}
-                </p>
-                {isDescriptionLong && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDescriptionExpanded(!isDescriptionExpanded);
-                    }}
-                    className="text-foreground mt-1 cursor-pointer text-xs underline hover:no-underline"
-                  >
-                    {isDescriptionExpanded ? "Show less" : "Show more"}
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="text-muted-foreground text-xs italic">
-                <p>This playground&apos;s keeping its secrets (even from AI) 🤷</p>
-              </div>
-            )}
-
-            {/* Features Section */}
-            {!playground.enriched ? (
-              <Skeleton className="h-4 w-full" />
-            ) : playground.features?.length ? (
-              <div className="flex flex-wrap gap-1">
-                {playground.features.slice(0, 5).map((value, i) => (
-                  <Badge
-                    className="max-w-[calc(100%-0.25rem)] truncate sm:max-w-full"
-                    variant="outline"
-                    key={i}
-                  >
-                    <span className="truncate">
-                      {formatEnumString(value)}
-                    </span>
-                  </Badge>
-                ))}
-                {playground.features.length > 5 && (
-                  <Badge variant="outline">+{playground.features.length - 5}</Badge>
-                )}
-              </div>
-            ) : null}
-
-            {/* Address Section */}
-            {!playground.enriched ? (
-              <Skeleton className="h-4 w-full" />
-            ) : playground.address ? (
-              <div className="text-muted-foreground mr-1 flex items-center text-xs">
-                <span>{playground.address}</span>
-                <MapPin className="ml-2 h-4 w-4 shrink-0" />
-              </div>
-            ) : null}
-          </div>
-
-          {/* View Details Button - stays at bottom */}
-          {playground.enriched && (
-            <Link
-              href="/playgrounds/[id]"
-              as={`/playgrounds/${formatOsmIdentifier(playground.osmId, playground.osmType)}`}
-              className="mt-auto pt-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button variant="outline" size="sm" className="w-full">
-                View Details
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          )}
-        </CardContent>
-      </Card>
+    <div ref={ref} onClick={handleFlyTo}>
+      <PlaygroundCard
+        playground={playground}
+        variant="compact"
+        onViewDetails={handleViewDetails}
+      />
     </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function to optimize re-renders
+  // Only re-render if relevant playground data actually changed
+  const prev = prevProps.playground;
+  const next = nextProps.playground;
+
+  return (
+    prev.osmId === next.osmId &&
+    prev.enriched === next.enriched &&
+    prev.name === next.name &&
+    prev.description === next.description &&
+    prev.tier === next.tier &&
+    prev.images === next.images && // Reference comparison is fine for images array
+    prev.features === next.features && // Reference comparison is fine for features array
+    prev.address === next.address
   );
 });
 
@@ -247,13 +150,40 @@ function PlaygroundListContent({
   displayEmptyState?: boolean;
 }) {
   const { playgrounds, loading } = usePlaygrounds();
+  const { mapBounds } = useFilters();
   const containerRef = useRef<HTMLDivElement>(null);
   const prevPlaygroundIdsRef = useRef<string>("");
 
+  // Sort playgrounds by distance from map center (same as AI insights prioritization)
+  const sortedPlaygrounds = useMemo(() => {
+    if (!mapBounds || playgrounds.length === 0) {
+      return playgrounds;
+    }
+
+    // Calculate map center
+    const mapCenter = {
+      lat: (mapBounds.north + mapBounds.south) / 2,
+      lon: (mapBounds.east + mapBounds.west) / 2,
+    };
+
+    // Sort by distance from center (center-to-edge prioritization)
+    return [...playgrounds].sort((a, b) => {
+      const distA = Math.sqrt(
+        Math.pow(a.lat - mapCenter.lat, 2) +
+        Math.pow(a.lon - mapCenter.lon, 2)
+      );
+      const distB = Math.sqrt(
+        Math.pow(b.lat - mapCenter.lat, 2) +
+        Math.pow(b.lon - mapCenter.lon, 2)
+      );
+      return distA - distB;
+    });
+  }, [playgrounds, mapBounds]);
+
   // Memoize the sorted ID string to avoid recalculating on every render
   const currentIds = useMemo(
-    () => playgrounds.map(p => p.osmId).sort((a, b) => a - b).join(","),
-    [playgrounds]
+    () => sortedPlaygrounds.map(p => p.osmId).sort((a, b) => a - b).join(","),
+    [sortedPlaygrounds]
   );
 
   // Scroll to top when playground list changes (not just enrichment)
@@ -270,7 +200,7 @@ function PlaygroundListContent({
     prevPlaygroundIdsRef.current = currentIds;
   }, [currentIds]);
 
-  if (!playgrounds?.length) {
+  if (!sortedPlaygrounds?.length) {
     // Don't show empty state while loading
     if (loading) {
       return null;
@@ -291,7 +221,7 @@ function PlaygroundListContent({
 
   return (
     <div ref={containerRef} className="flex flex-col space-y-2">
-      {playgrounds.map((playground) => (
+      {sortedPlaygrounds.map((playground) => (
         <PlaygroundItem key={playground.id} playground={playground} />
       ))}
     </div>

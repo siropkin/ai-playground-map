@@ -16,7 +16,7 @@ const inflightRequests = new Map<string, Promise<unknown>>();
  *
  * @example
  * const data = await deduplicatedFetch(
- *   `perplexity:${playgroundId}`,
+ *   `ai:${playgroundId}`,
  *   () => fetchFromAPI(playgroundId)
  * );
  */

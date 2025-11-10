@@ -1,12 +1,12 @@
 /**
  * Result Scoring System
  * Combines all validation layers into a comprehensive quality score
- * for Perplexity AI results.
+ * for AI results from Gemini and other AI providers.
  */
 
 import { validateSources, SourceValidationResult } from './source-validator';
 import { validateDescription, DescriptionValidationResult } from './description-validator';
-import { PerplexityInsights } from '@/types/perplexity';
+import { AIInsights } from '@/types/ai-insights';
 
 export interface ResultScore {
   overallScore: number; // 0-100
@@ -47,10 +47,10 @@ const THRESHOLDS = {
 };
 
 /**
- * Score a Perplexity result comprehensively
+ * Score an AI result comprehensively
  */
 export function scoreResult(
-  result: PerplexityInsights | null,
+  result: AIInsights | null,
   locationConfidence: string,
   locationVerification: string | null,
   targetCity?: string,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PerplexityLocation } from "@/types/perplexity";
-import { fetchPerplexityInsightsBatch } from "@/lib/perplexity";
+import { AILocation } from "@/types/ai-insights";
+import { fetchGeminiInsightsBatch } from "@/lib/gemini";
 import { batchReverseGeocode } from "@/lib/osm";
 
 export async function POST(
@@ -48,7 +48,7 @@ export async function POST(
       osmId: pg.osmId,
     }));
 
-    const cacheResults = await fetchPerplexityInsightsBatch({
+    const cacheResults = await fetchGeminiInsightsBatch({
       requests: cacheOnlyRequests,
       signal,
       cacheOnly: true, // Only check cache, don't try to fetch from API
@@ -80,7 +80,7 @@ export async function POST(
         // Type cast the nominatim response
         const address = (result.data as { address?: Record<string, string> }).address;
 
-        const location: PerplexityLocation = {
+        const location: AILocation = {
           latitude: pg.lat,
           longitude: pg.lon,
           city: address?.city || address?.town || address?.village,
@@ -98,10 +98,15 @@ export async function POST(
       .filter((loc): loc is NonNullable<typeof loc> => loc !== null);
 
     // Fetch insights for cache misses with full location data
-    const missResults = await fetchPerplexityInsightsBatch({
+    // NOTE: Images are NOT fetched here - use src/lib/images.ts instead
+    console.log(`[APIInsightsBatch] 🚀 Fetching ${missRequests.length} playgrounds (AI insights only)`);
+
+    const missResults = await fetchGeminiInsightsBatch({
       requests: missRequests,
       signal,
     });
+
+    console.log(`[APIInsightsBatch] ✅ Completed: ${missResults.filter(r => r.insights).length}/${missResults.length}`);
 
     // Merge cache hits and API results
     const missMap = new Map(missResults.map((r) => [r.playgroundId, r]));
@@ -119,7 +124,7 @@ export async function POST(
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });
     }
 
-    console.error("Error in batch insights generation:", error);
+    console.error("[APIInsightsBatch] ❌ Error in batch insights generation:", error);
     return NextResponse.json(
       { error: "Failed to generate batch insights" },
       { status: 500 },

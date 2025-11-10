@@ -124,7 +124,7 @@ export async function runOSMQuery({
       return data.elements || [];
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.warn(`Overpass endpoint ${endpoint} failed:`, lastError.message);
+      console.warn(`[OSM] ⚠️ Overpass endpoint ${endpoint} failed:`, lastError.message);
       // Continue to next endpoint
     }
   }
@@ -175,7 +175,7 @@ export async function fetchMultipleOSMPlaceDetails({
 
     return await response.json();
   } catch (error) {
-    console.error("Nominatim API failed after retries:", error);
+    console.error("[OSM] ❌ Nominatim API failed after retries:", error);
     throw error;
   }
 }
@@ -224,7 +224,7 @@ export async function batchReverseGeocode({
         const data = await response.json();
         return { lat, lon, data };
       } catch (error) {
-        console.error(`Reverse geocoding failed for ${lat},${lon}:`, error);
+        console.error(`[OSM] ❌ Reverse geocoding failed for ${lat},${lon}:`, error);
         return null;
       }
     })
