@@ -86,10 +86,67 @@ export function getMapBoundsStateFromUrl(): MapBounds | null {
   return bounds;
 }
 
+const SESSION_STORAGE_KEY = "mapBounds";
+
+export function saveMapBoundsToSession(bounds: MapBounds | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (bounds) {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(bounds));
+    } else {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.error("Failed to save map bounds to session storage:", error);
+  }
+}
+
+export function getMapBoundsFromSession(): MapBounds | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const stored = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!stored) {
+      return null;
+    }
+
+    const bounds = JSON.parse(stored);
+
+    // Validate the stored data
+    if (
+      typeof bounds.south === "number" &&
+      typeof bounds.north === "number" &&
+      typeof bounds.west === "number" &&
+      typeof bounds.east === "number" &&
+      typeof bounds.zoom === "number" &&
+      !isNaN(bounds.south) &&
+      !isNaN(bounds.north) &&
+      !isNaN(bounds.west) &&
+      !isNaN(bounds.east) &&
+      !isNaN(bounds.zoom)
+    ) {
+      return bounds;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to load map bounds from session storage:", error);
+    return null;
+  }
+}
+
 export function updateUrlWithMapBounds(bounds: MapBounds | null) {
   if (typeof window === "undefined") {
     return;
   }
+
+  // Save to session storage
+  saveMapBoundsToSession(bounds);
 
   const url = new URL(window.location.href);
   const params = new URLSearchParams(url.search);
