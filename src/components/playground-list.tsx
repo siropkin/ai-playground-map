@@ -5,7 +5,7 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { useFilters } from "@/contexts/filters-context";
 import { PlaygroundCard } from "@/components/playground-card";
 import { useInView } from "react-intersection-observer";
-import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
+import React, { useEffect, useRef, useMemo, useCallback, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
 
 // Context for batching enrichment requests

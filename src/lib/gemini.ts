@@ -170,11 +170,10 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       if (jsonMatch?.[1]) {
         try {
           // Clean up common JSON formatting issues from LLM responses
+          // IMPORTANT: Only fix structural issues (trailing commas), not content inside strings
           const cleanedJson = jsonMatch[1]
-            .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":') // Fix unquoted or single-quoted keys
-            .replace(/:\s*'([^']*)'/g, ': "$1"') // Fix single-quoted values
-            .replace(/,\s*}/g, '}') // Remove trailing commas in objects
-            .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas before closing braces/brackets
+            .trim();
 
           parsed = JSON.parse(cleanedJson);
         } catch (error) {
