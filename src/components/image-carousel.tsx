@@ -110,7 +110,7 @@ export default function ImageCarousel({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800",
+        "relative overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800",
         className,
       )}
       onTouchStart={handleTouchStart}
@@ -137,24 +137,24 @@ export default function ImageCarousel({
 
       {images.length > 1 && (
         <>
-          {/* Navigation buttons - show on hover */}
+          {/* Navigation buttons */}
           <Button
-            className="absolute top-1/2 left-2 -translate-y-1/2 h-9 w-9 opacity-0 transition-opacity group-hover:opacity-100"
+            className="absolute top-1/2 left-2 -translate-y-1/2 h-9 w-9 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
             size="icon"
             variant="ghost"
             aria-label="Previous image"
             onClick={goToPrevious}
           >
-            <ChevronLeft className="size-5" />
+            <ChevronLeft className="size-5 text-zinc-900" />
           </Button>
           <Button
-            className="absolute top-1/2 right-2 -translate-y-1/2 h-9 w-9 opacity-0 transition-opacity group-hover:opacity-100"
+            className="absolute top-1/2 right-2 -translate-y-1/2 h-9 w-9 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
             size="icon"
             variant="ghost"
             aria-label="Next image"
             onClick={goToNext}
           >
-            <ChevronRight className="size-5" />
+            <ChevronRight className="size-5 text-zinc-900" />
           </Button>
 
           {/* Indicators */}
