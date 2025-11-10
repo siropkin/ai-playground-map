@@ -113,16 +113,17 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
     selectPlayground(playground);
   };
 
-  const handleFlyTo = () => {
+  const handleCardClick = () => {
+    // Fly to the playground location and open details
     requestFlyTo([playground.lon, playground.lat]);
+    selectPlayground(playground);
   };
 
   return (
-    <div ref={ref} onClick={handleFlyTo}>
+    <div ref={ref} onClick={handleCardClick}>
       <PlaygroundCard
         playground={playground}
         variant="compact"
-        onViewDetails={handleViewDetails}
       />
     </div>
   );
