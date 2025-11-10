@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
+import { useFilters } from "@/contexts/filters-context";
 import { PlaygroundCard } from "@/components/playground-card";
 import { useInView } from "react-intersection-observer";
 import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
@@ -149,13 +150,40 @@ function PlaygroundListContent({
   displayEmptyState?: boolean;
 }) {
   const { playgrounds, loading } = usePlaygrounds();
+  const { mapBounds } = useFilters();
   const containerRef = useRef<HTMLDivElement>(null);
   const prevPlaygroundIdsRef = useRef<string>("");
 
+  // Sort playgrounds by distance from map center (same as AI insights prioritization)
+  const sortedPlaygrounds = useMemo(() => {
+    if (!mapBounds || playgrounds.length === 0) {
+      return playgrounds;
+    }
+
+    // Calculate map center
+    const mapCenter = {
+      lat: (mapBounds.north + mapBounds.south) / 2,
+      lon: (mapBounds.east + mapBounds.west) / 2,
+    };
+
+    // Sort by distance from center (center-to-edge prioritization)
+    return [...playgrounds].sort((a, b) => {
+      const distA = Math.sqrt(
+        Math.pow(a.lat - mapCenter.lat, 2) +
+        Math.pow(a.lon - mapCenter.lon, 2)
+      );
+      const distB = Math.sqrt(
+        Math.pow(b.lat - mapCenter.lat, 2) +
+        Math.pow(b.lon - mapCenter.lon, 2)
+      );
+      return distA - distB;
+    });
+  }, [playgrounds, mapBounds]);
+
   // Memoize the sorted ID string to avoid recalculating on every render
   const currentIds = useMemo(
-    () => playgrounds.map(p => p.osmId).sort((a, b) => a - b).join(","),
-    [playgrounds]
+    () => sortedPlaygrounds.map(p => p.osmId).sort((a, b) => a - b).join(","),
+    [sortedPlaygrounds]
   );
 
   // Scroll to top when playground list changes (not just enrichment)
@@ -172,7 +200,7 @@ function PlaygroundListContent({
     prevPlaygroundIdsRef.current = currentIds;
   }, [currentIds]);
 
-  if (!playgrounds?.length) {
+  if (!sortedPlaygrounds?.length) {
     // Don't show empty state while loading
     if (loading) {
       return null;
@@ -193,7 +221,7 @@ function PlaygroundListContent({
 
   return (
     <div ref={containerRef} className="flex flex-col space-y-2">
-      {playgrounds.map((playground) => (
+      {sortedPlaygrounds.map((playground) => (
         <PlaygroundItem key={playground.id} playground={playground} />
       ))}
     </div>
