@@ -4,10 +4,15 @@
  * Provides high-quality playground image search using Google's Custom Search JSON API.
  * Integrated as part of the Gemini AI implementation (Nov 2025).
  *
- * Features:
+ * Quality Improvements (v2):
  * - SafeSearch enabled (filters inappropriate content)
  * - imgType=photo (excludes clipart, line drawings)
- * - imgSize=large (prefers higher quality images)
+ * - imgSize=xlarge (prefers extra-large, higher quality images)
+ * - dateRestrict=y3 (prefers images from last 3 years for current playground state)
+ * - Duplicate filtering enabled
+ * - Domain filtering (excludes map tiles, real estate, generic CDNs, Yelp)
+ * - Improved search queries with exact phrase matching
+ * - Additional relevance keywords (equipment, slide, swing, park)
  * - Returns up to 10 images per playground
  *
  * Rate Limits:
@@ -93,8 +98,10 @@ export async function searchImages(
     url.searchParams.set('searchType', 'image');
     url.searchParams.set('num', Math.min(maxResults, 10).toString()); // Max 10 per request
     url.searchParams.set('safe', 'active'); // SafeSearch
-    url.searchParams.set('imgSize', 'large'); // Prefer larger images
+    url.searchParams.set('imgSize', 'xlarge'); // Prefer extra-large images for better quality
     url.searchParams.set('imgType', 'photo'); // Photos only, no clipart
+    url.searchParams.set('filter', '1'); // Enable duplicate filtering
+    url.searchParams.set('dateRestrict', 'y3'); // Prefer images from last 3 years (playground equipment changes)
 
     const response = await fetch(url.toString(), {
       signal,
@@ -120,16 +127,46 @@ export async function searchImages(
       return [];
     }
 
-    // Transform to our format
-    const results: GoogleImageResult[] = data.items.map(item => ({
-      image_url: item.link,
-      origin_url: item.image.contextLink,
-      height: item.image.height,
-      width: item.image.width,
-      title: item.title,
-      thumbnail_url: item.image.thumbnailLink,
-    }));
+    // Transform to our format and filter out irrelevant sources
+    const results: GoogleImageResult[] = data.items
+      .filter(item => {
+        const url = item.image.contextLink.toLowerCase();
 
+        // Exclude irrelevant domains that often appear but aren't playground-specific
+        const excludedDomains = [
+          'waze.com',           // Map tiles, not photos
+          'homes.com',          // Real estate listings
+          'apartmentlist.com',  // Apartment listings
+          'rentcafe.com',       // Apartment listings
+          'smugmug.com',        // Generic photo hosting (often unrelated)
+          'ctfassets.net',      // CDN with generic content
+          'mapq.st',            // Map service images
+          'lookandlearn.com',   // Stock/historical photos
+          'brownstoner.com',    // Real estate/development
+          'oldnycphotos.com',   // Historical photos (too old)
+          'yelpcdn.com',        // Yelp often shows unrelated business photos
+        ];
+
+        // Check if URL contains any excluded domain
+        const isExcluded = excludedDomains.some(domain => url.includes(domain));
+
+        if (isExcluded) {
+          console.log(`[Google Images] 🚫 Filtered out: ${item.image.contextLink}`);
+          return false;
+        }
+
+        return true;
+      })
+      .map(item => ({
+        image_url: item.link,
+        origin_url: item.image.contextLink,
+        height: item.image.height,
+        width: item.image.width,
+        title: item.title,
+        thumbnail_url: item.image.thumbnailLink,
+      }));
+
+    console.log(`[Google Images] ✅ Returned ${results.length} images after filtering`);
     return results;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -159,7 +196,7 @@ export function buildPlaygroundImageQuery(params: {
 
   // Add playground name if available
   if (name) {
-    parts.push(name);
+    parts.push(`"${name}"`); // Use quotes for exact phrase matching
   }
 
   // Add "playground" keyword if not in name
@@ -167,12 +204,20 @@ export function buildPlaygroundImageQuery(params: {
     parts.push('playground');
   }
 
-  // Add location (city and/or region)
-  if (city) {
-    parts.push(city);
+  // Add location (city and/or region) for better specificity
+  if (city && region) {
+    parts.push(`"${city}, ${region}"`); // Use quotes for exact location
+  } else if (city) {
+    parts.push(`"${city}"`);
   } else if (region) {
     parts.push(region);
   }
 
-  return parts.join(' ');
+  // Build the query
+  const baseQuery = parts.join(' ');
+
+  // Add additional keywords to improve relevance (using OR so at least one must match)
+  // These help Google understand we want actual playground equipment photos
+  // Note: Using parentheses to group OR terms so they don't override the main query
+  return `${baseQuery} (equipment OR slide OR swing OR kids)`;
 }
