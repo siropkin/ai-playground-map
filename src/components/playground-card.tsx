@@ -53,7 +53,6 @@ const filterUnknown = (items: string[] | null | undefined): string[] => {
 export function PlaygroundCard({
   playground,
   variant = "preview",
-  onViewDetails,
   onFlyTo,
   onBack,
   hideTitle = false,
@@ -99,7 +98,7 @@ export function PlaygroundCard({
       // Always copy to clipboard first
       await navigator.clipboard.writeText(url.toString());
 
-      const isMobile = navigator.share && /mobile/i.test(navigator.userAgent);
+      const isMobile = typeof navigator.share !== 'undefined' && /mobile/i.test(navigator.userAgent);
 
       // Only show toast on desktop - mobile will show native share sheet
       if (!isMobile) {

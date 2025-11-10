@@ -6,7 +6,7 @@ import { PlaygroundCard } from "@/components/playground-card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { useMediaQuery } from "@/lib/hooks";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
-import { X, Share2, Navigation, ParkingCircle, Accessibility } from "lucide-react";
+import { X, Share2, Navigation, ParkingCircle, Accessibility, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -67,7 +67,7 @@ export function PlaygroundPreviewSheet() {
     try {
       await navigator.clipboard.writeText(url.toString());
 
-      const isMobile = navigator.share && /mobile/i.test(navigator.userAgent);
+      const isMobile = typeof navigator.share !== 'undefined' && /mobile/i.test(navigator.userAgent);
 
       // Only show toast on desktop - mobile will show native share sheet
       if (!isMobile) {
@@ -94,12 +94,34 @@ export function PlaygroundPreviewSheet() {
     if (!currentPlayground) return;
 
     const { lat, lon } = currentPlayground;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const directionsUrl = isIOS
-      ? `maps://maps.google.com/maps?daddr=${lat},${lon}&amp;ll=`
-      : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    const isMobile = /mobile/i.test(navigator.userAgent);
+    const isMac = /Mac/i.test(navigator.userAgent);
 
-    window.open(directionsUrl, "_blank");
+    if (isMobile) {
+      // On mobile, use geo: URL which triggers native map app picker
+      const geoUrl = `geo:${lat},${lon}?q=${lat},${lon}(${encodeURIComponent(name)})`;
+      window.location.href = geoUrl;
+    } else if (isMac) {
+      // On macOS, try to open native Maps app
+      const mapsUrl = `maps://maps.apple.com/?daddr=${lat},${lon}`;
+      window.location.href = mapsUrl;
+      // Fallback to Google Maps if Maps app doesn't open
+      setTimeout(() => {
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`, "_blank");
+      }, 500);
+    } else {
+      // On other desktop, open Google Maps in new tab
+      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+      window.open(directionsUrl, "_blank");
+    }
+  };
+
+  // Show on map functionality
+  const handleShowOnMap = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentPlayground) return;
+    requestFlyTo([currentPlayground.lon, currentPlayground.lat]);
+    clearSelectedPlayground(); // Close the sheet to show the map
   };
 
   // Desktop: Handled by PlaygroundDetailSidebar
@@ -126,6 +148,15 @@ export function PlaygroundPreviewSheet() {
           <div className="flex items-center gap-2">
             <SheetTitle className="text-lg font-semibold flex-1 truncate">{name}</SheetTitle>
             <div className="flex gap-1 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleShowOnMap}
+                aria-label="Show on Map"
+                className="h-10 w-10"
+              >
+                <MapPin className="size-5" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"

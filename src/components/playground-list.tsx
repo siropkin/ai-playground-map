@@ -82,7 +82,7 @@ function useEnrichmentBatch() {
 // Individual playground item with intersection observer
 // Memoized with custom comparison to prevent unnecessary re-renders during batch enrichment
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
-  const { requestFlyTo, loadImagesForPlayground, selectPlayground } = usePlaygrounds();
+  const { loadImagesForPlayground, selectPlayground } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
   const hasTriggeredImageLoad = useRef(false);
@@ -109,13 +109,8 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
     }
   }, [inView, playground.enriched, playground.images, playground.osmId, loadImagesForPlayground]);
 
-  const handleViewDetails = () => {
-    selectPlayground(playground);
-  };
-
   const handleCardClick = () => {
-    // Fly to the playground location and open details
-    requestFlyTo([playground.lon, playground.lat]);
+    // Just open details without flying
     selectPlayground(playground);
   };
 
