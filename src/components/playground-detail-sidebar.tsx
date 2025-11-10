@@ -118,7 +118,7 @@ export function PlaygroundDetailSidebar({
                 aria-label="Share"
                 className="h-8 w-8"
               >
-                <Share2 className="h-5 w-5" />
+                <Share2 className="size-5" />
               </Button>
               <Button
                 variant="ghost"
@@ -127,7 +127,7 @@ export function PlaygroundDetailSidebar({
                 aria-label="Get Directions"
                 className="h-8 w-8"
               >
-                <Navigation className="h-5 w-5" />
+                <Navigation className="size-5" />
               </Button>
               <Button
                 variant="ghost"
@@ -136,7 +136,7 @@ export function PlaygroundDetailSidebar({
                 className="h-8 w-8"
                 aria-label="Close"
               >
-                <X className="h-5 w-5" />
+                <X className="size-5" />
               </Button>
             </div>
           </div>

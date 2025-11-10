@@ -133,7 +133,7 @@ export function PlaygroundPreviewSheet() {
                 aria-label="Share"
                 className="h-10 w-10"
               >
-                <Share2 className="h-7 w-7" />
+                <Share2 className="size-7" />
               </Button>
               <Button
                 variant="ghost"
@@ -142,7 +142,7 @@ export function PlaygroundPreviewSheet() {
                 aria-label="Get Directions"
                 className="h-10 w-10"
               >
-                <Navigation className="h-7 w-7" />
+                <Navigation className="size-7" />
               </Button>
               <Button
                 variant="ghost"
@@ -151,7 +151,7 @@ export function PlaygroundPreviewSheet() {
                 className="h-10 w-10"
                 aria-label="Close"
               >
-                <X className="h-7 w-7" />
+                <X className="size-7" />
               </Button>
             </div>
           </div>
