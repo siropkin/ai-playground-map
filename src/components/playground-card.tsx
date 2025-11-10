@@ -36,6 +36,14 @@ interface PlaygroundCardProps {
 }
 
 /**
+ * Filter out "Unknown" values (case insensitive) from an array
+ */
+const filterUnknown = (items: string[] | null | undefined): string[] => {
+  if (!items) return [];
+  return items.filter(item => item.toLowerCase() !== "unknown");
+};
+
+/**
  * Unified PlaygroundCard component with three density variants:
  * - compact: List items (scannable overview)
  * - preview: Map popup/sheet (enough info to decide)
@@ -56,6 +64,10 @@ export function PlaygroundCard({
 
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
+
+  // Filter out "Unknown" values from features and accessibility
+  const filteredFeatures = filterUnknown(playground.features);
+  const filteredAccessibility = filterUnknown(playground.accessibility);
 
   // Text truncation logic
   const isDescriptionLong =
@@ -161,19 +173,18 @@ export function PlaygroundCard({
 
           {/* Info Indicators - Bottom Left */}
           {playground.enriched &&
-            (playground.parking || playground.accessibility?.length) && (
+            (playground.parking || filteredAccessibility.length > 0) && (
               <div className="absolute bottom-2 left-2 flex gap-1.5">
                 {playground.parking && (
                   <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                     <ParkingCircle className="text-muted-foreground h-3.5 w-3.5" />
                   </div>
                 )}
-                {playground.accessibility &&
-                  playground.accessibility.length > 0 && (
-                    <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                      <Accessibility className="text-muted-foreground h-3.5 w-3.5" />
-                    </div>
-                  )}
+                {filteredAccessibility.length > 0 && (
+                  <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                    <Accessibility className="text-muted-foreground h-3.5 w-3.5" />
+                  </div>
+                )}
               </div>
             )}
         </CardHeader>
@@ -204,9 +215,9 @@ export function PlaygroundCard({
             {/* Features - Top 3 only */}
             {!playground.enriched ? (
               <Skeleton className="h-4 w-full" />
-            ) : playground.features?.length ? (
+            ) : filteredFeatures.length > 0 ? (
               <div className="flex flex-wrap gap-1">
-                {playground.features.slice(0, 3).map((value, i) => (
+                {filteredFeatures.slice(0, 3).map((value, i) => (
                   <Badge
                     className="max-w-[calc(100%-0.25rem)] truncate text-xs"
                     variant="outline"
@@ -215,9 +226,9 @@ export function PlaygroundCard({
                     <span className="truncate">{formatEnumString(value)}</span>
                   </Badge>
                 ))}
-                {playground.features.length > 3 && (
+                {filteredFeatures.length > 3 && (
                   <Badge variant="outline" className="text-xs">
-                    +{playground.features.length - 3}
+                    +{filteredFeatures.length - 3}
                   </Badge>
                 )}
               </div>
@@ -320,19 +331,18 @@ export function PlaygroundCard({
 
         {/* Info Indicators - Bottom Left */}
         {playground.enriched &&
-          (playground.parking || playground.accessibility?.length) && (
+          (playground.parking || filteredAccessibility.length > 0) && (
             <div className="absolute bottom-2 left-2 flex gap-1.5">
               {playground.parking && (
                 <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
                   <ParkingCircle className="text-muted-foreground h-3.5 w-3.5" />
                 </div>
               )}
-              {playground.accessibility &&
-                playground.accessibility.length > 0 && (
-                  <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                    <Accessibility className="text-muted-foreground h-3.5 w-3.5" />
-                  </div>
-                )}
+              {filteredAccessibility.length > 0 && (
+                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                  <Accessibility className="text-muted-foreground h-3.5 w-3.5" />
+                </div>
+              )}
             </div>
           )}
       </div>
@@ -431,13 +441,13 @@ export function PlaygroundCard({
         {/* Features */}
         {!playground.enriched ? (
           <Skeleton className="h-20 w-full" />
-        ) : playground.features?.length ? (
+        ) : filteredFeatures.length > 0 ? (
           <div className="bg-muted/50 flex items-start gap-2 rounded-lg p-3">
             <Shapes className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Features</p>
               <div className="mt-2 flex flex-wrap gap-1">
-                {playground.features.map((value, i) => (
+                {filteredFeatures.map((value, i) => (
                   <Badge
                     className="max-w-[calc(100%-0.25rem)] truncate text-xs sm:max-w-full"
                     variant="outline"
@@ -459,10 +469,9 @@ export function PlaygroundCard({
             <Accessibility className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Accessibility Features</p>
-              {playground.accessibility &&
-              playground.accessibility.length > 0 ? (
+              {filteredAccessibility.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {playground.accessibility.map((feature, i) => (
+                  {filteredAccessibility.map((feature, i) => (
                     <Badge variant="outline" key={i} className="text-xs">
                       <span className="truncate">
                         {formatEnumString(feature)}
