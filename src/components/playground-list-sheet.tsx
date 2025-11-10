@@ -56,7 +56,7 @@ export function PlaygroundListSheet() {
               className="h-10 w-10"
               aria-label="Close"
             >
-              <X className="size-6" />
+              <X className="size-5" />
             </Button>
           </div>
         </div>
