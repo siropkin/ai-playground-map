@@ -124,7 +124,6 @@ export const MapView = React.memo(function MapView() {
     enrichPlayground,
     selectedPlayground,
     clearSelectedPlayground,
-    requestFlyTo,
     loadImagesForPlayground,
   } = usePlaygrounds();
 
@@ -132,30 +131,155 @@ export const MapView = React.memo(function MapView() {
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const userLocationMarker = useRef<mapboxgl.Marker | null>(null);
+  const userAccuracyCircle = useRef<string | null>(null);
+  const hasAutocentered = useRef<boolean>(false);
+
+  // Helper function to create/update user location marker
+  const updateUserLocationMarker = useCallback((
+    currentMap: mapboxgl.Map,
+    longitude: number,
+    latitude: number,
+    accuracy?: number
+  ) => {
+    // Remove old marker if exists
+    if (userLocationMarker.current) {
+      userLocationMarker.current.remove();
+    }
+
+    // Remove old accuracy circle if exists
+    if (userAccuracyCircle.current && currentMap.getLayer(userAccuracyCircle.current)) {
+      currentMap.removeLayer(userAccuracyCircle.current);
+    }
+    if (userAccuracyCircle.current && currentMap.getSource(userAccuracyCircle.current)) {
+      currentMap.removeSource(userAccuracyCircle.current);
+    }
+
+    // Add accuracy circle if accuracy is provided
+    if (accuracy) {
+      const circleId = 'user-location-accuracy';
+      userAccuracyCircle.current = circleId;
+
+      // Create a circle GeoJSON
+      const circleGeoJSON = {
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [longitude, latitude]
+        },
+        properties: {}
+      };
+
+      currentMap.addSource(circleId, {
+        type: 'geojson',
+        data: circleGeoJSON
+      });
+
+      currentMap.addLayer({
+        id: circleId,
+        type: 'circle',
+        source: circleId,
+        paint: {
+          'circle-radius': {
+            stops: [
+              [0, 0],
+              [20, accuracy * Math.pow(2, 20) / 156543.03392] // Convert meters to pixels at zoom 0
+            ],
+            base: 2
+          },
+          'circle-color': '#4285F4',
+          'circle-opacity': 0.1,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#4285F4',
+          'circle-stroke-opacity': 0.3
+        }
+      });
+    }
+
+    // Create the user location marker (blue dot)
+    const el = document.createElement('div');
+    el.className = 'user-location-marker';
+    el.style.width = '20px';
+    el.style.height = '20px';
+    el.style.borderRadius = '50%';
+    el.style.backgroundColor = '#4285F4';
+    el.style.border = '3px solid white';
+    el.style.boxShadow = '0 0 10px rgba(66, 133, 244, 0.5)';
+    el.style.cursor = 'pointer';
+
+    userLocationMarker.current = new mapboxgl.Marker({ element: el })
+      .setLngLat([longitude, latitude])
+      .addTo(currentMap);
+  }, []);
+
+  // Request geolocation on mount (runs once)
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation([longitude, latitude]);
+          console.log("[MapView] ✓ User location detected:", latitude, longitude);
+        },
+        (error) => {
+          console.log("[MapView] ℹ️ Geolocation not available or denied:", error.message);
+          // Don't show error - just gracefully fall back to default location
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 60000 // Cache for 1 minute
+        }
+      );
+    }
+  }, []); // Run once on mount
 
   const handleNearMeClick = useCallback(() => {
     if (!navigator.geolocation) {
-      alert("Oops! Geolocation is not supported by your browser.");
+      console.error("[MapView] ❌ Geolocation is not supported by your browser.");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
+        const { latitude, longitude, accuracy } = position.coords;
+        setUserLocation([longitude, latitude]);
+
         if (map.current) {
+          updateUserLocationMarker(map.current, longitude, latitude, accuracy);
           map.current.flyTo({
             center: [longitude, latitude],
             zoom: 14,
-            duration: 800, // Fast animation (800ms instead of default 2000ms)
+            duration: 800,
           });
         }
       },
       (error) => {
         console.error("[MapView] ❌ Error fetching location:", error);
-        alert("Oops! Can't get your location. Maybe geolocation is blocked?");
+        let errorMessage = "Can't get your location.";
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Location access denied. Please enable location permissions in your browser settings.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Location information is unavailable. Please try again.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+        }
+
+        alert(errorMessage);
       },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
     );
-  }, []);
+  }, [updateUserLocationMarker]);
 
   // Memoize GeoJSON data to prevent recreation on every render
   const playgroundsGeoJson = useMemo((): FeatureCollection<
@@ -328,28 +452,12 @@ export const MapView = React.memo(function MapView() {
           ],
           { animate: false },
         );
-        // } else if (navigator.geolocation) {
-        //   navigator.geolocation.getCurrentPosition(
-        //     (position) => {
-        //       const { latitude, longitude } = position.coords;
-        //       map.current?.flyTo({
-        //         center: [longitude, latitude],
-        //         zoom: 14,
-        //         essential: true,
-        //       });
-        //     },
-        //     (error) => {
-        //       map.current.fitBounds(
-        //         [
-        //           [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
-        //           [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
-        //         ],
-        //         { animate: false },
-        //       );
-        //       console.error("Error fetching location:", error);
-        //     },
-        //   );
+      } else if (userLocation) {
+        // If we have user location but no saved bounds, center on user
+        map.current.setCenter(userLocation);
+        map.current.setZoom(14);
       } else {
+        // Default to DC area
         map.current.fitBounds(
           [
             [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
@@ -373,7 +481,7 @@ export const MapView = React.memo(function MapView() {
       );
       console.error("[MapView] ❌ Error initializing map:", error);
     }
-  }, [mapContainer, theme, mapBounds, setMapBounds]);
+  }, [mapContainer, theme, mapBounds, setMapBounds, userLocation]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {
@@ -613,8 +721,44 @@ export const MapView = React.memo(function MapView() {
     loadImagesForPlayground,
   ]);
 
+  // Update user location marker when map loads and location is available
+  useEffect(() => {
+    if (map.current && isMapLoaded && userLocation) {
+      console.log("[MapView] ✓ Displaying user location marker at:", userLocation);
+      updateUserLocationMarker(map.current, userLocation[0], userLocation[1]);
+
+      // Auto-center on user location only on initial load (once)
+      if (!hasAutocentered.current) {
+        console.log("[MapView] ✓ Auto-centering on user location (first load)");
+        hasAutocentered.current = true;
+        map.current.flyTo({
+          center: userLocation,
+          zoom: 14,
+          duration: 800,
+        });
+      }
+    }
+  }, [isMapLoaded, userLocation, updateUserLocationMarker]);
+
   useEffect(() => {
     return () => {
+      // Cleanup user location marker
+      if (userLocationMarker.current) {
+        userLocationMarker.current.remove();
+        userLocationMarker.current = null;
+      }
+
+      // Cleanup accuracy circle
+      if (userAccuracyCircle.current && map.current) {
+        if (map.current.getLayer(userAccuracyCircle.current)) {
+          map.current.removeLayer(userAccuracyCircle.current);
+        }
+        if (map.current.getSource(userAccuracyCircle.current)) {
+          map.current.removeSource(userAccuracyCircle.current);
+        }
+        userAccuracyCircle.current = null;
+      }
+
       if (map.current) {
         map.current.remove();
         map.current = null;
