@@ -85,7 +85,7 @@ ALWAYS return JSON (no plain text explanations):
 {
   "location_confidence": "high or medium or low",
   "location_verification": "Which playground did you find and how close is it to ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}?",
-  "name": "Playground name (if OpenStreetMap name is provided, verify it matches)",
+  "name": "Playground name. If part of a larger park, include both (e.g., 'Magical Bridge Playground at Mitchell Park'). Include city if it's a well-known branded playground (e.g., 'Magical Bridge Playground, Palo Alto'). If OpenStreetMap name is provided, verify it matches.",
   "description": "2-3 sentence description",
   "features": ["slide", "swing", "climbing_frame"],
   "parking": "Specific parking information (e.g., 'Street parking available on Main St', 'Free parking lot on site', 'Metered parking nearby'). Use null if no specific parking information is found. NEVER use vague phrases like 'not mentioned' or 'more information may be available'.",

@@ -132,6 +132,16 @@ const PLAYGROUND_KEYWORDS = {
     'museum',
     'concert',
     'event',
+    'beer',
+    'brewery',
+    'bar',
+    'pub',
+    'wine',
+    'winery',
+    'alcohol',
+    'cocktail',
+    'liquor',
+    'nightlife',
   ],
 };
 
