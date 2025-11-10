@@ -50,10 +50,10 @@ export function PlaygroundPreviewSheet() {
     <Sheet open={isOpen} onOpenChange={(open) => !open && clearSelectedPlayground()}>
       <SheetContent
         side="bottom"
-        className="flex max-h-[90vh] flex-col rounded-t-2xl"
+        className="flex max-h-[85vh] flex-col rounded-t-2xl"
       >
         {/* Visually hidden for accessibility, with drag handle */}
-        <SheetHeader className="relative flex h-12 flex-shrink-0 items-center justify-center border-b">
+        <SheetHeader className="relative flex h-12 flex-shrink-0 items-center justify-center border-b pr-12">
           <VisuallyHidden>
             <SheetTitle>{name}</SheetTitle>
             <SheetDescription>Playground details</SheetDescription>
@@ -62,7 +62,7 @@ export function PlaygroundPreviewSheet() {
         </SheetHeader>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-8">
           {currentPlayground && (
             <PlaygroundCard
               playground={currentPlayground}
