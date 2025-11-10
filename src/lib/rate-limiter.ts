@@ -6,6 +6,7 @@ import pLimit from "p-limit";
  */
 
 // AI API rate limiter (used for Gemini and other AI providers)
-// Limits to 2 concurrent requests to be conservative with Gemini free tier
-// Gemini 2.0 Flash: 10 RPM free tier, so 2 concurrent with delays should stay under limit
+// Limits to 2 concurrent requests to be conservative
+// Gemini 2.0 Flash: 15 RPM free tier, 2,000 RPM paid tier
+// With paid tier, we can safely handle multiple concurrent requests
 export const aiLimiter = pLimit(2);

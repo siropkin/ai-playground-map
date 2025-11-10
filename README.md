@@ -81,9 +81,9 @@ Follow these steps to set up the project locally:
 
      # Google Gemini Config (AI text enrichment with web search)
      GEMINI_API_KEY=your_gemini_api_key
-     # Using gemini-2.0-flash-exp - supports google_search grounding
-     # Alternative stable models: gemini-1.5-flash-latest, gemini-1.5-pro-latest
-     GEMINI_MODEL=gemini-2.0-flash-exp
+     # Using gemini-2.0-flash - stable model with high rate limits (2,000 RPM on paid tier)
+     # Alternative models: gemini-1.5-flash-latest, gemini-1.5-pro-latest
+     GEMINI_MODEL=gemini-2.0-flash
      GEMINI_TEMPERATURE=0.2
 
      # Google Custom Search API for Images
@@ -114,7 +114,7 @@ Feel free to reach out if you want to contribute or have ideas:
 ## 💰 Project Costs & Support
 
 To run this project, I use:
-- **Google Gemini API** for AI-powered playground research (free tier: 15 RPM with gemini-2.0-flash-exp)
+- **Google Gemini API** for AI-powered playground research (paid tier: 2,000 RPM with gemini-2.0-flash)
 - **Google Custom Search API** for high-quality images (free tier: 100 queries/day, then $5 per 1000 queries)
 
 All costs are paid out of my own pocket to keep this resource free for everyone.

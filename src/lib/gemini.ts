@@ -14,7 +14,7 @@
  * - Cache-first strategy: Checks cache with osmId only (no geocoding) for instant results
  *
  * Rate Limits:
- * - Gemini: Free tier 15 RPM (gemini-2.0-flash-exp), 10 RPM with grounding
+ * - Gemini: Free tier 15 RPM, Paid tier 2,000 RPM (gemini-2.0-flash)
  * - Google Custom Search: Free tier 100 queries/day, then $5 per 1000 queries
  *
  * @see https://ai.google.dev/ - Google Gemini API docs
