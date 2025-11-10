@@ -98,10 +98,16 @@ export function PlaygroundCard({
     try {
       // Always copy to clipboard first
       await navigator.clipboard.writeText(url.toString());
-      toast.success("Link copied to clipboard!");
+
+      const isMobile = navigator.share && /mobile/i.test(navigator.userAgent);
+
+      // Only show toast on desktop - mobile will show native share sheet
+      if (!isMobile) {
+        toast.success("Link copied to clipboard!");
+      }
 
       // Additionally trigger native share on mobile if available
-      if (navigator.share && /mobile/i.test(navigator.userAgent)) {
+      if (isMobile) {
         const shareData = {
           title: name,
           text: `Check out ${name}`,

@@ -66,9 +66,15 @@ export function PlaygroundPreviewSheet() {
 
     try {
       await navigator.clipboard.writeText(url.toString());
-      toast.success("Link copied to clipboard!");
 
-      if (navigator.share && /mobile/i.test(navigator.userAgent)) {
+      const isMobile = navigator.share && /mobile/i.test(navigator.userAgent);
+
+      // Only show toast on desktop - mobile will show native share sheet
+      if (!isMobile) {
+        toast.success("Link copied to clipboard!");
+      }
+
+      if (isMobile) {
         const shareData = {
           title: name,
           text: `Check out ${name}`,
