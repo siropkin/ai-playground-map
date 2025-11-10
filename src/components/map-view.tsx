@@ -231,12 +231,12 @@ export const MapView = React.memo(function MapView() {
 
   // Request geolocation on mount (runs once)
   useEffect(() => {
-    // If URL params exist, user has already chosen a location
-    if (mapBounds) {
-      console.log("[MapView] 🔗 URL params exist, skipping geolocation");
-      setGeolocationStatus('denied'); // Consider it as resolved
+    const hasExistingBounds = !!mapBounds;
+
+    if (hasExistingBounds) {
+      console.log("[MapView] 🔗 URL/session bounds exist, setting geolocation status to resolved");
+      setGeolocationStatus('denied'); // Mark as resolved so data loads
       geolocationStatusRef.current = 'denied';
-      return;
     }
 
     console.log("[MapView] 📍 Starting geolocation check...");
@@ -249,8 +249,8 @@ export const MapView = React.memo(function MapView() {
 
           setUserLocation([longitude, latitude]);
 
-          // If map is already initialized, fly to user location
-          if (map.current) {
+          // Only fly to user location if we don't have existing bounds
+          if (!hasExistingBounds && map.current) {
             console.log("[MapView] 🚁 Flying to user location");
             const [lng, lat] = [longitude, latitude];
             const latOffset = 0.01;
@@ -267,17 +267,20 @@ export const MapView = React.memo(function MapView() {
               ],
               { duration: 1500 },
             );
-          } else {
+          } else if (!hasExistingBounds) {
             // Map not ready yet, just update status
             setGeolocationStatus('granted');
             geolocationStatusRef.current = 'granted';
+          } else {
+            // Has existing bounds, just show the marker without flying
+            console.log("[MapView] 📍 Showing user location marker (not flying)");
           }
         },
         (error) => {
           console.log("[MapView] ℹ️ Geolocation denied or error:", error.message);
 
-          // If map is already initialized, fly to DC
-          if (map.current) {
+          // Only fly to DC if we don't have existing bounds
+          if (!hasExistingBounds && map.current) {
             console.log("[MapView] 🚁 Flying to default location (DC)");
 
             // Set status BEFORE flying so moveend event can update bounds
@@ -291,7 +294,7 @@ export const MapView = React.memo(function MapView() {
               ],
               { duration: 1500 },
             );
-          } else {
+          } else if (!hasExistingBounds) {
             // Map not ready yet, just update status
             setGeolocationStatus('denied');
             geolocationStatusRef.current = 'denied';
@@ -310,8 +313,10 @@ export const MapView = React.memo(function MapView() {
       };
     } else {
       console.log("[MapView] ℹ️ Geolocation not supported");
-      setGeolocationStatus('denied');
-      geolocationStatusRef.current = 'denied';
+      if (!hasExistingBounds) {
+        setGeolocationStatus('denied');
+        geolocationStatusRef.current = 'denied';
+      }
     }
   }, [mapBounds]);
 
