@@ -53,13 +53,13 @@ export function PlaygroundCard({
 }: PlaygroundCardProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isParkingExpanded, setIsParkingExpanded] = useState(false);
-  const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
 
   const name = playground.name || UNNAMED_PLAYGROUND;
   const displayImage = playground.images?.[0];
 
   // Text truncation logic
-  const isDescriptionLong = playground.description && playground.description.length > 150;
+  const isDescriptionLong =
+    playground.description && playground.description.length > 150;
   const isParkingLong = playground.parking && playground.parking.length > 150;
 
   // Share functionality
@@ -68,18 +68,18 @@ export function PlaygroundCard({
 
     // Create URL with playground centered in view
     const url = new URL(window.location.origin);
-    url.searchParams.set('playground', playground.osmId.toString());
+    url.searchParams.set("playground", playground.osmId.toString());
 
     // Add map bounds centered on the playground (zoom level 15 for detail)
     const zoom = 15;
     const latOffset = 0.01; // Approximate bounds for zoom 15
     const lonOffset = 0.01;
 
-    url.searchParams.set('south', (playground.lat - latOffset).toString());
-    url.searchParams.set('north', (playground.lat + latOffset).toString());
-    url.searchParams.set('west', (playground.lon - lonOffset).toString());
-    url.searchParams.set('east', (playground.lon + lonOffset).toString());
-    url.searchParams.set('zoom', zoom.toString());
+    url.searchParams.set("south", (playground.lat - latOffset).toString());
+    url.searchParams.set("north", (playground.lat + latOffset).toString());
+    url.searchParams.set("west", (playground.lon - lonOffset).toString());
+    url.searchParams.set("east", (playground.lon + lonOffset).toString());
+    url.searchParams.set("zoom", zoom.toString());
 
     try {
       // Always copy to clipboard first
@@ -154,26 +154,28 @@ export function PlaygroundCard({
 
           {/* Tier Badge - Top Right */}
           {playground.enriched && !hideTierBadge && playground.tier && (
-            <div className="absolute right-2 top-2">
+            <div className="absolute top-2 right-2">
               <TierBadge tier={playground.tier} variant="compact" />
             </div>
           )}
 
           {/* Info Indicators - Bottom Left */}
-          {playground.enriched && (playground.parking || playground.accessibility?.length) && (
-            <div className="absolute bottom-2 left-2 flex gap-1.5">
-              {playground.parking && (
-                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                  <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              )}
-              {playground.accessibility && playground.accessibility.length > 0 && (
-                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                  <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-          )}
+          {playground.enriched &&
+            (playground.parking || playground.accessibility?.length) && (
+              <div className="absolute bottom-2 left-2 flex gap-1.5">
+                {playground.parking && (
+                  <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                    <ParkingCircle className="text-muted-foreground h-3.5 w-3.5" />
+                  </div>
+                )}
+                {playground.accessibility &&
+                  playground.accessibility.length > 0 && (
+                    <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                      <Accessibility className="text-muted-foreground h-3.5 w-3.5" />
+                    </div>
+                  )}
+              </div>
+            )}
         </CardHeader>
 
         {/* Content Section - 2/3 width */}
@@ -275,7 +277,9 @@ export function PlaygroundCard({
       )}
 
       {/* Image Section */}
-      <div className={`relative ${isDetailed ? "h-64" : "h-48"} w-full flex-shrink-0 overflow-hidden rounded-lg`}>
+      <div
+        className={`relative ${isDetailed ? "h-64" : "h-48"} w-full flex-shrink-0 overflow-hidden rounded-lg`}
+      >
         {!playground.enriched ? (
           <div className="relative h-full w-full bg-zinc-200 dark:bg-zinc-700">
             <Skeleton className="h-full w-full" />
@@ -309,26 +313,28 @@ export function PlaygroundCard({
 
         {/* Tier Badge - Top Right */}
         {playground.enriched && !hideTierBadge && playground.tier && (
-          <div className="absolute right-2 top-2 z-10">
+          <div className="absolute top-2 right-2 z-10">
             <TierBadge tier={playground.tier} variant="compact" />
           </div>
         )}
 
         {/* Info Indicators - Bottom Left */}
-        {playground.enriched && (playground.parking || playground.accessibility?.length) && (
-          <div className="absolute bottom-2 left-2 flex gap-1.5">
-            {playground.parking && (
-              <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                <ParkingCircle className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-            )}
-            {playground.accessibility && playground.accessibility.length > 0 && (
-              <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
-                <Accessibility className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-        )}
+        {playground.enriched &&
+          (playground.parking || playground.accessibility?.length) && (
+            <div className="absolute bottom-2 left-2 flex gap-1.5">
+              {playground.parking && (
+                <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                  <ParkingCircle className="text-muted-foreground h-3.5 w-3.5" />
+                </div>
+              )}
+              {playground.accessibility &&
+                playground.accessibility.length > 0 && (
+                  <div className="bg-background/90 flex items-center rounded-full p-1.5 backdrop-blur-sm">
+                    <Accessibility className="text-muted-foreground h-3.5 w-3.5" />
+                  </div>
+                )}
+            </div>
+          )}
       </div>
 
       {/* Content Section */}
@@ -339,7 +345,9 @@ export function PlaygroundCard({
             {!playground.enriched ? (
               <Skeleton className="h-6 w-3/4" />
             ) : (
-              <h3 className={`font-semibold ${isDetailed ? "text-2xl" : "text-lg"}`}>
+              <h3
+                className={`font-semibold ${isDetailed ? "text-2xl" : "text-lg"}`}
+              >
                 {name}
               </h3>
             )}
@@ -373,7 +381,13 @@ export function PlaygroundCard({
           <Skeleton className="h-16 w-full" />
         ) : playground.description ? (
           <div className="text-muted-foreground text-sm">
-            <p className={!isDescriptionExpanded && isDescriptionLong && !isDetailed ? "line-clamp-3" : ""}>
+            <p
+              className={
+                !isDescriptionExpanded && isDescriptionLong && !isDetailed
+                  ? "line-clamp-3"
+                  : ""
+              }
+            >
               {playground.description}
             </p>
             {isDescriptionLong && !isDetailed && (
@@ -404,7 +418,7 @@ export function PlaygroundCard({
                 {playground.tier === "star" ? "⭐" : "💎"}
               </span>
               <div className="flex-1">
-                <p className="text-sm font-medium leading-5 text-purple-900 dark:text-purple-200">
+                <p className="text-sm leading-5 font-medium text-purple-900 dark:text-purple-200">
                   Why This Is Special
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm text-purple-800 dark:text-purple-300">
@@ -418,7 +432,7 @@ export function PlaygroundCard({
         {!playground.enriched ? (
           <Skeleton className="h-20 w-full" />
         ) : playground.features?.length ? (
-          <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+          <div className="bg-muted/50 flex items-start gap-2 rounded-lg p-3">
             <Shapes className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Features</p>
@@ -441,15 +455,18 @@ export function PlaygroundCard({
         {!playground.enriched ? (
           <Skeleton className="h-20 w-full" />
         ) : (
-          <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+          <div className="bg-muted/50 flex items-start gap-2 rounded-lg p-3">
             <Accessibility className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Accessibility Features</p>
-              {playground.accessibility && playground.accessibility.length > 0 ? (
+              {playground.accessibility &&
+              playground.accessibility.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {playground.accessibility.map((feature, i) => (
                     <Badge variant="outline" key={i} className="text-xs">
-                      <span className="truncate">{formatEnumString(feature)}</span>
+                      <span className="truncate">
+                        {formatEnumString(feature)}
+                      </span>
                     </Badge>
                   ))}
                 </div>
@@ -466,14 +483,16 @@ export function PlaygroundCard({
         {!playground.enriched ? (
           <Skeleton className="h-20 w-full" />
         ) : (
-          <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+          <div className="bg-muted/50 flex items-start gap-2 rounded-lg p-3">
             <ParkingCircle className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Parking</p>
               <div className="mt-1">
                 {playground.parking ? (
                   <div>
-                    <p className={`text-muted-foreground text-sm ${!isParkingExpanded && isParkingLong && !isDetailed ? "line-clamp-3" : ""}`}>
+                    <p
+                      className={`text-muted-foreground text-sm ${!isParkingExpanded && isParkingLong && !isDetailed ? "line-clamp-3" : ""}`}
+                    >
                       {playground.parking}
                     </p>
                     {isParkingLong && !isDetailed && (
@@ -502,20 +521,22 @@ export function PlaygroundCard({
         {!playground.enriched ? (
           <Skeleton className="h-6 w-full" />
         ) : playground.address ? (
-          <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+          <div className="bg-muted/50 flex items-start gap-2 rounded-lg p-3">
             <MapPin className="text-muted-foreground mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Address</p>
               {onFlyTo ? (
                 <button
-                  className="text-muted-foreground mt-1 cursor-pointer text-sm underline hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground mt-1 cursor-pointer text-sm underline"
                   onClick={() => onFlyTo([playground.lon, playground.lat])}
                   aria-label={`See ${name} on the map`}
                 >
                   {playground.address}
                 </button>
               ) : (
-                <p className="text-muted-foreground mt-1 text-sm">{playground.address}</p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  {playground.address}
+                </p>
               )}
             </div>
           </div>
@@ -547,7 +568,11 @@ export function PlaygroundCard({
               Get Directions
             </Button>
             {onViewDetails && playground.enriched && (
-              <Button variant="outline" className="flex-1" onClick={onViewDetails}>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={onViewDetails}
+              >
                 View Details
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
