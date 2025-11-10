@@ -383,11 +383,33 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
   const selectPlayground = useCallback((playground: Playground) => {
     setSelectedPlayground(playground);
+    // Update URL with query param
+    const url = new URL(window.location.href);
+    url.searchParams.set('playground', playground.osmId.toString());
+    window.history.pushState({}, '', url.toString());
   }, []);
 
   const clearSelectedPlayground = useCallback(() => {
     setSelectedPlayground(null);
+    // Remove query param from URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('playground');
+    window.history.pushState({}, '', url.toString());
   }, []);
+
+  // Initialize from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const playgroundId = params.get('playground');
+
+    if (playgroundId) {
+      // Find playground in current list
+      const playground = playgrounds.find(p => p.osmId.toString() === playgroundId);
+      if (playground) {
+        setSelectedPlayground(playground);
+      }
+    }
+  }, [playgrounds]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(

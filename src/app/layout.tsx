@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { Toaster } from "sonner";
 
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/constants";
 import { FiltersProvider } from "@/contexts/filters-context";
@@ -74,6 +75,7 @@ export default function RootLayout({
               </PlaygroundsProvider>
             </FiltersProvider>
           </AuthProvider>
+          <Toaster position="top-center" toastOptions={{ style: { zIndex: 9999 } }} />
         </ThemeProvider>
         <Analytics />
       </body>

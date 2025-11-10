@@ -7,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { createRoot, type Root } from "react-dom/client";
 import { useTheme } from "next-themes";
 import { MapPin } from "lucide-react";
 import mapboxgl from "mapbox-gl";
@@ -20,8 +19,6 @@ import { useFilters } from "@/contexts/filters-context";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { PlaygroundPreview } from "@/components/playground-preview";
-import { TierBadge } from "@/components/tier-badge";
 import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 // Safely set Mapbox access token with proper error handling
@@ -134,8 +131,6 @@ export const MapView = React.memo(function MapView() {
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const popupRef = useRef<mapboxgl.Popup | null>(null);
-  const popupRootRef = useRef<Root | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleNearMeClick = useCallback(() => {
@@ -425,28 +420,8 @@ export const MapView = React.memo(function MapView() {
             selectedPlayground &&
             selectedPlayground.osmId === playground.osmId
           ) {
-            if (popupRef.current) {
-              popupRef.current.remove();
-              if (popupRootRef.current) {
-                const rootToUnmount = popupRootRef.current;
-                setTimeout(() => rootToUnmount.unmount(), 0);
-                popupRootRef.current = null;
-              }
-              popupRef.current = null;
-            }
             clearSelectedPlayground();
             return;
-          }
-
-          // Close existing popup before selecting new one to prevent race condition
-          if (popupRef.current) {
-            popupRef.current.remove();
-            if (popupRootRef.current) {
-              const rootToUnmount = popupRootRef.current;
-              setTimeout(() => rootToUnmount.unmount(), 0);
-              popupRootRef.current = null;
-            }
-            popupRef.current = null;
           }
 
           selectPlayground(playground);
@@ -476,28 +451,8 @@ export const MapView = React.memo(function MapView() {
             selectedPlayground &&
             selectedPlayground.osmId === playground.osmId
           ) {
-            if (popupRef.current) {
-              popupRef.current.remove();
-              if (popupRootRef.current) {
-                const rootToUnmount = popupRootRef.current;
-                setTimeout(() => rootToUnmount.unmount(), 0);
-                popupRootRef.current = null;
-              }
-              popupRef.current = null;
-            }
             clearSelectedPlayground();
             return;
-          }
-
-          // Close existing popup before selecting new one to prevent race condition
-          if (popupRef.current) {
-            popupRef.current.remove();
-            if (popupRootRef.current) {
-              const rootToUnmount = popupRootRef.current;
-              setTimeout(() => rootToUnmount.unmount(), 0);
-              popupRootRef.current = null;
-            }
-            popupRef.current = null;
           }
 
           selectPlayground(playground);
@@ -637,169 +592,24 @@ export const MapView = React.memo(function MapView() {
     }
   }, [flyToCoords, clearFlyToRequest]);
 
-  // Desktop popup management - Create/Remove popup when selection changes
+  // Desktop: No popup needed - handled by sidebar in page.tsx
+  // Mobile: Handled by PlaygroundPreviewSheet component
+  // This effect only triggers image loading when needed
   useEffect(() => {
-    if (!map.current || !isMapLoaded) return;
-
-    // Check if desktop (768px+)
-    const isDesktop = window.innerWidth >= 768;
-    if (!isDesktop) return; // Mobile uses Sheet instead
-
-    // Clean up existing popup with delay to prevent flicker
-    if (popupRef.current) {
-      popupRef.current.remove();
-      if (popupRootRef.current) {
-        // Defer unmount to avoid race condition with React rendering
-        const rootToUnmount = popupRootRef.current;
-        setTimeout(() => rootToUnmount.unmount(), 0);
-        popupRootRef.current = null;
-      }
-      popupRef.current = null;
-    }
-
-    // Create popup if playground selected
-    if (selectedPlayground) {
-      // Get the latest playground data from the array (in case it was enriched)
-      const currentPlayground =
-        playgrounds.find((p) => p.osmId === selectedPlayground.osmId) ||
-        selectedPlayground;
-
-      const popupNode = document.createElement("div");
-
-      // Create popup at playground location with smart positioning
-      const popup = new mapboxgl.Popup({
-        closeButton: true,
-        closeOnClick: false,
-        maxWidth: "400px",
-        className: "playground-popup",
-        anchor: "left", // Position popup to the right of marker to avoid sidebar
-        offset: 25, // Offset to the right from marker
-      })
-        .setLngLat([currentPlayground.lon, currentPlayground.lat])
-        .setDOMContent(popupNode)
-        .addTo(map.current);
-
-      // Handle popup close
-      popup.on("close", () => {
-        clearSelectedPlayground();
-      });
-
-      // Render React component into popup
-      const root = createRoot(popupNode);
-      root.render(
-        <div className="flex flex-col">
-          {/* Header with title and space for close button */}
-          <div className="flex items-center justify-between gap-3 px-3 pt-3 pb-0 sm:pb-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              <h3 className="max-w-[280px] truncate text-base font-semibold">
-                {currentPlayground.name || UNNAMED_PLAYGROUND}
-              </h3>
-              {currentPlayground.enriched && currentPlayground.tier && (
-                <TierBadge
-                  tier={currentPlayground.tier}
-                  size="sm"
-                  className="flex-shrink-0"
-                />
-              )}
-            </div>
-            {/* Space reserved for Mapbox close button */}
-            <div className="h-6 w-6 flex-shrink-0" />
-          </div>
-          {/* Content */}
-          <div className="px-2 pt-2 pb-2 sm:pt-0">
-            <PlaygroundPreview
-              playground={currentPlayground}
-              onViewDetails={clearSelectedPlayground}
-              onFlyTo={(coords) => {
-                requestFlyTo(coords);
-                clearSelectedPlayground();
-              }}
-              hideTitle
-              hideTierBadge
-              hideBottomIndicators
-            />
-          </div>
-        </div>,
-      );
-
-      popupRef.current = popup;
-      popupRootRef.current = root;
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (popupRef.current) {
-        popupRef.current.remove();
-      }
-      if (popupRootRef.current) {
-        // Defer unmount to avoid race condition with React rendering
-        const rootToUnmount = popupRootRef.current;
-        setTimeout(() => rootToUnmount.unmount(), 0);
-      }
-    };
-  }, [
-    selectedPlayground,
-    isMapLoaded,
-    clearSelectedPlayground,
-    requestFlyTo,
-    playgrounds,
-  ]);
-
-  // Update popup content when playground data changes (without recreating popup)
-  useEffect(() => {
-    if (!popupRootRef.current || !selectedPlayground) return;
+    if (!selectedPlayground) return;
 
     // Get the latest playground data
     const currentPlayground =
       playgrounds.find((p) => p.osmId === selectedPlayground.osmId) ||
       selectedPlayground;
 
-    // Lazy-load images when popup is visible on desktop and playground is enriched
+    // Lazy-load images when playground is selected and enriched
     if (currentPlayground.enriched && !currentPlayground.images) {
       loadImagesForPlayground(currentPlayground.osmId);
     }
-
-    // Re-render the popup content with updated data
-    popupRootRef.current.render(
-      <div className="flex flex-col">
-        {/* Header with title and space for close button */}
-        <div className="flex items-center justify-between gap-3 px-3 pt-3 pb-0 sm:pb-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <h3 className="max-w-[280px] truncate text-base font-semibold">
-              {currentPlayground.name || UNNAMED_PLAYGROUND}
-            </h3>
-            {currentPlayground.enriched && currentPlayground.tier && (
-              <TierBadge
-                tier={currentPlayground.tier}
-                size="sm"
-                className="flex-shrink-0"
-              />
-            )}
-          </div>
-          {/* Space reserved for Mapbox close button */}
-          <div className="h-6 w-6 flex-shrink-0" />
-        </div>
-        {/* Content */}
-        <div className="px-2 pt-2 pb-2 sm:pt-0">
-          <PlaygroundPreview
-            playground={currentPlayground}
-            onViewDetails={clearSelectedPlayground}
-            onFlyTo={(coords) => {
-              requestFlyTo(coords);
-              clearSelectedPlayground();
-            }}
-            hideTitle
-            hideTierBadge
-            hideBottomIndicators
-          />
-        </div>
-      </div>,
-    );
   }, [
     playgrounds,
     selectedPlayground,
-    clearSelectedPlayground,
-    requestFlyTo,
     loadImagesForPlayground,
   ]);
 

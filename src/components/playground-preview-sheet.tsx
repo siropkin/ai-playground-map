@@ -8,10 +8,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { PlaygroundPreview } from "@/components/playground-preview";
+import { PlaygroundCard } from "@/components/playground-card";
 import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 import { useMediaQuery } from "@/lib/hooks";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { UNNAMED_PLAYGROUND } from "@/lib/constants";
 
 export function PlaygroundPreviewSheet() {
   const {
@@ -39,39 +40,38 @@ export function PlaygroundPreviewSheet() {
 
   const name = currentPlayground?.name || UNNAMED_PLAYGROUND;
 
-  const previewContent = currentPlayground ? (
-    <PlaygroundPreview
-      playground={currentPlayground}
-      onViewDetails={clearSelectedPlayground}
-      onFlyTo={(coords) => {
-        requestFlyTo(coords);
-        clearSelectedPlayground();
-      }}
-      hideTitle
-      hideBottomIndicators
-    />
-  ) : null;
-
-  // Desktop: Map handles popup (don't render anything here)
+  // Desktop: Handled by PlaygroundDetailSidebar
   if (isDesktop) {
     return null;
   }
 
-  // Mobile: Use Sheet (bottom drawer)
+  // Mobile: Use Sheet (bottom drawer) - always show detailed view like desktop
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && clearSelectedPlayground()}>
       <SheetContent
         side="bottom"
-        className="flex max-h-[65vh] flex-col rounded-t-2xl p-4"
+        className="flex max-h-[90vh] flex-col rounded-t-2xl"
       >
-        <SheetHeader className="mb-4">
-          <SheetTitle>{name}</SheetTitle>
-          <SheetDescription>
-            {currentPlayground?.address || "Playground preview"}
-          </SheetDescription>
+        {/* Visually hidden for accessibility, with drag handle */}
+        <SheetHeader className="relative flex h-12 flex-shrink-0 items-center justify-center border-b">
+          <VisuallyHidden>
+            <SheetTitle>{name}</SheetTitle>
+            <SheetDescription>Playground details</SheetDescription>
+          </VisuallyHidden>
+          <div className="bg-muted absolute left-1/2 top-2 h-1 w-12 -translate-x-1/2 rounded-full" />
         </SheetHeader>
-        <div className="flex flex-1 flex-col overflow-y-auto">
-          {previewContent}
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {currentPlayground && (
+            <PlaygroundCard
+              playground={currentPlayground}
+              variant="detailed"
+              onFlyTo={(coords) => {
+                requestFlyTo(coords);
+              }}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>
