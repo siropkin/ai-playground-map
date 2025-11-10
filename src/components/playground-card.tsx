@@ -32,6 +32,7 @@ interface PlaygroundCardProps {
   onBack?: () => void;
   hideTitle?: boolean;
   hideTierBadge?: boolean;
+  hideInfoIndicators?: boolean;
   className?: string;
 }
 
@@ -57,6 +58,7 @@ export function PlaygroundCard({
   onBack,
   hideTitle = false,
   hideTierBadge = false,
+  hideInfoIndicators = false,
   className = "",
 }: PlaygroundCardProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -173,6 +175,7 @@ export function PlaygroundCard({
 
           {/* Info Indicators - Bottom Left */}
           {playground.enriched &&
+            !hideInfoIndicators &&
             (playground.parking || filteredAccessibility.length > 0) && (
               <div className="absolute bottom-2 left-2 flex gap-1.5">
                 {playground.parking && (
@@ -331,6 +334,7 @@ export function PlaygroundCard({
 
         {/* Info Indicators - Bottom Left */}
         {playground.enriched &&
+          !hideInfoIndicators &&
           (playground.parking || filteredAccessibility.length > 0) && (
             <div className="absolute bottom-2 left-2 flex gap-1.5">
               {playground.parking && (
