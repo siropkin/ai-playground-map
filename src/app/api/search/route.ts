@@ -143,6 +143,12 @@ export async function POST(
           const cachedInsights = await fetchAIInsightsFromCache({ cacheKey });
 
           if (cachedInsights) {
+            // Filter out invalid image URLs from old cache (x-raw-image:// format from Gemini pre-v5.0.0)
+            const validImages = cachedInsights.images?.filter(img =>
+              img.image_url &&
+              (img.image_url.startsWith('http://') || img.image_url.startsWith('https://'))
+            ) || null;
+
             // Populate playground with cached AI insights
             return {
               ...playground,
@@ -151,7 +157,7 @@ export async function POST(
               features: cachedInsights.features,
               parking: cachedInsights.parking,
               sources: cachedInsights.sources,
-              images: cachedInsights.images,
+              images: validImages && validImages.length > 0 ? validImages : null, // Only include if we have valid images
               accessibility: cachedInsights.accessibility,
               tier: cachedInsights.tier,
               tierReasoning: cachedInsights.tier_reasoning,

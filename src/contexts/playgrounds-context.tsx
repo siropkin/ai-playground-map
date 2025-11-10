@@ -294,6 +294,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             // Remove from queued set since enrichment completed
             enrichmentQueuedRef.current.delete(p.osmId);
 
+            // Filter out invalid image URLs from old cache (x-raw-image:// format from Gemini pre-v5.0.0)
+            const validImages = result.insights?.images?.filter(img =>
+              img.image_url &&
+              (img.image_url.startsWith('http://') || img.image_url.startsWith('https://'))
+            ) || null;
+
             // Tier now comes directly from Gemini AI (no local calculation)
             // Mark as enriched even if insights is null (enrichment completed but found nothing)
             return {
@@ -303,7 +309,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               features: result.insights?.features || p.features,
               parking: result.insights?.parking || p.parking,
               sources: result.insights?.sources || p.sources,
-              images: result.insights?.images || p.images,
+              images: validImages && validImages.length > 0 ? validImages : p.images,
               accessibility: validateAccessibility(result.insights?.accessibility) || p.accessibility,
               tier: result.insights?.tier || null,
               tierReasoning: result.insights?.tier_reasoning || null,
