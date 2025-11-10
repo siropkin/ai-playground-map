@@ -445,6 +445,8 @@ export const MapView = React.memo(function MapView() {
       });
 
       if (mapBounds) {
+        // URL params present - use them and skip auto-centering
+        console.log("[MapView] ℹ️ Initializing with URL params:", mapBounds);
         map.current.fitBounds(
           [
             [mapBounds.west, mapBounds.south],
@@ -452,12 +454,16 @@ export const MapView = React.memo(function MapView() {
           ],
           { animate: false },
         );
+        hasAutocentered.current = true; // Mark as autocentered to prevent future attempts
       } else if (userLocation) {
         // If we have user location but no saved bounds, center on user
+        console.log("[MapView] ℹ️ Initializing with user location:", userLocation);
         map.current.setCenter(userLocation);
         map.current.setZoom(14);
+        hasAutocentered.current = true; // Mark as autocentered since we used it in init
       } else {
         // Default to DC area
+        console.log("[MapView] ℹ️ Initializing with default bounds (DC area)");
         map.current.fitBounds(
           [
             [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
@@ -727,18 +733,21 @@ export const MapView = React.memo(function MapView() {
       console.log("[MapView] ✓ Displaying user location marker at:", userLocation);
       updateUserLocationMarker(map.current, userLocation[0], userLocation[1]);
 
-      // Auto-center on user location only on initial load (once)
-      if (!hasAutocentered.current) {
-        console.log("[MapView] ✓ Auto-centering on user location (first load)");
+      // Auto-center on user location only on initial load (once) and only if no URL params exist
+      if (!hasAutocentered.current && !mapBounds) {
+        console.log("[MapView] ✓ Auto-centering on user location (first load, no URL params)");
         hasAutocentered.current = true;
         map.current.flyTo({
           center: userLocation,
           zoom: 14,
           duration: 800,
         });
+      } else if (mapBounds) {
+        console.log("[MapView] ℹ️ Skipping auto-center (URL params present)");
+        hasAutocentered.current = true; // Mark as autocentered to prevent future attempts
       }
     }
-  }, [isMapLoaded, userLocation, updateUserLocationMarker]);
+  }, [isMapLoaded, userLocation, updateUserLocationMarker, mapBounds]);
 
   useEffect(() => {
     return () => {
