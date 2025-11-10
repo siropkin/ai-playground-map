@@ -52,7 +52,7 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        point: "#6b7280", // Gray-500 for neighborhood tier
+        point: "#4b5563", // Gray-600 for neighborhood tier (darker)
         pointStroke: "#FFFFFF",
         label: "#374151", // Gray-700 for better readability
         clusterBg: "#000000",
@@ -60,7 +60,7 @@ const getMapColors = (theme: string | undefined) => {
         labelHalo: "#FFFFFF",
       }
     : {
-        point: "#9ca3af", // Gray-400 for neighborhood tier
+        point: "#6b7280", // Gray-500 for neighborhood tier (darker)
         pointStroke: "#374151", // Gray-700 for stroke
         label: "#d1d5db", // Gray-300 for better readability
         clusterBg: "#FFFFFF",
@@ -379,7 +379,7 @@ export const MapView = React.memo(function MapView() {
               "match",
               ["get", "tier"],
               "star",
-              12, // Larger for Star
+              10, // Same size as Gem
               "gem",
               10, // Slightly larger for Gem
               9, // Default for neighborhood

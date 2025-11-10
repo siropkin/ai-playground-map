@@ -10,17 +10,14 @@ export const MapLegend = React.memo(function MapLegend() {
     {
       name: "Star",
       color: "#f59e0b",
-      strokeColor: "#fbbf24",
     },
     {
       name: "Gem",
       color: "#a855f7",
-      strokeColor: "#c084fc",
     },
     {
       name: "Local",
-      color: theme === "light" ? "#6b7280" : "#9ca3af",
-      strokeColor: theme === "light" ? "#FFFFFF" : "#374151",
+      color: theme === "light" ? "#4b5563" : "#6b7280",
     },
   ];
 
@@ -33,7 +30,6 @@ export const MapLegend = React.memo(function MapLegend() {
               className="h-2 w-2 flex-shrink-0 rounded-full"
               style={{
                 backgroundColor: tier.color,
-                border: `1.5px solid ${tier.strokeColor}`,
               }}
             />
             <span className="text-xs font-medium">
