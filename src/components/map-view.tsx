@@ -52,20 +52,32 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        point: "#4b5563", // Gray-600 for neighborhood tier (darker)
-        pointStroke: "#FFFFFF",
+        // Tier colors
+        star: "#f59e0b", // Amber-500
+        starStroke: "#fbbf24", // Amber-400
+        gem: "#a855f7", // Purple-500
+        gemStroke: "#c084fc", // Purple-400
+        neighborhood: "#4b5563", // Gray-600
+        neighborhoodStroke: "#FFFFFF",
+        // Text colors
         label: "#374151", // Gray-700 for better readability
-        clusterBg: "#000000",
-        clusterText: "#FFFFFF",
         labelHalo: "#FFFFFF",
+        tierText: "#FFFFFF", // White text on colored backgrounds
+        neighborhoodText: "#FFFFFF", // White text on neighborhood clusters
       }
     : {
-        point: "#6b7280", // Gray-500 for neighborhood tier (darker)
-        pointStroke: "#374151", // Gray-700 for stroke
+        // Tier colors
+        star: "#f59e0b", // Amber-500
+        starStroke: "#fbbf24", // Amber-400
+        gem: "#a855f7", // Purple-500
+        gemStroke: "#c084fc", // Purple-400
+        neighborhood: "#6b7280", // Gray-500
+        neighborhoodStroke: "#374151", // Gray-700
+        // Text colors
         label: "#d1d5db", // Gray-300 for better readability
-        clusterBg: "#FFFFFF",
-        clusterText: "#000000",
         labelHalo: "#000000",
+        tierText: "#FFFFFF", // White text on colored backgrounds
+        neighborhoodText: "#000000", // Black text on neighborhood clusters (light mode)
       };
 };
 
@@ -309,6 +321,18 @@ export const MapView = React.memo(function MapView() {
           cluster: true,
           clusterMaxZoom: 14,
           clusterRadius: 15,
+          clusterProperties: {
+            // Track if cluster has any star tier playgrounds
+            hasStar: [
+              "any",
+              ["case", ["==", ["get", "tier"], "star"], true, false],
+            ],
+            // Track if cluster has any gem tier playgrounds
+            hasGem: [
+              "any",
+              ["case", ["==", ["get", "tier"], "gem"], true, false],
+            ],
+          },
         });
       } else {
         (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
@@ -324,7 +348,14 @@ export const MapView = React.memo(function MapView() {
           source: SOURCE_ID,
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": mapColors.clusterBg,
+            "circle-color": [
+              "case",
+              ["get", "hasStar"],
+              mapColors.star,
+              ["get", "hasGem"],
+              mapColors.gem,
+              mapColors.neighborhood,
+            ],
             "circle-radius": [
               "step",
               ["get", "point_count"],
@@ -334,8 +365,22 @@ export const MapView = React.memo(function MapView() {
               750,
               25,
             ],
-            "circle-stroke-width": 1,
-            "circle-stroke-color": mapColors.clusterText,
+            "circle-stroke-width": [
+              "case",
+              ["get", "hasStar"],
+              2,
+              ["get", "hasGem"],
+              2,
+              1,
+            ],
+            "circle-stroke-color": [
+              "case",
+              ["get", "hasStar"],
+              mapColors.starStroke,
+              ["get", "hasGem"],
+              mapColors.gemStroke,
+              mapColors.neighborhoodStroke,
+            ],
           },
         });
       }
@@ -353,7 +398,14 @@ export const MapView = React.memo(function MapView() {
             "text-size": 12,
           },
           paint: {
-            "text-color": mapColors.clusterText,
+            "text-color": [
+              "case",
+              ["get", "hasStar"],
+              mapColors.tierText,
+              ["get", "hasGem"],
+              mapColors.tierText,
+              mapColors.neighborhoodText,
+            ],
           },
         });
       }
@@ -370,37 +422,37 @@ export const MapView = React.memo(function MapView() {
               "match",
               ["get", "tier"],
               "star",
-              "#f59e0b", // Amber-500 for Star
+              mapColors.star,
               "gem",
-              "#a855f7", // Purple-500 for Gem
-              mapColors.point, // Default for neighborhood
+              mapColors.gem,
+              mapColors.neighborhood,
             ],
             "circle-radius": [
               "match",
               ["get", "tier"],
               "star",
-              10, // Same size as Gem
+              10,
               "gem",
-              10, // Slightly larger for Gem
-              9, // Default for neighborhood
+              10,
+              9,
             ],
             "circle-stroke-width": [
               "match",
               ["get", "tier"],
               "star",
-              2, // Thicker stroke for Star
+              2,
               "gem",
-              2, // Thicker stroke for Gem
-              1, // Default for neighborhood
+              2,
+              1,
             ],
             "circle-stroke-color": [
               "match",
               ["get", "tier"],
               "star",
-              "#fbbf24", // Amber-400 for Star stroke
+              mapColors.starStroke,
               "gem",
-              "#c084fc", // Purple-400 for Gem stroke
-              mapColors.pointStroke, // Default for neighborhood
+              mapColors.gemStroke,
+              mapColors.neighborhoodStroke,
             ],
           },
         });
