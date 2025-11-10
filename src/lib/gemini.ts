@@ -88,7 +88,7 @@ ALWAYS return JSON (no plain text explanations):
   "name": "Playground name (if OpenStreetMap name is provided, verify it matches)",
   "description": "2-3 sentence description",
   "features": ["slide", "swing", "climbing_frame"],
-  "parking": "Parking information",
+  "parking": "Specific parking information (e.g., 'Street parking available on Main St', 'Free parking lot on site', 'Metered parking nearby'). Use null if no specific parking information is found. NEVER use vague phrases like 'not mentioned' or 'more information may be available'.",
   "accessibility": ["wheelchair_accessible", "accessible_surface"],
   "tier": "star or gem or neighborhood",
   "tier_reasoning": "Why this tier? (1-2 sentences)"
