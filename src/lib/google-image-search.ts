@@ -410,6 +410,12 @@ export async function searchImages(
         };
       })
       .filter(img => {
+        // Filter out invalid/inaccessible image URLs (x-raw-image:// format from Google)
+        if (!img.image_url.startsWith('http://') && !img.image_url.startsWith('https://')) {
+          console.log(`[Google Images] 🚫 Invalid URL format: ${img.image_url.substring(0, 50)}...`);
+          return false;
+        }
+
         // Filter by minimum score
         if (img.score < minScore) {
           console.log(`[Google Images] 🚫 Low score (${img.score}): ${img.origin_url}`);
