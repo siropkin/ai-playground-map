@@ -200,11 +200,11 @@ export function PlaygroundCard({
             {!playground.enriched ? (
               <Skeleton className="h-16 w-full" />
             ) : playground.description ? (
-              <p className={`text-muted-foreground text-xs ${filteredFeatures.length > 0 ? "line-clamp-5" : "line-clamp-[9]"}`}>
+              <p className={`text-muted-foreground text-sm ${filteredFeatures.length > 0 ? "line-clamp-5" : "line-clamp-[9]"}`}>
                 {playground.description}
               </p>
             ) : (
-              <p className="text-muted-foreground text-xs italic">
+              <p className="text-muted-foreground text-sm italic">
                 This playground&apos;s keeping its secrets (even from AI) 🤷
               </p>
             )}

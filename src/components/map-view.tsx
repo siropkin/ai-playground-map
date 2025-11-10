@@ -784,7 +784,7 @@ export const MapView = React.memo(function MapView() {
       const zoom = map.current.getZoom();
       map.current.flyTo({
         center: flyToCoords,
-        zoom: Math.max(zoom, 16),
+        zoom: Math.max(zoom, 17),
         duration: 800, // Fast animation (800ms instead of default 2000ms)
         essential: true,
       });
