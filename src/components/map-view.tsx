@@ -35,6 +35,7 @@ const SOURCE_ID = "playgrounds";
 const CLUSTER_LAYER_ID = "clusters";
 const CLUSTER_COUNT_LAYER_ID = "cluster-count";
 const UNCLUSTERED_POINT_LAYER_ID = "unclustered-point";
+const UNCLUSTERED_POINT_HIT_LAYER_ID = "unclustered-point-hit";
 const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
 const DEFAULT_BOUNDS = {
   south: 38.806,
@@ -410,7 +411,22 @@ export const MapView = React.memo(function MapView() {
         });
       }
 
-      // Layer for Unclustered Points (Circles)
+      // Layer for Unclustered Points - Invisible hit area for better touch targets
+      if (!currentMap.getLayer(UNCLUSTERED_POINT_HIT_LAYER_ID)) {
+        currentMap.addLayer({
+          id: UNCLUSTERED_POINT_HIT_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": "transparent",
+            "circle-radius": 20, // Larger hit area for easier tapping
+            "circle-opacity": 0,
+          },
+        });
+      }
+
+      // Layer for Unclustered Points (Circles) - Visual layer
       if (!currentMap.getLayer(UNCLUSTERED_POINT_LAYER_ID)) {
         currentMap.addLayer({
           id: UNCLUSTERED_POINT_LAYER_ID,
@@ -682,7 +698,12 @@ export const MapView = React.memo(function MapView() {
       }
     };
 
-    // Unclustered Points
+    // Unclustered Points - Hit Layer (larger touch target)
+    map.current.on("click", UNCLUSTERED_POINT_HIT_LAYER_ID, handlePointClick);
+    map.current.on("mouseenter", UNCLUSTERED_POINT_HIT_LAYER_ID, handleMouseEnter);
+    map.current.on("mouseleave", UNCLUSTERED_POINT_HIT_LAYER_ID, handleMouseLeave);
+
+    // Unclustered Points - Visual Layer
     map.current.on("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
     map.current.on("mouseenter", UNCLUSTERED_POINT_LAYER_ID, handleMouseEnter);
     map.current.on("mouseleave", UNCLUSTERED_POINT_LAYER_ID, handleMouseLeave);
@@ -699,7 +720,19 @@ export const MapView = React.memo(function MapView() {
 
     return () => {
       if (map.current) {
-        // Unclustered Points
+        // Unclustered Points - Hit Layer
+        map.current.off("click", UNCLUSTERED_POINT_HIT_LAYER_ID, handlePointClick);
+        map.current.off(
+          "mouseenter",
+          UNCLUSTERED_POINT_HIT_LAYER_ID,
+          handleMouseEnter,
+        );
+        map.current.off(
+          "mouseleave",
+          UNCLUSTERED_POINT_HIT_LAYER_ID,
+          handleMouseLeave,
+        );
+        // Unclustered Points - Visual Layer
         map.current.off("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
         map.current.off(
           "mouseenter",

@@ -131,27 +131,27 @@ export function PlaygroundPreviewSheet() {
                 size="icon"
                 onClick={handleShare}
                 aria-label="Share"
-                className="h-8 w-8"
+                className="h-10 w-10"
               >
-                <Share2 className="h-4 w-4" />
+                <Share2 className="h-6 w-6" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleDirections}
                 aria-label="Get Directions"
-                className="h-8 w-8"
+                className="h-10 w-10"
               >
-                <Navigation className="h-4 w-4" />
+                <Navigation className="h-6 w-6" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => clearSelectedPlayground()}
-                className="h-8 w-8"
+                className="h-10 w-10"
                 aria-label="Close"
               >
-                <X className="h-4 w-4" />
+                <X className="h-6 w-6" />
               </Button>
             </div>
           </div>
