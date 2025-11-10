@@ -189,6 +189,7 @@ const DOMAIN_TIERS = {
     'yelpcdn.com', // Yelp CDN (not business pages)
     'yelp.com/search', // Yelp search results (not relevant)
     's3-media0.fl.yelpcdn', // Yelp CDN images
+    'discoversantaclara.org', // Tourism site with mixed/irrelevant content
   ],
 };
 
