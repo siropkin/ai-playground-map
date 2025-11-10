@@ -249,6 +249,8 @@ import { Spinner } from "@/components/ui/spinner";
 ## Recent Changes & Bug Fixes
 
 ### Latest Commits
+- **[Pending]** - Add distance validation to prevent AI from assigning wrong playground names
+- **[Pending]** - Add debugging scripts for cache invalidation and AI enrichment testing
 - `2857db9` - **Performance**: Cache-first strategy (5-30× faster cached insights)
 - `f3666ef` - Fix flash of "No playgrounds found" on initial load
 - `5c8b43a` - Improve loading state UX (added "Thinking..." text, shadcn Spinner)
@@ -257,6 +259,7 @@ import { Spinner } from "@/components/ui/spinner";
 - `126a323` - Rename "Buy me a coffee" → "Support"
 
 ### Known Issues (Fixed)
+- ✅ AI incorrectly assigning names from far-away playgrounds (Nov 2025)
 - ✅ Way/Relation OSM types now properly cached with prefixed IDs (N/W/R)
 - ✅ Image loading works for all OSM types
 - ✅ Detail page 404s fixed for Way/Relation playgrounds
@@ -322,6 +325,227 @@ import { Spinner } from "@/components/ui/spinner";
 | Batch enrichment (5 cached) | 100-150ms | Skip geocoding for cached playgrounds |
 | Batch enrichment (5 uncached) | 15-30s | Geocode + Gemini + images for all |
 
+## Debugging & Troubleshooting
+
+### Available Debug Scripts
+
+Located in `/scripts/` directory:
+
+#### 1. Cache Invalidation Script
+**Purpose:** Clear stale AI insights and images cache for specific playgrounds
+
+**Usage:**
+```bash
+# Clear cache for specific playgrounds (by OSM ID)
+npx tsx scripts/invalidate-playground-cache.ts W969448818 W1255936512
+
+# Works with or without type prefix (N/W/R)
+npx tsx scripts/invalidate-playground-cache.ts 969448818 1255936512
+```
+
+**When to use:**
+- Playground showing incorrect name/data
+- AI generated wrong information
+- Need to force re-enrichment
+- Testing AI prompt changes
+
+#### 2. AI Enrichment Debug Script
+**Purpose:** Test AI enrichment for specific coordinates to see what Gemini returns
+
+**Usage:**
+```bash
+# Test without OSM name (unnamed playground)
+npx tsx scripts/debug-ai-enrichment.ts 37.5305535 -122.2862704
+
+# Test with OSM name (named playground)
+npx tsx scripts/debug-ai-enrichment.ts 37.5379872 -122.3149726 "Beresford Park Playground"
+```
+
+**What it shows:**
+- AI confidence level (high/medium/low)
+- Location verification details
+- Returned name, description, features
+- Distance validation results
+- Source URLs from web search
+
+**When to use:**
+- Investigating why AI assigned wrong name
+- Testing distance validation logic
+- Verifying AI prompt changes
+- Understanding AI decision-making
+
+### Common Issues & Solutions
+
+#### Issue: Playground Shows Wrong Name
+
+**Symptoms:**
+- Playground displays name of a different, nearby playground
+- Multiple playgrounds showing the same name
+
+**Investigation Steps:**
+1. **Check OSM data directly:**
+   ```bash
+   curl -s "https://overpass-api.de/api/interpreter" \
+     -d "data=[out:json];(way(583248973););out center;" | \
+     jq '.elements[] | {id, name: .tags.name, lat: .center.lat, lon: .center.lon}'
+   ```
+
+2. **Test AI enrichment:**
+   ```bash
+   npx tsx scripts/debug-ai-enrichment.ts <lat> <lon> "<osm-name>"
+   ```
+
+3. **Check distance validation:**
+   - Look for `location_verification` in debug output
+   - AI might claim playground is closer than it actually is
+   - Distance validation rejects if >250m for medium confidence
+
+4. **Clear cache and re-enrich:**
+   ```bash
+   npx tsx scripts/invalidate-playground-cache.ts <playground-id>
+   ```
+
+5. **Hard refresh browser:** `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows)
+
+**Root Causes:**
+- Gemini AI incorrectly identifying nearby playground
+- Stale cache from before validation fixes
+- AI claiming incorrect distance (e.g., says "400m" when actually 2.6km)
+
+**Prevention:**
+- Distance validation in `src/lib/gemini.ts` (added Nov 2025)
+- Rejects medium confidence if distance claim >250m
+- Rejects all low confidence results
+
+#### Issue: Cache Not Clearing
+
+**Symptoms:**
+- Script says "deleted 0 entries"
+- Playground still shows old data after cache clear
+
+**Solutions:**
+1. **Check OSM type prefix:**
+   ```bash
+   # Playgrounds can be Node (N), Way (W), or Relation (R)
+   npx tsx scripts/invalidate-playground-cache.ts W583248973  # Not N583248973!
+   ```
+
+2. **Verify in API response:**
+   ```bash
+   curl -X POST http://localhost:3000/api/search \
+     -H "Content-Type: application/json" \
+     -H "x-app-origin: internal" \
+     -d '{"bounds":{...}}' | \
+     jq '.[] | select(.id == 583248973) | {id, name, osmType}'
+   ```
+
+3. **Frontend state persistence:**
+   - Cache cleared but React state still has old data
+   - Solution: Hard refresh browser (Cmd+Shift+R)
+
+#### Issue: Distance Validation Not Working
+
+**Symptoms:**
+- AI still assigning names from far-away playgrounds
+- Distance validation logs not appearing
+
+**Check:**
+1. **Look for validation logs:**
+   ```
+   [Gemini] ⚠️ Medium confidence but distance too far (400m > 250m) - rejecting "Name"
+   ```
+
+2. **Test with debug script:**
+   ```bash
+   npx tsx scripts/debug-ai-enrichment.ts <lat> <lon>
+   ```
+
+3. **Verify distance in location_verification:**
+   - AI must include distance in text (e.g., "approximately 400 meters away")
+   - Validation parses: meters, m, km, miles
+
+### API Testing Without UI
+
+**Fetch playground data:**
+```bash
+curl -X POST http://localhost:3000/api/search \
+  -H "Content-Type: application/json" \
+  -H "x-app-origin: internal" \
+  -d '{"bounds":{"south":37.517,"north":37.548,"west":-122.34,"east":-122.27,"zoom":13.8}}' | \
+  jq '.[] | select(.id == 583248973)'
+```
+
+**Calculate distance between playgrounds:**
+```bash
+node -e "
+const [lat1, lon1, lat2, lon2] = [37.5379872, -122.3149726, 37.5305535, -122.2862704];
+const R = 6371e3;
+const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+const Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180;
+const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
+const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+console.log(\`Distance: \${Math.round(d)}m (\${(d/1609.34).toFixed(2)} miles)\`);
+"
+```
+
+### Understanding the Cache Layers
+
+**3 Cache Layers:**
+
+1. **OSM Query Cache** (Supabase `osm_query_cache` table)
+   - TTL: 24 hours
+   - Stores raw OpenStreetMap query results
+   - Cleared rarely (data rarely changes)
+
+2. **AI Insights Cache** (Supabase `ai_insights_cache` table)
+   - TTL: 90 days
+   - Stores Gemini API results (name, description, features, tier)
+   - **This is what causes "wrong name" issues**
+   - Cache key: `v17-tier-fields-fixed:W123456`
+
+3. **Frontend React State** (in-memory)
+   - Lives only during browser session
+   - `PlaygroundsProvider` preserves enriched playgrounds across map movements
+   - **Persists old data even after cache is cleared**
+   - Solution: Hard refresh browser
+
+### Workflow for Investigating Wrong Names
+
+1. **Identify the issue:**
+   ```
+   User: "Playground 1255936512 shows as 'Beresford Park' but it's not"
+   ```
+
+2. **Get OSM ground truth:**
+   ```bash
+   curl -s "https://overpass-api.de/api/interpreter" \
+     -d "data=[out:json];(way(1255936512););out center;" | \
+     jq '.elements[0] | {name: .tags.name, lat: .center.lat, lon: .center.lon}'
+   # Result: name is null, lat/lon are 37.5305535, -122.2862704
+   ```
+
+3. **Test what AI returns:**
+   ```bash
+   npx tsx scripts/debug-ai-enrichment.ts 37.5305535 -122.2862704
+   # Look at: confidence, verification (distance), returned name
+   ```
+
+4. **Calculate actual distance to claimed playground:**
+   ```bash
+   # Use node distance calculator (see above)
+   # Compare AI's claimed distance vs actual distance
+   ```
+
+5. **If distance validation should trigger:**
+   - Check if `location_verification` contains distance
+   - Verify validation logic in `src/lib/gemini.ts:205-227`
+
+6. **Clear cache and re-test:**
+   ```bash
+   npx tsx scripts/invalidate-playground-cache.ts 1255936512
+   # Then hard refresh browser
+   ```
+
 ## Testing
 
 ### Manual Testing Checklist
@@ -338,6 +562,7 @@ import { Spinner } from "@/components/ui/spinner";
 2. **Enrichment Quality**: Verify location validation works
 3. **Caching**: Confirm cache hits show instantly
 4. **Error Handling**: Network failures show graceful fallbacks
+5. **Distance Validation**: AI should reject playgrounds >250m away (medium confidence)
 
 ## Deployment
 
