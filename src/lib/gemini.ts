@@ -202,6 +202,30 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       return null;
     }
 
+    // Phase 2 Enhancement: Validate distance claims in location_verification
+    // Parse distance from verification text (e.g., "approximately 400 meters away")
+    if (base.location_verification && base.location_confidence === "medium") {
+      const distanceMatch = base.location_verification.match(/(\d+)\s*(meters?|m|km|miles?)/i);
+      if (distanceMatch) {
+        let distanceMeters = parseFloat(distanceMatch[1]);
+        const unit = distanceMatch[2].toLowerCase();
+
+        // Convert to meters
+        if (unit.startsWith('km')) {
+          distanceMeters *= 1000;
+        } else if (unit.startsWith('mile')) {
+          distanceMeters *= 1609.34;
+        }
+
+        // Reject if claimed distance is > 250m for medium confidence
+        // This prevents AI from assigning names of far-away playgrounds
+        if (distanceMeters > 250) {
+          console.warn(`[Gemini] ⚠️ Medium confidence but distance too far (${Math.round(distanceMeters)}m > 250m) - rejecting "${base.name}"`);
+          return null;
+        }
+      }
+    }
+
     // Log medium confidence results for monitoring
     if (base.location_confidence === "medium") {
       console.info(`[Gemini] ℹ️ Medium confidence result for ${cityState} - "${base.name}"`);
