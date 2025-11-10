@@ -16,13 +16,16 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export function PlaygroundListSheet() {
-  const { loading, flyToCoords } = usePlaygrounds();
+  const { flyToCoords } = usePlaygrounds();
 
   const [open, setOpen] = useState(false);
 
+  // Close sheet when user explicitly flies to a location
   useEffect(() => {
-    setOpen(false);
-  }, [loading, flyToCoords]);
+    if (flyToCoords) {
+      setOpen(false);
+    }
+  }, [flyToCoords]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
