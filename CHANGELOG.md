@@ -5,6 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2025-11-09
+
+### Added - Major Features
+
+#### Gemini 2.0 Flash AI Integration
+- **Migrated from Perplexity to Google Gemini AI with tier ratings and image search**
+- Upgraded to stable Gemini 2.0 Flash model with paid tier support
+- Implemented robust JSON parsing for malformed Gemini API responses
+- Separated image service from Gemini AI for proper architecture
+- AI-powered playground information enrichment with enhanced accuracy
+
+#### User Location & Auto-Centering
+- **Implemented auto-centering geolocation with user location marker**
+- User's current location displayed on map with distinct marker
+- Automatically centers map on user's location on first visit
+- Smart behavior: prevents auto-centering when URL parameters are present
+
+#### Enhanced Map Features
+- **Unified tier marker sizes for consistent visual appearance**
+- Added playground tier legend with color scheme
+- Darkened local tier color for better visibility
+- Sort playground list by distance from map center for easier discovery
+- Improved marker visibility and touch targets
+
+### Improved - User Experience
+
+#### Complete UX/UI Overhaul
+- **Completely redesigned user interface with unified component architecture**
+- Consistent design language across all pages and components
+- Better visual hierarchy and information presentation
+- Enhanced mobile responsiveness and touch interactions
+
+#### Data Flow Optimization
+- **Comprehensive data flow optimization and cache management overhaul**
+- Lazy image loading with center-to-edge prioritization
+- Optimized data fetching and caching strategies
+- Better performance with reduced unnecessary API calls
+- Implemented comprehensive cache management system
+
+#### Console Logging
+- Standardized console logging format across entire codebase
+- Better debugging experience with consistent log messages
+- Improved error tracking and monitoring
+
+### Improved - Data Quality
+
+#### Enhanced Filtering & Validation
+- Filter out "Unknown" values from features and accessibility data
+- Add distance validation to prevent AI from assigning incorrect playground names
+- Better geographic accuracy with validation checks
+- Improved data consistency and reliability
+
+### Fixed - Bugs
+
+#### Popup Close Button Fix
+- Fixed popup close button becoming unresponsive during data enrichment
+- Better state management during asynchronous operations
+- Improved user interaction reliability
+
+#### Image Display
+- Removed image counter from carousel display for cleaner UI
+- Optimized image loading and display
+- Better handling of missing or failed images
+
+#### Mobile Improvements
+- Increased map marker sizes for better mobile touch targets
+- Improved touch interaction reliability
+- Better responsive behavior on small screens
+
+### Changed - Breaking Changes
+
+#### AI Provider Migration
+- **Complete migration from Perplexity to Gemini AI**
+- Removed all Perplexity references from codebase
+- Updated AI prompts based on 2025 best practices
+- New AI model provides better accuracy and performance
+
+### Technical Improvements
+
+#### Cache Management
+- Added SQL scripts to clear all cache tables
+- Implemented cache versioning and validation
+- Better cache hit rates and performance
+- Comprehensive cache clearing utilities
+
+#### Development & Debugging
+- Added comprehensive debugging scripts
+- Created troubleshooting documentation
+- Better developer experience with improved tooling
+- Enhanced error messages and logging
+
+#### Code Quality
+- Fixed TypeScript and ESLint errors across codebase
+- Better type safety and code reliability
+- Improved code organization and maintainability
+
+---
+
 ## [4.1.0] - 2025-01-09
 
 ### Changed - Accessibility Schema Simplification
