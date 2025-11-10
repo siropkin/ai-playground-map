@@ -108,7 +108,7 @@ export function PlaygroundDetailSidebar({
         {/* Header with title and actions */}
         <div className="border-b flex-shrink-0 px-4 py-3">
           {/* Title row */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold flex-1 truncate">{name}</h2>
             <div className="flex gap-1 flex-shrink-0">
               <Button
@@ -118,7 +118,7 @@ export function PlaygroundDetailSidebar({
                 aria-label="Share"
                 className="h-8 w-8"
               >
-                <Share2 className="h-4 w-4" />
+                <Share2 className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
@@ -127,7 +127,7 @@ export function PlaygroundDetailSidebar({
                 aria-label="Get Directions"
                 className="h-8 w-8"
               >
-                <Navigation className="h-4 w-4" />
+                <Navigation className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
@@ -136,7 +136,7 @@ export function PlaygroundDetailSidebar({
                 className="h-8 w-8"
                 aria-label="Close"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </Button>
             </div>
           </div>

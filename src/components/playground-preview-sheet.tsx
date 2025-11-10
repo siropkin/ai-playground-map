@@ -123,7 +123,7 @@ export function PlaygroundPreviewSheet() {
         {/* Header with title and actions */}
         <div className="border-b flex-shrink-0 px-4 py-3">
           {/* Title row */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <SheetTitle className="text-lg font-semibold flex-1 truncate">{name}</SheetTitle>
             <div className="flex gap-1 flex-shrink-0">
               <Button
@@ -133,7 +133,7 @@ export function PlaygroundPreviewSheet() {
                 aria-label="Share"
                 className="h-10 w-10"
               >
-                <Share2 className="h-6 w-6" />
+                <Share2 className="h-7 w-7" />
               </Button>
               <Button
                 variant="ghost"
@@ -142,7 +142,7 @@ export function PlaygroundPreviewSheet() {
                 aria-label="Get Directions"
                 className="h-10 w-10"
               >
-                <Navigation className="h-6 w-6" />
+                <Navigation className="h-7 w-7" />
               </Button>
               <Button
                 variant="ghost"
@@ -151,7 +151,7 @@ export function PlaygroundPreviewSheet() {
                 className="h-10 w-10"
                 aria-label="Close"
               >
-                <X className="h-6 w-6" />
+                <X className="h-7 w-7" />
               </Button>
             </div>
           </div>
