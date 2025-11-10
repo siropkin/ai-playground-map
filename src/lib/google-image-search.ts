@@ -4,14 +4,19 @@
  * Provides high-quality playground image search using Google's Custom Search JSON API.
  * Integrated as part of the Gemini AI implementation (Nov 2025).
  *
- * Quality Improvements (v3 - Advanced):
+ * Quality Improvements (v4 - Keyword Filtering):
  * - **Pagination**: Fetches up to 30 images (3 pages) then filters/ranks
- * - **Relevance Scoring**: 5-factor scoring system (0-100 points):
+ * - **Relevance Scoring**: 6-factor scoring system (0-100 points):
  *   • Domain quality (40pts): Prioritizes .gov, parks, playground-specific sites
  *   • Image size (25pts): Prefers high-resolution images (2MP+)
  *   • Recency (15pts): URL pattern analysis for recent dates
  *   • Title relevance (15pts): Matches query terms and playground keywords
  *   • File format (5pts): Prefers JPG/PNG over WebP
+ *   • Keyword filtering (penalty-based): Ensures playground relevance
+ *     - Primary keywords (park, playground, school): No penalty
+ *     - Secondary keywords (rec center, splash pad): -5pts
+ *     - Tertiary keywords (mall, apartment): -10pts
+ *     - No keywords: -25pts | Excluded keywords (fair, storage): -30pts
  * - **Dimension Filtering**: Minimum 400x300px (configurable)
  * - **Domain Prioritization**: 3-tier whitelist system + exclusion list
  * - **Sort by date**: Prefers most recent images first
@@ -67,6 +72,68 @@ interface CustomSearchResponse {
     errors: Array<{ reason: string; message: string }>;
   };
 }
+
+/**
+ * Playground-related keywords for relevance filtering
+ * Based on research: 46% playgrounds in schools, 31% in parks, 10% in childcare
+ */
+const PLAYGROUND_KEYWORDS = {
+  // Tier 1: Strong match - Primary playground locations (no penalty)
+  primary: [
+    'playground',
+    'play ground',
+    'park',
+    'school',
+    'elementary',
+    'preschool',
+    'pre-school',
+    'childcare',
+    'child care',
+    'daycare',
+    'day care',
+  ],
+
+  // Tier 2: Good match - Secondary playground locations (small penalty: -5pts)
+  secondary: [
+    'recreation center',
+    'rec center',
+    'community center',
+    'regional park',
+    'neighborhood park',
+    'splash pad',
+    'spray park',
+    'tot lot',
+    'play area',
+    'play structure',
+  ],
+
+  // Tier 3: Acceptable - Tertiary locations (moderate penalty: -10pts)
+  tertiary: [
+    'mall',
+    'shopping center',
+    'shopping centre',
+    'apartment',
+    'residential',
+    'restaurant',
+  ],
+
+  // Excluded: Content that's definitely not playground-related (heavy penalty: -30pts)
+  excluded: [
+    'storage',
+    'moving',
+    'relocation',
+    'real estate',
+    'fair',
+    'festival',
+    'amusement park',
+    'theme park',
+    'water park', // Unless it has playground
+    'zoo',
+    'museum',
+    'concert',
+    'event',
+  ],
+};
 
 /**
  * Domain priority tiers for scoring
@@ -178,7 +245,42 @@ function scoreImage(
   else if (imageUrl.endsWith('.webp')) score += 3;
   else score += 2;
 
-  return Math.min(score, 100);
+  // 6. Playground Keyword Relevance (penalty-based system)
+  // Check title and URL for playground-related keywords
+  const textToCheck = `${title} ${url}`;
+
+  // Check for excluded keywords first (auto-disqualify)
+  const hasExcluded = PLAYGROUND_KEYWORDS.excluded.some(keyword =>
+    textToCheck.includes(keyword)
+  );
+  if (hasExcluded) {
+    score -= 30; // Heavy penalty for excluded content
+  }
+
+  // Check for playground keywords
+  const hasPrimary = PLAYGROUND_KEYWORDS.primary.some(keyword =>
+    textToCheck.includes(keyword)
+  );
+  const hasSecondary = PLAYGROUND_KEYWORDS.secondary.some(keyword =>
+    textToCheck.includes(keyword)
+  );
+  const hasTertiary = PLAYGROUND_KEYWORDS.tertiary.some(keyword =>
+    textToCheck.includes(keyword)
+  );
+
+  // Apply penalties based on keyword tier
+  if (hasPrimary) {
+    // Primary keywords: no penalty (best case)
+  } else if (hasSecondary) {
+    score -= 5; // Small penalty for secondary locations
+  } else if (hasTertiary) {
+    score -= 10; // Moderate penalty for tertiary locations
+  } else {
+    // No playground keywords at all
+    score -= 25; // Heavy penalty for missing keywords
+  }
+
+  return Math.min(Math.max(score, 0), 100); // Clamp to 0-100
 }
 
 /**
