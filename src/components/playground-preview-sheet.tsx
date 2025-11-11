@@ -94,26 +94,10 @@ export function PlaygroundPreviewSheet() {
     if (!currentPlayground) return;
 
     const { lat, lon } = currentPlayground;
-    const isMobile = /mobile/i.test(navigator.userAgent);
-    const isMac = /Mac/i.test(navigator.userAgent);
 
-    if (isMobile) {
-      // On mobile, use geo: URL which triggers native map app picker
-      const geoUrl = `geo:${lat},${lon}?q=${lat},${lon}(${encodeURIComponent(name)})`;
-      window.location.href = geoUrl;
-    } else if (isMac) {
-      // On macOS, try to open native Maps app
-      const mapsUrl = `maps://maps.apple.com/?daddr=${lat},${lon}`;
-      window.location.href = mapsUrl;
-      // Fallback to Google Maps if Maps app doesn't open
-      setTimeout(() => {
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`, "_blank");
-      }, 500);
-    } else {
-      // On other desktop, open Google Maps in new tab
-      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-      window.open(directionsUrl, "_blank");
-    }
+    // Simple approach: Open Google Maps directions in new tab/window for all platforms
+    const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    window.open(directionsUrl, "_blank");
   };
 
   // Show on map functionality
