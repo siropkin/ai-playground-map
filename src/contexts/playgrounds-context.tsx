@@ -124,7 +124,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 };
               }
 
-              // New playground - ensure tier fields are null
+              // Check if new playground already has enrichment data from API
+              if (newPlayground.enriched) {
+                return newPlayground;
+              }
+
+              // New unenriched playground - ensure tier fields are null
               return {
                 ...newPlayground,
                 tier: null,

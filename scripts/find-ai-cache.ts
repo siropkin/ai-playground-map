@@ -46,7 +46,7 @@ async function findAICache() {
 
   const { data, error } = await supabase
     .from('ai_insights_cache')
-    .select('cache_key, insights, created_at')
+    .select('cache_key, name, tier, tier_reasoning, created_at')
     .ilike('cache_key', `%${osmId}%`)
     .order('created_at', { ascending: false });
 
@@ -66,8 +66,9 @@ async function findAICache() {
     console.log(`Entry ${idx + 1}:`);
     console.log(`  Cache Key: ${entry.cache_key}`);
     console.log(`  Created: ${new Date(entry.created_at).toLocaleString()}`);
-    console.log(`  Tier: ${(entry.insights as any)?.tier || 'null'}`);
-    console.log(`  Name: ${(entry.insights as any)?.name || 'null'}`);
+    console.log(`  Name: ${entry.name || 'null'}`);
+    console.log(`  Tier: ${entry.tier || 'null'}`);
+    console.log(`  Tier Reasoning: ${entry.tier_reasoning || 'null'}`);
     console.log('');
   });
 }
