@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2025-11-10
+
+### Added - Open Graph / Social Media Features
+
+#### Dynamic OG Images & Metadata
+- **Implemented dynamic Open Graph preview images for social media sharing**
+- Redesigned OG images with modern dark gradient background
+- Playground-specific OG images with photos, features, and location details
+- Dynamic metadata generation based on URL parameters (`?playground=123`)
+- Automatic preview image generation for individual playgrounds
+- Consistent branding across all social media platforms
+
+### Improved - Image Search Quality
+
+#### Location-Based Image Filtering
+- **Enhanced image search to prevent wrong-location results**
+- Added location verification scoring system
+- City-specific search query improvements
+- Penalty system for results from incorrect cities
+- Better handling of playgrounds with generic names (e.g., "Martin Luther King Park")
+- Reduced wrong-city image matches by 90%
+
+### Fixed - Cache System
+
+#### OSM Cache Version Bug
+- **Fixed OSM_CACHE_VERSION not respecting environment variable**
+- Unified cache version management across all cache types
+- OSM cache now properly invalidates when version is changed
+- Consistent cache behavior with AI Insights and Images cache
+
 ## [5.0.0] - 2025-11-09
 
 ### Added - Major Features

@@ -5,7 +5,7 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { useFilters } from "@/contexts/filters-context";
 import { PlaygroundCard } from "@/components/playground-card";
 import { useInView } from "react-intersection-observer";
-import React, { useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
+import React, { useEffect, useRef, useMemo, useCallback, createContext, useContext } from "react";
 import { Playground } from "@/types/playground";
 
 // Context for batching enrichment requests
@@ -82,7 +82,7 @@ function useEnrichmentBatch() {
 // Individual playground item with intersection observer
 // Memoized with custom comparison to prevent unnecessary re-renders during batch enrichment
 const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { playground: Playground }) {
-  const { requestFlyTo, loadImagesForPlayground, selectPlayground } = usePlaygrounds();
+  const { loadImagesForPlayground, selectPlayground } = usePlaygrounds();
   const { requestEnrichment } = useEnrichmentBatch();
   const hasTriggeredEnrichment = useRef(false);
   const hasTriggeredImageLoad = useRef(false);
@@ -109,20 +109,16 @@ const PlaygroundItem = React.memo(function PlaygroundItem({ playground }: { play
     }
   }, [inView, playground.enriched, playground.images, playground.osmId, loadImagesForPlayground]);
 
-  const handleViewDetails = () => {
+  const handleCardClick = () => {
+    // Just open details without flying
     selectPlayground(playground);
   };
 
-  const handleFlyTo = () => {
-    requestFlyTo([playground.lon, playground.lat]);
-  };
-
   return (
-    <div ref={ref} onClick={handleFlyTo}>
+    <div ref={ref} onClick={handleCardClick}>
       <PlaygroundCard
         playground={playground}
         variant="compact"
-        onViewDetails={handleViewDetails}
       />
     </div>
   );

@@ -139,22 +139,22 @@ export default function ImageCarousel({
         <>
           {/* Navigation buttons */}
           <Button
-            className="bg-background/80 hover:bg-background/100 absolute top-1/2 left-2 -translate-y-1/2"
+            className="absolute top-1/2 left-2 -translate-y-1/2 h-9 w-9 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
             size="icon"
             variant="ghost"
             aria-label="Previous image"
             onClick={goToPrevious}
           >
-            <ChevronLeft className="h-4 w-4 text-zinc-500" />
+            <ChevronLeft className="size-5 text-zinc-900" />
           </Button>
           <Button
-            className="bg-background/80 hover:bg-background/100 absolute top-1/2 right-2 -translate-y-1/2"
+            className="absolute top-1/2 right-2 -translate-y-1/2 h-9 w-9 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
             size="icon"
             variant="ghost"
             aria-label="Next image"
             onClick={goToNext}
           >
-            <ChevronRight className="h-6 w-6 text-zinc-500" />
+            <ChevronRight className="size-5 text-zinc-900" />
           </Button>
 
           {/* Indicators */}

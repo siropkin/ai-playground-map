@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/client";
 // Tier calculation now done by Gemini AI - no longer needed locally
 import { useDebounce } from "@/lib/hooks";
+import { isValidImageUrl } from "@/lib/utils";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -81,6 +82,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   // Track recently enriched playgrounds to prevent duplicate requests
   const recentlyEnrichedRef = useRef<Map<number, number>>(new Map()); // playgroundId -> timestamp
 
+  // Track which playgrounds we've already queued for enrichment to avoid re-processing
+  const enrichmentQueuedRef = useRef<Set<number>>(new Set()); // playgroundId set
+
   const localFetchPlaygrounds = useCallback(
     async (signal?: AbortSignal) => {
       if (!mapBounds) return;
@@ -92,7 +96,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         const playgroundsForBounds = await searchPlaygrounds(mapBounds, signal);
         if (!signal?.aborted) {
           // Merge new OSM data with existing enriched AI data
-          let updatedPlaygrounds: Playground[] = [];
           setPlaygrounds((prevPlaygrounds) => {
             const enrichedMap = new Map(
               prevPlaygrounds
@@ -100,7 +103,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 .map(p => [p.osmId, p])
             );
 
-            updatedPlaygrounds = playgroundsForBounds.map(newPlayground => {
+            const updatedPlaygrounds = playgroundsForBounds.map(newPlayground => {
               const existingEnriched = enrichedMap.get(newPlayground.osmId);
 
               if (existingEnriched) {
@@ -131,47 +134,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             return updatedPlaygrounds;
           });
-
-          // Eagerly enrich only unenriched playgrounds
-          // Already-enriched playgrounds retain their data from smart merge above
-          const unenrichedPlaygrounds = updatedPlaygrounds.filter(p => !p.enriched);
-
-          if (unenrichedPlaygrounds.length > 0 && !signal?.aborted) {
-            console.log(`[ContextPlaygrounds] 🚀 Enriching ${unenrichedPlaygrounds.length} unenriched playgrounds`);
-
-            // Calculate map center for distance-based prioritization
-            const mapCenter = mapBounds ? {
-              lat: (mapBounds.north + mapBounds.south) / 2,
-              lon: (mapBounds.east + mapBounds.west) / 2,
-            } : null;
-
-            // Sort playgrounds by distance from center (center-to-edge prioritization)
-            const sortedPlaygrounds = mapCenter
-              ? [...unenrichedPlaygrounds].sort((a, b) => {
-                  const distA = Math.sqrt(
-                    Math.pow(a.lat - mapCenter.lat, 2) +
-                    Math.pow(a.lon - mapCenter.lon, 2)
-                  );
-                  const distB = Math.sqrt(
-                    Math.pow(b.lat - mapCenter.lat, 2) +
-                    Math.pow(b.lon - mapCenter.lon, 2)
-                  );
-                  return distA - distB;
-                })
-              : unenrichedPlaygrounds;
-
-            const allPlaygroundIds = sortedPlaygrounds.map(p => p.osmId);
-
-            // Process in batches of 5 sequentially to avoid overwhelming the backend
-            // Center playgrounds (most likely visible) will be enriched first
-            // NOTE: AI enrichment no longer fetches images - images loaded separately
-            (async () => {
-              for (let i = 0; i < allPlaygroundIds.length; i += 5) {
-                const batch = allPlaygroundIds.slice(i, i + 5);
-                await enrichPlaygroundsBatchRef.current(batch);
-              }
-            })();
-          }
         }
       } catch (err) {
         if (
@@ -205,6 +167,58 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     // debouncedFetchPlaygrounds is stable, no need to include in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapBounds]);
+
+  // ✅ OPTIMIZATION COMPLETE: /api/search now checks cache and returns enrichment data if available
+  // This eliminates unnecessary cache-hit requests on page refresh (see src/app/api/search/route.ts:128-174)
+  //
+  // COMMENTED OUT: Auto-enrichment effect disabled - now handled by /api/search
+  // Kept here for reference in case we need client-side enrichment fallback
+  // useEffect(() => {
+  //   // Filter for unenriched playgrounds that haven't been queued yet
+  //   const unenrichedPlaygrounds = playgrounds.filter(
+  //     p => !p.enriched && !enrichmentQueuedRef.current.has(p.osmId)
+  //   );
+
+  //   if (unenrichedPlaygrounds.length === 0) return;
+
+  //   console.log(`[ContextPlaygrounds] 🚀 Auto-enriching ${unenrichedPlaygrounds.length} new unenriched playgrounds`);
+
+  //   // Mark these as queued to prevent re-processing
+  //   unenrichedPlaygrounds.forEach(p => enrichmentQueuedRef.current.add(p.osmId));
+
+  //   // Calculate map center for distance-based prioritization
+  //   const mapCenter = mapBounds ? {
+  //     lat: (mapBounds.north + mapBounds.south) / 2,
+  //     lon: (mapBounds.east + mapBounds.west) / 2,
+  //   } : null;
+
+  //   // Sort playgrounds by distance from center (center-to-edge prioritization)
+  //   const sortedPlaygrounds = mapCenter
+  //     ? [...unenrichedPlaygrounds].sort((a, b) => {
+  //         const distA = Math.sqrt(
+  //           Math.pow(a.lat - mapCenter.lat, 2) +
+  //           Math.pow(a.lon - mapCenter.lon, 2)
+  //         );
+  //         const distB = Math.sqrt(
+  //           Math.pow(b.lat - mapCenter.lat, 2) +
+  //           Math.pow(b.lon - mapCenter.lon, 2)
+  //         );
+  //         return distA - distB;
+  //       })
+  //     : unenrichedPlaygrounds;
+
+  //   const allPlaygroundIds = sortedPlaygrounds.map(p => p.osmId);
+
+  //   // Process in batches of 5 sequentially to avoid overwhelming the backend
+  //   // Center playgrounds (most likely visible) will be enriched first
+  //   // NOTE: AI enrichment no longer fetches images - images loaded separately
+  //   (async () => {
+  //     for (let i = 0; i < allPlaygroundIds.length; i += 5) {
+  //       const batch = allPlaygroundIds.slice(i, i + 5);
+  //       await enrichPlaygroundsBatchRef.current(batch);
+  //     }
+  //   })();
+  // }, [playgrounds, mapBounds]);
 
   // Enrich a single playground
   // Uses batch API internally for consistency (AI insights only, no images)
@@ -278,6 +292,14 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
             const result = results.find((r) => r.playgroundId === p.osmId);
             if (!result) return p; // No result for this playground
 
+            // Remove from queued set since enrichment completed
+            enrichmentQueuedRef.current.delete(p.osmId);
+
+            // Filter out invalid image URLs from old cache (x-raw-image:// format from Gemini pre-v5.0.0)
+            const validImages = result.insights?.images?.filter(img =>
+              isValidImageUrl(img.image_url)
+            ) || null;
+
             // Tier now comes directly from Gemini AI (no local calculation)
             // Mark as enriched even if insights is null (enrichment completed but found nothing)
             return {
@@ -287,7 +309,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               features: result.insights?.features || p.features,
               parking: result.insights?.parking || p.parking,
               sources: result.insights?.sources || p.sources,
-              images: result.insights?.images || p.images,
+              images: validImages && validImages.length > 0 ? validImages : p.images,
               accessibility: validateAccessibility(result.insights?.accessibility) || p.accessibility,
               tier: result.insights?.tier || null,
               tierReasoning: result.insights?.tier_reasoning || null,
@@ -297,6 +319,8 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
         );
       } catch (error) {
         console.error("[ContextPlaygrounds] ❌ Error enriching playgrounds batch:", error);
+        // Remove from queued set on error so they can be retried
+        filteredIds.forEach(id => enrichmentQueuedRef.current.delete(id));
       }
     },
     [], // No dependencies - we get playgrounds from setState callback

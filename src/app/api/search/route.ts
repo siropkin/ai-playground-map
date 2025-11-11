@@ -8,6 +8,9 @@ import {
   fetchOSMFromCache,
   saveOSMToCache
 } from "@/lib/osm-cache";
+import { fetchAIInsightsFromCache } from "@/lib/cache";
+import { buildAIInsightsCacheKey } from "@/lib/cache-keys";
+import { isValidImageUrl } from "@/lib/utils";
 
 // Zoom-based limits for result count (industry best practice)
 const ZOOM_THRESHOLD_LOW = 12; // Threshold for zoomed-out view
@@ -94,7 +97,8 @@ export async function POST(
       console.warn(`[APISearch] ⚠️ Filtered ${invalidCount} playgrounds without coordinates`);
     }
 
-    const playgrounds: Playground[] = osmResults
+    // Create base playgrounds from OSM data
+    const basePlaygrounds: Playground[] = osmResults
       .filter((item) => {
         // Extract coordinates based on type
         const lat = item.type === "node" ? item.lat : item.center?.lat;
@@ -122,8 +126,56 @@ export async function POST(
         tierReasoning: null,
       }));
 
-    console.log(`[APISearch] ✅ Returning ${playgrounds.length} playgrounds`);
-    return NextResponse.json(playgrounds);
+    // OPTIMIZATION: Check AI cache for each playground and populate enrichment data if available
+    // This prevents redundant enrichment requests on page refresh
+    const enrichedPlaygrounds = await Promise.all(
+      basePlaygrounds.map(async (playground) => {
+        try {
+          // Build cache key using OSM ID
+          const osmIdFormatted = playground.osmType && playground.osmId
+            ? `${playground.osmType[0].toUpperCase()}${playground.osmId}`
+            : undefined;
+
+          if (!osmIdFormatted) {
+            return playground;
+          }
+
+          const cacheKey = buildAIInsightsCacheKey({ osmId: osmIdFormatted });
+          const cachedInsights = await fetchAIInsightsFromCache({ cacheKey });
+
+          if (cachedInsights) {
+            // Filter out invalid image URLs from old cache (x-raw-image:// format from Gemini pre-v5.0.0)
+            const validImages = cachedInsights.images?.filter(img =>
+              isValidImageUrl(img.image_url)
+            ) || null;
+
+            // Populate playground with cached AI insights
+            return {
+              ...playground,
+              name: cachedInsights.name || playground.name,
+              description: cachedInsights.description,
+              features: cachedInsights.features,
+              parking: cachedInsights.parking,
+              sources: cachedInsights.sources,
+              images: validImages && validImages.length > 0 ? validImages : null, // Only include if we have valid images
+              accessibility: cachedInsights.accessibility,
+              tier: cachedInsights.tier,
+              tierReasoning: cachedInsights.tier_reasoning,
+              enriched: true, // Mark as enriched since we have cache data
+            };
+          }
+
+          return playground;
+        } catch (error) {
+          console.error(`[APISearch] ⚠️ Error checking cache for ${playground.osmId}:`, error);
+          return playground;
+        }
+      })
+    );
+
+    const enrichedCount = enrichedPlaygrounds.filter(p => p.enriched).length;
+    console.log(`[APISearch] ✅ Returning ${enrichedPlaygrounds.length} playgrounds (${enrichedCount} pre-enriched from cache)`);
+    return NextResponse.json(enrichedPlaygrounds);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return NextResponse.json({ error: "Request aborted" }, { status: 499 });

@@ -13,13 +13,13 @@ export async function GET() {
             display: "flex",
             width: "100%",
             height: "100%",
-            background: "linear-gradient(to bottom right, #f8fafc, #e2e8f0)",
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
             fontFamily: "sans-serif",
             overflow: "hidden",
             position: "relative",
           }}
         >
-          {/* Background pattern */}
+          {/* Background pattern overlay */}
           <div
             style={{
               position: "absolute",
@@ -27,10 +27,35 @@ export async function GET() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundSize: "30px 30px",
+              backgroundSize: "40px 40px",
               backgroundImage:
-                "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
-              opacity: 0.4,
+                "radial-gradient(circle, rgba(255, 255, 255, 0.25) 2px, transparent 2px)",
+              opacity: 0.5,
+            }}
+          />
+          {/* Accent shapes */}
+          <div
+            style={{
+              position: "absolute",
+              top: -100,
+              right: -100,
+              width: 400,
+              height: 400,
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.1)",
+              filter: "blur(60px)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: -100,
+              left: -100,
+              width: 400,
+              height: 400,
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.1)",
+              filter: "blur(60px)",
             }}
           />
 
@@ -59,33 +84,37 @@ export async function GET() {
             >
               <div
                 style={{
-                  fontSize: 96,
+                  fontSize: 100,
                   marginBottom: 20,
+                  filter: "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))",
                 }}
               >
                 {SITE_ICON}
               </div>
               <div
                 style={{
-                  fontSize: 72,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  marginBottom: 16,
+                  fontSize: 80,
+                  fontWeight: 900,
+                  color: "#ffffff",
+                  marginBottom: 20,
                   textAlign: "center",
-                  lineHeight: 1.1,
+                  lineHeight: 1,
+                  textShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {SITE_NAME}
               </div>
               <div
                 style={{
-                  fontSize: 32,
-                  color: "#334155",
-                  fontWeight: 500,
-                  marginBottom: 20,
+                  fontSize: 36,
+                  color: "rgba(255, 255, 255, 0.98)",
+                  fontWeight: 600,
+                  marginBottom: 24,
                   textAlign: "center",
-                  maxWidth: 800,
+                  maxWidth: 900,
                   lineHeight: 1.3,
+                  textShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
                 }}
               >
                 {SITE_DESCRIPTION}
@@ -104,17 +133,17 @@ export async function GET() {
             >
               {[
                 {
-                  title: "Discover local playgrounds",
-                  icon: "🔍",
+                  title: "Search Near You",
+                  icon: "🗺️",
                   color: "#3b82f6",
                 },
                 {
-                  title: "AI-powered search",
-                  icon: "🤖",
+                  title: "AI Insights",
+                  icon: "✨",
                   color: "#8b5cf6",
                 },
                 {
-                  title: "Explore playground photos",
+                  title: "Real Photos",
                   icon: "📸",
                   color: "#f59e0b",
                 },
@@ -125,17 +154,20 @@ export async function GET() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    padding: "32px 24px",
-                    backgroundColor: "rgba(255, 255, 255, 0.85)",
-                    borderRadius: 16,
-                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-                    width: "33%",
+                    padding: "28px 20px",
+                    backgroundColor: "rgba(255, 255, 255, 0.98)",
+                    borderRadius: 20,
+                    boxShadow: "0 12px 40px rgba(0, 0, 0, 0.2)",
+                    width: "30%",
+                    border: "2px solid rgba(255, 255, 255, 0.5)",
+                    backdropFilter: "blur(10px)",
                   }}
                 >
                   <div
                     style={{
-                      fontSize: 40,
-                      marginBottom: 16,
+                      fontSize: 56,
+                      marginBottom: 12,
+                      filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15))",
                     }}
                   >
                     {feature.icon}
@@ -143,9 +175,10 @@ export async function GET() {
                   <div
                     style={{
                       fontSize: 24,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       color: "#1e293b",
                       textAlign: "center",
+                      lineHeight: 1.2,
                     }}
                   >
                     {feature.title}

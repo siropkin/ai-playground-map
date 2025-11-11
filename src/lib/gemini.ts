@@ -85,10 +85,10 @@ ALWAYS return JSON (no plain text explanations):
 {
   "location_confidence": "high or medium or low",
   "location_verification": "Which playground did you find and how close is it to ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}?",
-  "name": "Playground name (if OpenStreetMap name is provided, verify it matches)",
+  "name": "Playground name. If part of a larger park, include both (e.g., 'Magical Bridge Playground at Mitchell Park'). Include city if it's a well-known branded playground (e.g., 'Magical Bridge Playground, Palo Alto'). If OpenStreetMap name is provided, verify it matches.",
   "description": "2-3 sentence description",
   "features": ["slide", "swing", "climbing_frame"],
-  "parking": "Parking information",
+  "parking": "Specific parking information (e.g., 'Street parking available on Main St', 'Free parking lot on site', 'Metered parking nearby'). Use null if no specific parking information is found. NEVER use vague phrases like 'not mentioned' or 'more information may be available'.",
   "accessibility": ["wheelchair_accessible", "accessible_surface"],
   "tier": "star or gem or neighborhood",
   "tier_reasoning": "Why this tier? (1-2 sentences)"
@@ -170,11 +170,10 @@ CRITICAL: Always return valid JSON, even if confidence is low. Never return plai
       if (jsonMatch?.[1]) {
         try {
           // Clean up common JSON formatting issues from LLM responses
+          // IMPORTANT: Only fix structural issues (trailing commas), not content inside strings
           const cleanedJson = jsonMatch[1]
-            .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":') // Fix unquoted or single-quoted keys
-            .replace(/:\s*'([^']*)'/g, ': "$1"') // Fix single-quoted values
-            .replace(/,\s*}/g, '}') // Remove trailing commas in objects
-            .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas before closing braces/brackets
+            .trim();
 
           parsed = JSON.parse(cleanedJson);
         } catch (error) {

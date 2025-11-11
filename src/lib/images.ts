@@ -6,7 +6,7 @@
  *
  * Features:
  * - Google Custom Search integration
- * - 1-year cache TTL
+ * - 90-day cache TTL by default (configurable via IMAGES_CACHE_TTL_MS)
  * - SafeSearch enabled
  * - Photo-only results
  *
@@ -18,6 +18,7 @@
 import { searchImages, buildPlaygroundImageQuery } from "@/lib/google-image-search";
 import { createClient } from "@/lib/supabase/server";
 import { buildImagesCacheKey } from "@/lib/cache-keys";
+import { isValidImageUrl } from "@/lib/utils";
 
 export interface PlaygroundImage {
   image_url: string;
@@ -230,7 +231,27 @@ export async function fetchPlaygroundImages({
   // Try cache first
   const cachedImages = await fetchImagesFromCache({ cacheKey });
   if (cachedImages) {
-    return cachedImages;
+    // Filter out invalid/inaccessible image URLs (x-raw-image:// format from old cache)
+    const validCachedImages = cachedImages.filter(img =>
+      isValidImageUrl(img.image_url)
+    );
+
+    // If all cached images were invalid, treat as cache miss
+    if (validCachedImages.length === 0) {
+      console.log(`[Images] ⚠️ All ${cachedImages.length} cached images were invalid for "${playgroundName}"`);
+      // Don't return null - fall through to fetch fresh images
+    } else if (validCachedImages.length < cachedImages.length) {
+      console.log(`[Images] 🚫 Filtered ${cachedImages.length - validCachedImages.length} invalid cached images for "${playgroundName}"`);
+      // Write back cleaned cache to avoid repeatedly serving invalid entries
+      try {
+        await saveImagesToCache({ cacheKey, images: validCachedImages });
+      } catch (err) {
+        console.warn("[Images] ⚠️ Failed to write back cleaned cached images:", err);
+      }
+      return validCachedImages;
+    } else {
+      return cachedImages;
+    }
   }
 
   // Cache miss - fetch from Google Custom Search
@@ -245,6 +266,7 @@ export async function fetchPlaygroundImages({
     const rawImages = await searchImages(imageQuery, {
       maxResults: 10,
       signal,
+      city, // Pass city for location verification in scoring
     });
 
     if (rawImages.length === 0) {

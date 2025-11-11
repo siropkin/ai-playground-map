@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { List } from "lucide-react";
+import { List, X } from "lucide-react";
 
 import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -17,13 +16,16 @@ import { usePlaygrounds } from "@/contexts/playgrounds-context";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export function PlaygroundListSheet() {
-  const { loading, flyToCoords } = usePlaygrounds();
+  const { flyToCoords } = usePlaygrounds();
 
   const [open, setOpen] = useState(false);
 
+  // Close sheet when user explicitly flies to a location
   useEffect(() => {
-    setOpen(false);
-  }, [loading, flyToCoords]);
+    if (flyToCoords) {
+      setOpen(false);
+    }
+  }, [flyToCoords]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -39,15 +41,28 @@ export function PlaygroundListSheet() {
       <SheetContent
         side="bottom"
         className="flex max-h-[85vh] flex-col rounded-t-2xl md:hidden"
+        hideCloseButton
       >
-        {/* Visually hidden for accessibility, with drag handle */}
-        <SheetHeader className="relative flex h-12 flex-shrink-0 items-center justify-center border-b pr-12">
-          <VisuallyHidden>
-            <SheetTitle>Playgrounds</SheetTitle>
-            <SheetDescription>Click a playground to view its details</SheetDescription>
-          </VisuallyHidden>
-          <div className="bg-muted absolute left-1/2 top-2 h-1 w-12 -translate-x-1/2 rounded-full" />
-        </SheetHeader>
+        {/* Hidden description for accessibility */}
+        <VisuallyHidden>
+          <SheetDescription>Browse all playgrounds in the area</SheetDescription>
+        </VisuallyHidden>
+
+        {/* Header with title and close button */}
+        <div className="border-b flex-shrink-0 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <SheetTitle className="text-lg font-semibold flex-1">Playgrounds</SheetTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen(false)}
+              className="h-10 w-10"
+              aria-label="Close"
+            >
+              <X className="size-5" />
+            </Button>
+          </div>
+        </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-4 pb-8 pt-2">

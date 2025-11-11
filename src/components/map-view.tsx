@@ -35,6 +35,7 @@ const SOURCE_ID = "playgrounds";
 const CLUSTER_LAYER_ID = "clusters";
 const CLUSTER_COUNT_LAYER_ID = "cluster-count";
 const UNCLUSTERED_POINT_LAYER_ID = "unclustered-point";
+const UNCLUSTERED_POINT_HIT_LAYER_ID = "unclustered-point-hit";
 const UNCLUSTERED_LABEL_LAYER_ID = "unclustered-label";
 const DEFAULT_BOUNDS = {
   south: 38.806,
@@ -52,20 +53,32 @@ const getMapStyle = (theme: string | undefined) => {
 const getMapColors = (theme: string | undefined) => {
   return theme === "light"
     ? {
-        point: "#4b5563", // Gray-600 for neighborhood tier (darker)
-        pointStroke: "#FFFFFF",
+        // Tier colors
+        star: "#f59e0b", // Amber-500
+        starStroke: "#fbbf24", // Amber-400
+        gem: "#a855f7", // Purple-500
+        gemStroke: "#c084fc", // Purple-400
+        neighborhood: "#4b5563", // Gray-600
+        neighborhoodStroke: "#FFFFFF",
+        // Text colors
         label: "#374151", // Gray-700 for better readability
-        clusterBg: "#000000",
-        clusterText: "#FFFFFF",
         labelHalo: "#FFFFFF",
+        tierText: "#FFFFFF", // White text on colored backgrounds
+        neighborhoodText: "#FFFFFF", // White text on neighborhood clusters
       }
     : {
-        point: "#6b7280", // Gray-500 for neighborhood tier (darker)
-        pointStroke: "#374151", // Gray-700 for stroke
+        // Tier colors
+        star: "#f59e0b", // Amber-500
+        starStroke: "#fbbf24", // Amber-400
+        gem: "#a855f7", // Purple-500
+        gemStroke: "#c084fc", // Purple-400
+        neighborhood: "#6b7280", // Gray-500
+        neighborhoodStroke: "#374151", // Gray-700
+        // Text colors
         label: "#d1d5db", // Gray-300 for better readability
-        clusterBg: "#FFFFFF",
-        clusterText: "#000000",
         labelHalo: "#000000",
+        tierText: "#FFFFFF", // White text on colored backgrounds
+        neighborhoodText: "#000000", // Black text on neighborhood clusters (light mode)
       };
 };
 
@@ -133,6 +146,8 @@ export const MapView = React.memo(function MapView() {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [geolocationStatus, setGeolocationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
+  const geolocationStatusRef = useRef<'pending' | 'granted' | 'denied'>('pending'); // Sync ref for moveend handler
   const userLocationMarker = useRef<mapboxgl.Marker | null>(null);
   const userAccuracyCircle = useRef<string | null>(null);
   const hasAutocentered = useRef<boolean>(false);
@@ -216,25 +231,94 @@ export const MapView = React.memo(function MapView() {
 
   // Request geolocation on mount (runs once)
   useEffect(() => {
+    const hasExistingBounds = !!mapBounds;
+
+    if (hasExistingBounds) {
+      console.log("[MapView] 🔗 URL/session bounds exist, setting geolocation status to resolved");
+      setGeolocationStatus('denied'); // Mark as resolved so data loads
+      geolocationStatusRef.current = 'denied';
+    }
+
+    console.log("[MapView] 📍 Starting geolocation check...");
     if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
+      // Use watchPosition to continuously listen for location updates
+      const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setUserLocation([longitude, latitude]);
           console.log("[MapView] ✓ User location detected:", latitude, longitude);
+
+          setUserLocation([longitude, latitude]);
+
+          // Only fly to user location if we don't have existing bounds
+          if (!hasExistingBounds && map.current) {
+            console.log("[MapView] 🚁 Flying to user location");
+            const [lng, lat] = [longitude, latitude];
+            const latOffset = 0.01;
+            const lonOffset = 0.01;
+
+            // Set status BEFORE flying so moveend event can update bounds
+            setGeolocationStatus('granted');
+            geolocationStatusRef.current = 'granted';
+
+            map.current.fitBounds(
+              [
+                [lng - lonOffset, lat - latOffset],
+                [lng + lonOffset, lat + latOffset],
+              ],
+              { duration: 1500 },
+            );
+          } else if (!hasExistingBounds) {
+            // Map not ready yet, just update status
+            setGeolocationStatus('granted');
+            geolocationStatusRef.current = 'granted';
+          } else {
+            // Has existing bounds, just show the marker without flying
+            console.log("[MapView] 📍 Showing user location marker (not flying)");
+          }
         },
         (error) => {
-          console.log("[MapView] ℹ️ Geolocation not available or denied:", error.message);
-          // Don't show error - just gracefully fall back to default location
+          console.log("[MapView] ℹ️ Geolocation denied or error:", error.message);
+
+          // Only fly to DC if we don't have existing bounds
+          if (!hasExistingBounds && map.current) {
+            console.log("[MapView] 🚁 Flying to default location (DC)");
+
+            // Set status BEFORE flying so moveend event can update bounds
+            setGeolocationStatus('denied');
+            geolocationStatusRef.current = 'denied';
+
+            map.current.fitBounds(
+              [
+                [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
+                [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
+              ],
+              { duration: 1500 },
+            );
+          } else if (!hasExistingBounds) {
+            // Map not ready yet, just update status
+            setGeolocationStatus('denied');
+            geolocationStatusRef.current = 'denied';
+          }
         },
         {
           enableHighAccuracy: false,
-          timeout: 5000,
-          maximumAge: 60000 // Cache for 1 minute
+          timeout: 10000,
+          maximumAge: 60000
         }
       );
+
+      // Cleanup: stop watching when component unmounts
+      return () => {
+        navigator.geolocation.clearWatch(watchId);
+      };
+    } else {
+      console.log("[MapView] ℹ️ Geolocation not supported");
+      if (!hasExistingBounds) {
+        setGeolocationStatus('denied');
+        geolocationStatusRef.current = 'denied';
+      }
     }
-  }, []); // Run once on mount
+  }, [mapBounds]);
 
   const handleNearMeClick = useCallback(() => {
     if (!navigator.geolocation) {
@@ -309,6 +393,18 @@ export const MapView = React.memo(function MapView() {
           cluster: true,
           clusterMaxZoom: 14,
           clusterRadius: 15,
+          clusterProperties: {
+            // Track if cluster has any star tier playgrounds
+            hasStar: [
+              "any",
+              ["case", ["==", ["get", "tier"], "star"], true, false],
+            ],
+            // Track if cluster has any gem tier playgrounds
+            hasGem: [
+              "any",
+              ["case", ["==", ["get", "tier"], "gem"], true, false],
+            ],
+          },
         });
       } else {
         (currentMap.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).setData(
@@ -324,7 +420,14 @@ export const MapView = React.memo(function MapView() {
           source: SOURCE_ID,
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": mapColors.clusterBg,
+            "circle-color": [
+              "case",
+              ["get", "hasStar"],
+              mapColors.star,
+              ["get", "hasGem"],
+              mapColors.gem,
+              mapColors.neighborhood,
+            ],
             "circle-radius": [
               "step",
               ["get", "point_count"],
@@ -334,8 +437,22 @@ export const MapView = React.memo(function MapView() {
               750,
               25,
             ],
-            "circle-stroke-width": 1,
-            "circle-stroke-color": mapColors.clusterText,
+            "circle-stroke-width": [
+              "case",
+              ["get", "hasStar"],
+              2,
+              ["get", "hasGem"],
+              2,
+              1,
+            ],
+            "circle-stroke-color": [
+              "case",
+              ["get", "hasStar"],
+              mapColors.starStroke,
+              ["get", "hasGem"],
+              mapColors.gemStroke,
+              mapColors.neighborhoodStroke,
+            ],
           },
         });
       }
@@ -353,12 +470,34 @@ export const MapView = React.memo(function MapView() {
             "text-size": 12,
           },
           paint: {
-            "text-color": mapColors.clusterText,
+            "text-color": [
+              "case",
+              ["get", "hasStar"],
+              mapColors.tierText,
+              ["get", "hasGem"],
+              mapColors.tierText,
+              mapColors.neighborhoodText,
+            ],
           },
         });
       }
 
-      // Layer for Unclustered Points (Circles)
+      // Layer for Unclustered Points - Invisible hit area for better touch targets
+      if (!currentMap.getLayer(UNCLUSTERED_POINT_HIT_LAYER_ID)) {
+        currentMap.addLayer({
+          id: UNCLUSTERED_POINT_HIT_LAYER_ID,
+          type: "circle",
+          source: SOURCE_ID,
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": "transparent",
+            "circle-radius": 20, // Larger hit area for easier tapping
+            "circle-opacity": 0,
+          },
+        });
+      }
+
+      // Layer for Unclustered Points (Circles) - Visual layer
       if (!currentMap.getLayer(UNCLUSTERED_POINT_LAYER_ID)) {
         currentMap.addLayer({
           id: UNCLUSTERED_POINT_LAYER_ID,
@@ -370,37 +509,37 @@ export const MapView = React.memo(function MapView() {
               "match",
               ["get", "tier"],
               "star",
-              "#f59e0b", // Amber-500 for Star
+              mapColors.star,
               "gem",
-              "#a855f7", // Purple-500 for Gem
-              mapColors.point, // Default for neighborhood
+              mapColors.gem,
+              mapColors.neighborhood,
             ],
             "circle-radius": [
               "match",
               ["get", "tier"],
               "star",
-              10, // Same size as Gem
+              10,
               "gem",
-              10, // Slightly larger for Gem
-              9, // Default for neighborhood
+              10,
+              9,
             ],
             "circle-stroke-width": [
               "match",
               ["get", "tier"],
               "star",
-              2, // Thicker stroke for Star
+              2,
               "gem",
-              2, // Thicker stroke for Gem
-              1, // Default for neighborhood
+              2,
+              1,
             ],
             "circle-stroke-color": [
               "match",
               ["get", "tier"],
               "star",
-              "#fbbf24", // Amber-400 for Star stroke
+              mapColors.starStroke,
               "gem",
-              "#c084fc", // Purple-400 for Gem stroke
-              mapColors.pointStroke, // Default for neighborhood
+              mapColors.gemStroke,
+              mapColors.neighborhoodStroke,
             ],
           },
         });
@@ -439,15 +578,19 @@ export const MapView = React.memo(function MapView() {
       return;
     }
 
+    console.log("[MapView] 🗺️ Initializing map");
+
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer,
         style: getMapStyle(theme),
+        center: [0, 20], // Center on world
+        zoom: 1.5, // Zoomed out world view
       });
 
       if (mapBounds) {
-        // URL params present - use them and skip auto-centering
-        console.log("[MapView] ℹ️ Initializing with URL params:", mapBounds);
+        // URL params present - use them immediately
+        console.log("[MapView] ℹ️ Restoring from URL params:", mapBounds);
         map.current.fitBounds(
           [
             [mapBounds.west, mapBounds.south],
@@ -455,32 +598,22 @@ export const MapView = React.memo(function MapView() {
           ],
           { animate: false },
         );
-        hasAutocentered.current = true; // Mark as autocentered to prevent future attempts
-      } else if (userLocation) {
-        // If we have user location but no saved bounds, center on user
-        console.log("[MapView] ℹ️ Initializing with user location:", userLocation);
-        map.current.setCenter(userLocation);
-        map.current.setZoom(14);
-        hasAutocentered.current = true; // Mark as autocentered since we used it in init
-      } else {
-        // Default to DC area
-        console.log("[MapView] ℹ️ Initializing with default bounds (DC area)");
-        map.current.fitBounds(
-          [
-            [DEFAULT_BOUNDS.west, DEFAULT_BOUNDS.south],
-            [DEFAULT_BOUNDS.east, DEFAULT_BOUNDS.north],
-          ],
-          { animate: false },
-        );
       }
 
       map.current.on("load", () => {
-        setMapBounds(getMapBounds(map.current));
         setIsMapLoaded(true);
+        // Only set map bounds if we have URL params (don't save world view)
+        if (mapBounds) {
+          setMapBounds(getMapBounds(map.current));
+        }
       });
 
+      // Only update URL when geolocation is resolved (not pending)
       map.current.on("moveend", () => {
-        setMapBounds(getMapBounds(map.current));
+        console.log("[MapView] 📍 moveend - status:", geolocationStatusRef.current);
+        if (geolocationStatusRef.current !== 'pending') {
+          setMapBounds(getMapBounds(map.current));
+        }
       });
     } catch (error) {
       setError(
@@ -488,7 +621,7 @@ export const MapView = React.memo(function MapView() {
       );
       console.error("[MapView] ❌ Error initializing map:", error);
     }
-  }, [mapContainer, theme, mapBounds, setMapBounds, userLocation]);
+  }, [mapContainer, theme, mapBounds, setMapBounds, geolocationStatus]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {
@@ -630,7 +763,12 @@ export const MapView = React.memo(function MapView() {
       }
     };
 
-    // Unclustered Points
+    // Unclustered Points - Hit Layer (larger touch target)
+    map.current.on("click", UNCLUSTERED_POINT_HIT_LAYER_ID, handlePointClick);
+    map.current.on("mouseenter", UNCLUSTERED_POINT_HIT_LAYER_ID, handleMouseEnter);
+    map.current.on("mouseleave", UNCLUSTERED_POINT_HIT_LAYER_ID, handleMouseLeave);
+
+    // Unclustered Points - Visual Layer
     map.current.on("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
     map.current.on("mouseenter", UNCLUSTERED_POINT_LAYER_ID, handleMouseEnter);
     map.current.on("mouseleave", UNCLUSTERED_POINT_LAYER_ID, handleMouseLeave);
@@ -647,7 +785,19 @@ export const MapView = React.memo(function MapView() {
 
     return () => {
       if (map.current) {
-        // Unclustered Points
+        // Unclustered Points - Hit Layer
+        map.current.off("click", UNCLUSTERED_POINT_HIT_LAYER_ID, handlePointClick);
+        map.current.off(
+          "mouseenter",
+          UNCLUSTERED_POINT_HIT_LAYER_ID,
+          handleMouseEnter,
+        );
+        map.current.off(
+          "mouseleave",
+          UNCLUSTERED_POINT_HIT_LAYER_ID,
+          handleMouseLeave,
+        );
+        // Unclustered Points - Visual Layer
         map.current.off("click", UNCLUSTERED_POINT_LAYER_ID, handlePointClick);
         map.current.off(
           "mouseenter",
@@ -699,7 +849,7 @@ export const MapView = React.memo(function MapView() {
       const zoom = map.current.getZoom();
       map.current.flyTo({
         center: flyToCoords,
-        zoom: Math.max(zoom, 16),
+        zoom: Math.max(zoom, 17),
         duration: 800, // Fast animation (800ms instead of default 2000ms)
         essential: true,
       });
@@ -792,7 +942,7 @@ export const MapView = React.memo(function MapView() {
         className="absolute top-0 left-0 h-full w-full"
       />
       <MapLegend />
-      <div className="absolute right-4 bottom-10 z-1 flex md:right-4 md:bottom-8">
+      <div className="absolute right-4 bottom-10 z-10 flex md:right-4 md:bottom-8">
         <Button
           variant="outline"
           aria-label="Center map on my location"
@@ -802,8 +952,8 @@ export const MapView = React.memo(function MapView() {
           <span className="hidden md:block">Near me</span>
         </Button>
       </div>
-      {loading && (
-        <div className="text-muted-foreground bg-background/90 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2.5 py-1.5 text-xs backdrop-blur-sm">
+      {loading && geolocationStatus !== 'pending' && (
+        <div className="text-muted-foreground bg-background/90 absolute top-2 left-1/2 z-20 -translate-x-1/2 transform rounded px-2.5 py-1.5 text-xs backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Spinner className="size-3" />
             <span>Loading playgrounds...</span>

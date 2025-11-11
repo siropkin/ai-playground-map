@@ -1,56 +1,89 @@
-"use client";
+import type { Metadata } from "next";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/constants";
+import { fetchPlaygroundByIdWithCache } from "@/lib/api/server";
+import HomeClient from "@/components/home-client";
 
-import { PlaygroundList } from "@/components/playground-list";
-import { PlaygroundListSheet } from "@/components/playground-list-sheet";
-import { PlaygroundPreviewSheet } from "@/components/playground-preview-sheet";
-import { PlaygroundDetailSidebar } from "@/components/playground-detail-sidebar";
-import { MapView } from "@/components/map-view";
-import StructuredDataHome from "@/components/structured-data-home";
-import { usePlaygrounds } from "@/contexts/playgrounds-context";
-import { useMediaQuery } from "@/lib/hooks";
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
-export default function Home() {
-  const { selectedPlayground, clearSelectedPlayground, requestFlyTo, playgrounds } = usePlaygrounds();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const playgroundId = params.playground;
 
-  // Get the latest playground data from the array (in case it was enriched)
-  const currentPlayground = selectedPlayground
-    ? playgrounds.find(p => p.osmId === selectedPlayground.osmId) || selectedPlayground
-    : null;
+  // If there's a playground ID in the URL, generate playground-specific metadata
+  if (playgroundId && typeof playgroundId === "string") {
+    try {
+      const playground = await fetchPlaygroundByIdWithCache(playgroundId);
 
-  return (
-    <>
-      <StructuredDataHome />
-      <div className="relative flex flex-1">
-        {/* Desktop sidebar */}
-        <div className="absolute top-0 left-0 z-1 hidden max-h-[calc(100vh-80px)] max-w-sm min-w-sm overflow-y-auto md:block">
-          <div className="py-2 pr-2 pl-4">
-            <PlaygroundList displayEmptyState />
-          </div>
-        </div>
+      if (playground) {
+        const playgroundName = playground.name || "Local Playground";
+        const description = playground.description
+          ? (playground.description.length > 160
+              ? playground.description.substring(0, 157) + "..."
+              : playground.description)
+          : SITE_DESCRIPTION;
 
-        {/* Mobile bottom sheet */}
-        <div className="absolute bottom-10 left-1/2 z-1 -translate-x-1/2 md:hidden">
-          <PlaygroundListSheet />
-        </div>
+        return {
+          title: `${playgroundName} | ${SITE_NAME}`,
+          description,
+          openGraph: {
+            title: playgroundName,
+            description,
+            images: [
+              {
+                url: `/api/og/playgrounds/${playgroundId}`,
+                width: 1200,
+                height: 630,
+                alt: playgroundName,
+              },
+            ],
+            type: "website",
+            locale: "en_US",
+            url: `${SITE_URL}/?playground=${playgroundId}`,
+          },
+          twitter: {
+            card: "summary_large_image",
+            title: playgroundName,
+            description,
+            images: [`/api/og/playgrounds/${playgroundId}`],
+          },
+        };
+      }
+    } catch (error) {
+      console.error(`Failed to generate metadata for playground ${playgroundId}:`, error);
+      // Fall through to default metadata
+    }
+  }
 
-        {/* Playground preview sheet (mobile only) */}
-        <PlaygroundPreviewSheet />
+  // Default home page metadata
+  return {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    openGraph: {
+      title: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      images: [
+        {
+          url: "/api/og/home",
+          width: 1200,
+          height: 630,
+          alt: SITE_NAME,
+        },
+      ],
+      type: "website",
+      locale: "en_US",
+      url: SITE_URL,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      images: ["/api/og/home"],
+    },
+  };
+}
 
-        {/* Desktop detail sidebar (right side) */}
-        {isDesktop && currentPlayground && (
-          <PlaygroundDetailSidebar
-            playground={currentPlayground}
-            onClose={clearSelectedPlayground}
-            onFlyTo={(coords) => requestFlyTo(coords)}
-          />
-        )}
-
-        {/* Map */}
-        <div className="absolute inset-0">
-          <MapView />
-        </div>
-      </div>
-    </>
-  );
+export default async function Home() {
+  return <HomeClient />;
 }

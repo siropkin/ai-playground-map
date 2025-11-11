@@ -32,14 +32,22 @@ export async function GET(_: NextRequest, context: RouteContext) {
       );
     }
 
+    // Truncate name to fit 2 lines (roughly 40 chars at 60px font)
     const name = playground.name || UNNAMED_PLAYGROUND;
+    const truncatedName = name.length > 40 ? name.substring(0, 37) + "..." : name;
+
     const description = playground.description
       ? playground.description.length > 120
         ? playground.description.substring(0, 120) + "..."
         : playground.description
       : "No description available";
     const features = playground.features?.map(formatEnumString) || [];
-    const address = playground.address || "Address not available";
+
+    // Shorten long addresses - keep main parts, remove verbose state/country info
+    const rawAddress = playground.address || "Address not available";
+    const address = rawAddress.length > 80
+      ? rawAddress.split(',').slice(0, 3).join(',')
+      : rawAddress;
 
     const imageUrl = playground.images?.[0]?.image_url || null;
 
@@ -50,7 +58,9 @@ export async function GET(_: NextRequest, context: RouteContext) {
             display: "flex",
             width: "100%",
             height: "100%",
-            background: "linear-gradient(to bottom right, #f8fafc, #e2e8f0)",
+            background: imageUrl
+              ? "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)"
+              : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
             fontFamily: "sans-serif",
             overflow: "hidden",
           }}
@@ -65,8 +75,8 @@ export async function GET(_: NextRequest, context: RouteContext) {
               bottom: 0,
               backgroundSize: "30px 30px",
               backgroundImage:
-                "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
-              opacity: 0.4,
+                "radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px)",
+              opacity: 0.6,
             }}
           />
 
@@ -76,7 +86,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
               display: "flex",
               width: "100%",
               height: "100%",
-              padding: "40px",
+              padding: "50px",
               boxSizing: "border-box",
             }}
           >
@@ -93,10 +103,10 @@ export async function GET(_: NextRequest, context: RouteContext) {
               <div
                 style={{
                   display: "flex",
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: 600,
-                  color: "#3b82f6",
-                  marginBottom: 16,
+                  color: "rgba(255, 255, 255, 0.7)",
+                  marginBottom: 20,
                   alignItems: "center",
                   gap: "8px",
                 }}
@@ -106,22 +116,27 @@ export async function GET(_: NextRequest, context: RouteContext) {
 
               <div
                 style={{
-                  fontSize: 56,
+                  fontSize: 60,
                   fontWeight: 800,
-                  color: "#0f172a",
-                  marginBottom: 20,
-                  lineHeight: 1.1,
+                  color: "#ffffff",
+                  marginBottom: 24,
+                  lineHeight: 1.05,
                   maxWidth: 600,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
-                {name}
+                {truncatedName}
               </div>
 
               <div
                 style={{
-                  fontSize: 24,
-                  color: "#334155",
-                  marginBottom: 24,
+                  fontSize: 22,
+                  color: "rgba(255, 255, 255, 0.85)",
+                  marginBottom: 28,
                   lineHeight: 1.4,
                   maxWidth: 600,
                 }}
@@ -133,20 +148,20 @@ export async function GET(_: NextRequest, context: RouteContext) {
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: 10,
-                  marginBottom: 24,
+                  gap: 12,
+                  marginBottom: 28,
                 }}
               >
                 {features.length > 0 ? (
-                  features.slice(0, 5).map((feature) => (
+                  features.slice(0, 4).map((feature) => (
                     <span
                       key={feature}
                       style={{
-                        background: "rgba(59, 130, 246, 0.1)",
-                        color: "#2563eb",
-                        border: "1px solid rgba(59, 130, 246, 0.3)",
+                        background: "rgba(255, 255, 255, 0.15)",
+                        color: "#ffffff",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
                         borderRadius: 9999,
-                        padding: "8px 16px",
+                        padding: "10px 20px",
                         fontSize: 18,
                         fontWeight: 500,
                       }}
@@ -154,21 +169,18 @@ export async function GET(_: NextRequest, context: RouteContext) {
                       {feature}
                     </span>
                   ))
-                ) : (
-                  <span style={{ color: "#64748b", fontSize: 18 }}>
-                    No features listed
-                  </span>
-                )}
+                ) : null}
               </div>
 
               <div
                 style={{
                   display: "flex",
                   fontSize: 18,
-                  color: "#475569",
-                  padding: "12px 20px",
-                  background: "rgba(255, 255, 255, 0.7)",
+                  color: "rgba(255, 255, 255, 0.8)",
+                  padding: "14px 24px",
+                  background: "rgba(255, 255, 255, 0.1)",
                   borderRadius: 12,
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
                   width: "auto",
                 }}
               >
@@ -177,18 +189,19 @@ export async function GET(_: NextRequest, context: RouteContext) {
             </div>
 
             {/* Right: Image with overlay frame */}
-            <div
-              style={{
-                display: "flex",
-                width: "45%",
-                position: "relative",
-                borderRadius: 24,
-                overflow: "hidden",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              }}
-            >
-              {imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
+            {imageUrl && (
+              <div
+                style={{
+                  display: "flex",
+                  width: "48%",
+                  position: "relative",
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+                  border: "2px solid rgba(255, 255, 255, 0.15)",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imageUrl}
                   alt={`${name} photo`}
@@ -198,43 +211,21 @@ export async function GET(_: NextRequest, context: RouteContext) {
                     objectFit: "cover",
                   }}
                 />
-              ) : (
+
+                {/* Gradient overlay */}
                 <div
                   style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
                     width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "#e2e8f0",
+                    height: "40%",
+                    background:
+                      "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
                   }}
-                >
-                  <span
-                    style={{
-                      color: "#64748b",
-                      fontSize: 32,
-                      textAlign: "center",
-                      width: "100%",
-                    }}
-                  >
-                    No image available
-                  </span>
-                </div>
-              )}
-
-              {/* Gradient overlay */}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "30%",
-                  background:
-                    "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
-                }}
-              />
-            </div>
+                />
+              </div>
+            )}
           </div>
         </div>
       ),

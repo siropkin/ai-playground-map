@@ -15,6 +15,7 @@ import {
   roundMapBounds,
   getMapBoundsStateFromUrl,
   updateUrlWithMapBounds,
+  getMapBoundsFromSession,
 } from "@/lib/utils";
 import { MapBounds } from "@/types/map";
 import { useDebounce } from "@/lib/hooks";
@@ -48,10 +49,23 @@ export function FiltersProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Load filters from URL when the component mounts
+  // Load filters from URL or session storage when the component mounts
   useEffect(() => {
-    const urlMapBounds = getMapBoundsStateFromUrl();
-    setMapBounds(urlMapBounds ? roundMapBounds(urlMapBounds) : null);
+    // Priority: URL params > session storage > null
+    let initialBounds = getMapBoundsStateFromUrl();
+
+    if (!initialBounds) {
+      // No URL params, check session storage
+      initialBounds = getMapBoundsFromSession();
+
+      if (initialBounds) {
+        console.log("[FiltersContext] Restoring bounds from session storage:", initialBounds);
+        // Update URL to match session storage
+        updateUrlWithMapBounds(initialBounds);
+      }
+    }
+
+    setMapBounds(initialBounds ? roundMapBounds(initialBounds) : null);
     setIsInitialized(true);
   }, []);
 
