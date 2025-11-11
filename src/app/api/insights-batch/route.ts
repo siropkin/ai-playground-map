@@ -99,14 +99,12 @@ export async function POST(
 
     // Fetch insights for cache misses with full location data
     // NOTE: Images are NOT fetched here - use src/lib/images.ts instead
-    console.log(`[APIInsightsBatch] 🚀 Fetching ${missRequests.length} playgrounds (AI insights only)`);
 
     const missResults = await fetchGeminiInsightsBatch({
       requests: missRequests,
       signal,
     });
 
-    console.log(`[APIInsightsBatch] ✅ Completed: ${missResults.filter(r => r.insights).length}/${missResults.length}`);
 
     // Add location data to results
     const missResultsWithLocation = missResults.map((result, index) => ({

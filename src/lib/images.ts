@@ -70,7 +70,6 @@ export async function fetchImagesFromCache({
       return null;
     }
 
-    console.log(`[CacheImages] 📖 Cache hit for ${cacheKey}`);
     return data.images as PlaygroundImage[];
   } catch (error) {
     console.error("[CacheImages] ❌ Error fetching from cache:", error);
@@ -106,7 +105,6 @@ export async function saveImagesToCache({
     if (error) {
       console.error("[CacheImages] ❌ Error saving to cache:", error);
     } else {
-      console.log(`[CacheImages] ✅ Saved ${images.length} images for ${cacheKey}`);
     }
   } catch (error) {
     console.error("[CacheImages] ❌ Error saving to cache:", error);
@@ -128,7 +126,6 @@ export async function clearImagesCache({
       .delete()
       .eq("cache_key", cacheKey);
 
-    console.log(`[CacheImages] 🗑️ Cleared cache for ${cacheKey}`);
   } catch (error) {
     console.error("[CacheImages] ❌ Error clearing cache:", error);
   }
@@ -159,7 +156,6 @@ export async function bulkClearImagesCache({
       return { success: false, deletedCount: 0 };
     }
 
-    console.log(`[CacheImages] 🗑️ Bulk cleared ${count || 0} cache entries`);
     return { success: true, deletedCount: count || 0 };
   } catch (error) {
     console.error("[CacheImages] ❌ Error bulk clearing images cache:", error);
@@ -189,7 +185,6 @@ export async function clearImagesCacheByPattern({
       return { success: false, deletedCount: 0 };
     }
 
-    console.log(`[CacheImages] 🗑️ Cleared ${count || 0} cache entries matching pattern: ${pattern}`);
     return { success: true, deletedCount: count || 0 };
   } catch (error) {
     console.error("[CacheImages] ❌ Error clearing images cache by pattern:", error);
@@ -199,6 +194,7 @@ export async function clearImagesCacheByPattern({
 
 /**
  * Fetch images for a playground with caching
+ * Now supports Gemini-generated search queries for better results
  */
 export async function fetchPlaygroundImages({
   playgroundName,
@@ -207,6 +203,7 @@ export async function fetchPlaygroundImages({
   country,
   osmId,
   signal,
+  imageSearchQueries, // NEW: Gemini-generated queries
 }: {
   playgroundName: string;
   city?: string;
@@ -214,6 +211,7 @@ export async function fetchPlaygroundImages({
   country?: string;
   osmId?: string;
   signal?: AbortSignal;
+  imageSearchQueries?: string[] | null; // NEW: Optional Gemini queries
 }): Promise<PlaygroundImage[] | null> {
   if (signal?.aborted) {
     return null;
@@ -238,10 +236,8 @@ export async function fetchPlaygroundImages({
 
     // If all cached images were invalid, treat as cache miss
     if (validCachedImages.length === 0) {
-      console.log(`[Images] ⚠️ All ${cachedImages.length} cached images were invalid for "${playgroundName}"`);
       // Don't return null - fall through to fetch fresh images
     } else if (validCachedImages.length < cachedImages.length) {
-      console.log(`[Images] 🚫 Filtered ${cachedImages.length - validCachedImages.length} invalid cached images for "${playgroundName}"`);
       // Write back cleaned cache to avoid repeatedly serving invalid entries
       try {
         await saveImagesToCache({ cacheKey, images: validCachedImages });
@@ -256,28 +252,56 @@ export async function fetchPlaygroundImages({
 
   // Cache miss - fetch from Google Custom Search
   try {
-    const imageQuery = buildPlaygroundImageQuery({
-      name: playgroundName,
-      city,
-      region,
-      country,
-    });
+    let rawImages: PlaygroundImage[] = [];
 
-    const rawImages = await searchImages(imageQuery, {
-      maxResults: 10,
-      signal,
-      city, // Pass city for location verification in scoring
-    });
+    // NEW: Use Gemini-generated queries if available
+    if (imageSearchQueries && imageSearchQueries.length > 0) {
+      imageSearchQueries.forEach((q, i) => console.log(`[Images]    ${i + 1}. "${q}"`));
+
+      // Search with each query and deduplicate results
+      const allResults: Map<string, PlaygroundImage> = new Map();
+
+      for (const query of imageSearchQueries) {
+        if (signal?.aborted) break;
+
+        const results = await searchImages(query, {
+          maxResults: 10,
+          signal,
+        });
+
+        // Deduplicate by image_url
+        for (const img of results) {
+          if (!allResults.has(img.image_url)) {
+            allResults.set(img.image_url, img);
+          }
+        }
+      }
+
+      // Take first 10 results (already in Google's relevance order)
+      rawImages = Array.from(allResults.values()).slice(0, 10);
+
+    } else {
+      // Fallback to old method if no Gemini queries
+      const imageQuery = buildPlaygroundImageQuery({
+        name: playgroundName,
+        city,
+        region,
+        country,
+      });
+
+      rawImages = await searchImages(imageQuery, {
+        maxResults: 10,
+        signal,
+      });
+    }
 
     if (rawImages.length === 0) {
-      console.log(`[Images] ⚠️ No images found for "${playgroundName}"`);
       return null;
     }
 
     // Save to cache
     await saveImagesToCache({ cacheKey, images: rawImages });
 
-    console.log(`[Images] 🖼️ Found ${rawImages.length} images for "${playgroundName}"`);
     return rawImages;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {

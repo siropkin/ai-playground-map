@@ -75,17 +75,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       osmId: correctOsmId,
     });
 
-    let imagesPromise: ReturnType<typeof fetchPlaygroundImages> | null = null;
-    if (playground.name) {
-      imagesPromise = fetchPlaygroundImages({
-        playgroundName: playground.name,
-        city: osmPlaceDetails.address.city,
-        region: osmPlaceDetails.address.state,
-        country: osmPlaceDetails.address.country_code,
-        osmId: correctOsmId,
-      });
-    }
-
+    // Wait for AI insights first to get image_search_queries
     const insight = await insightPromise;
 
     if (insight) {
@@ -100,17 +90,19 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       playground.enriched = true;
     }
 
-    // Resolve images: use concurrent result if started; otherwise try now if we have a name
+    // Fetch images with Gemini-generated queries
     // Note: Images are NOT stored in ai_insights_cache anymore (v17 migration)
     if (playground.enriched && playground.name) {
       let images = null;
       try {
-        images = imagesPromise ? await imagesPromise : await fetchPlaygroundImages({
+
+        images = await fetchPlaygroundImages({
           playgroundName: playground.name,
           city: osmPlaceDetails.address.city,
           region: osmPlaceDetails.address.state,
           country: osmPlaceDetails.address.country_code,
           osmId: correctOsmId,
+          imageSearchQueries: insight?.image_search_queries || null,
         });
       } catch {
         images = null;

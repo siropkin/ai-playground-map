@@ -85,9 +85,6 @@ export async function fetchOSMFromCache(
       })
       .eq("cache_key", cacheKey);
 
-    const playgroundCount = (data.playgrounds as OSMQueryResults[]).length;
-    console.log(`[OSM Cache] 📖 Hit: ${playgroundCount} playgrounds`);
-
     return data.playgrounds as OSMQueryResults[];
   } catch (error) {
     console.error("[OSM Cache] ❌ Error fetching from cache:", error);
@@ -131,7 +128,6 @@ export async function saveOSMToCache(
       return;
     }
 
-    console.log(`[OSM Cache] ✅ Saved: ${playgrounds.length} playgrounds`);
 
     // Trigger LRU eviction if cache is too large (async, non-blocking)
     evictLRUIfNeeded().catch(err =>
@@ -181,7 +177,6 @@ async function evictLRUIfNeeded(): Promise<void> {
       .delete()
       .in("cache_key", keysToDelete);
 
-    console.log(`[OSM Cache] 🗑️ Evicted ${keysToDelete.length} LRU entries`);
   } catch (error) {
     console.error("[OSM Cache] ❌ Error in LRU eviction:", error);
   }

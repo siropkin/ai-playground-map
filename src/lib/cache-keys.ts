@@ -12,18 +12,18 @@
 
 /**
  * Cache versions - increment to invalidate all cached data
- * These versions are embedded in cache keys (e.g., "v17-tier-fields-fixed:N123456")
+ * These versions are embedded in cache keys (e.g., "v18-image-queries:N123456")
  * When you increment the version, old cache entries will never be found (automatic invalidation)
  *
  * To invalidate all caches, update these environment variables in .env.local:
- * - AI_INSIGHTS_CACHE_VERSION="v18" (e.g., after prompt changes)
+ * - AI_INSIGHTS_CACHE_VERSION="v18-image-queries" (e.g., after prompt changes)
  * - IMAGES_CACHE_VERSION="v2" (e.g., after changing image sources)
  * - OSM_CACHE_VERSION="v2" (e.g., after changing OSM query logic)
  */
 export const AI_INSIGHTS_CACHE_VERSION =
-  process.env.AI_INSIGHTS_CACHE_VERSION || "v17-tier-fields-fixed";
+  process.env.AI_INSIGHTS_CACHE_VERSION || "v18-image-queries";
 export const IMAGES_CACHE_VERSION =
-  process.env.IMAGES_CACHE_VERSION || "v10";
+  process.env.IMAGES_CACHE_VERSION || "v11-gemini-trust";
 export const OSM_CACHE_VERSION =
   process.env.OSM_CACHE_VERSION || "v1";
 
@@ -78,10 +78,10 @@ export function buildImagesCacheKey(params: {
  * Used for cache invalidation
  */
 export function extractOsmIdFromCacheKey(cacheKey: string): string | null {
-  // Try AI insights format: "v17-tier-fields-fixed:N123456"
-  const aiMatch = cacheKey.match(/^v\d+-[^:]+:([NWR]\d+)$/);
+  // Try AI insights format: "v18-image-queries:N123456"
+  const aiMatch = cacheKey.match(/^v\d+(-[^:]+)?:([NWR]\d+)$/);
   if (aiMatch) {
-    return aiMatch[1];
+    return aiMatch[2];
   }
 
   // Try images format: "v1:N123456"
