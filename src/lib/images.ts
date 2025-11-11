@@ -6,7 +6,7 @@
  *
  * Features:
  * - Google Custom Search integration
- * - 1-year cache TTL
+ * - 90-day cache TTL by default (configurable via IMAGES_CACHE_TTL_MS)
  * - SafeSearch enabled
  * - Photo-only results
  *
@@ -242,6 +242,12 @@ export async function fetchPlaygroundImages({
       // Don't return null - fall through to fetch fresh images
     } else if (validCachedImages.length < cachedImages.length) {
       console.log(`[Images] 🚫 Filtered ${cachedImages.length - validCachedImages.length} invalid cached images for "${playgroundName}"`);
+      // Write back cleaned cache to avoid repeatedly serving invalid entries
+      try {
+        await saveImagesToCache({ cacheKey, images: validCachedImages });
+      } catch (err) {
+        console.warn("[Images] ⚠️ Failed to write back cleaned cached images:", err);
+      }
       return validCachedImages;
     } else {
       return cachedImages;

@@ -942,7 +942,7 @@ export const MapView = React.memo(function MapView() {
         className="absolute top-0 left-0 h-full w-full"
       />
       <MapLegend />
-      <div className="absolute right-4 bottom-10 z-1 flex md:right-4 md:bottom-8">
+      <div className="absolute right-4 bottom-10 z-10 flex md:right-4 md:bottom-8">
         <Button
           variant="outline"
           aria-label="Center map on my location"
@@ -953,7 +953,7 @@ export const MapView = React.memo(function MapView() {
         </Button>
       </div>
       {loading && geolocationStatus !== 'pending' && (
-        <div className="text-muted-foreground bg-background/90 absolute top-2 left-1/2 z-11 -translate-x-1/2 transform rounded px-2.5 py-1.5 text-xs backdrop-blur-sm">
+        <div className="text-muted-foreground bg-background/90 absolute top-2 left-1/2 z-20 -translate-x-1/2 transform rounded px-2.5 py-1.5 text-xs backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Spinner className="size-3" />
             <span>Loading playgrounds...</span>

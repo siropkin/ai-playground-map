@@ -13,7 +13,7 @@ export async function GET() {
             display: "flex",
             width: "100%",
             height: "100%",
-            background: "linear-gradient(to bottom right, #f8fafc, #e2e8f0)",
+            background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
             fontFamily: "sans-serif",
             overflow: "hidden",
             position: "relative",
@@ -29,8 +29,8 @@ export async function GET() {
               bottom: 0,
               backgroundSize: "30px 30px",
               backgroundImage:
-                "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
-              opacity: 0.4,
+                "radial-gradient(circle, rgba(255, 255, 255, 0.15) 1px, transparent 1px)",
+              opacity: 0.6,
             }}
           />
 
@@ -59,8 +59,8 @@ export async function GET() {
             >
               <div
                 style={{
-                  fontSize: 96,
-                  marginBottom: 20,
+                  fontSize: 80,
+                  marginBottom: 24,
                 }}
               >
                 {SITE_ICON}
@@ -69,7 +69,7 @@ export async function GET() {
                 style={{
                   fontSize: 72,
                   fontWeight: 800,
-                  color: "#0f172a",
+                  color: "#ffffff",
                   marginBottom: 16,
                   textAlign: "center",
                   lineHeight: 1.1,
@@ -80,7 +80,7 @@ export async function GET() {
               <div
                 style={{
                   fontSize: 32,
-                  color: "#334155",
+                  color: "rgba(255, 255, 255, 0.95)",
                   fontWeight: 500,
                   marginBottom: 20,
                   textAlign: "center",
@@ -104,17 +104,17 @@ export async function GET() {
             >
               {[
                 {
-                  title: "Discover local playgrounds",
+                  title: "Find playgrounds near you",
                   icon: "🔍",
                   color: "#3b82f6",
                 },
                 {
-                  title: "AI-powered search",
+                  title: "AI-powered insights",
                   icon: "🤖",
                   color: "#8b5cf6",
                 },
                 {
-                  title: "Explore playground photos",
+                  title: "Real playground photos",
                   icon: "📸",
                   color: "#f59e0b",
                 },
@@ -126,15 +126,16 @@ export async function GET() {
                     flexDirection: "column",
                     alignItems: "center",
                     padding: "32px 24px",
-                    backgroundColor: "rgba(255, 255, 255, 0.85)",
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
                     borderRadius: 16,
-                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
                     width: "33%",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
                   }}
                 >
                   <div
                     style={{
-                      fontSize: 40,
+                      fontSize: 48,
                       marginBottom: 16,
                     }}
                   >
@@ -142,10 +143,11 @@ export async function GET() {
                   </div>
                   <div
                     style={{
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: 600,
                       color: "#1e293b",
                       textAlign: "center",
+                      lineHeight: 1.2,
                     }}
                   >
                     {feature.title}

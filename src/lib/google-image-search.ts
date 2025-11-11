@@ -40,7 +40,7 @@
  * @see https://developers.google.com/custom-search/v1/overview
  */
 
-import { isValidImageUrl } from "@/lib/utils";
+import { isValidImageUrl, extractDomain } from "@/lib/utils";
 
 export interface GoogleImageResult {
   image_url: string;
@@ -420,6 +420,18 @@ export async function searchImages(
         // Filter out invalid/inaccessible image URLs
         if (!isValidImageUrl(img.image_url)) {
           console.log(`[Google Images] 🚫 Invalid URL format: ${img.image_url.substring(0, 50)}...`);
+          return false;
+        }
+
+        // Filter out images hosted on excluded domains (e.g., fbcdn, instagram proxies)
+        const imageUrlLower = img.image_url.toLowerCase();
+        const imageHost = extractDomain(img.image_url).toLowerCase();
+        if (
+          DOMAIN_TIERS.excluded.some(domain =>
+            imageUrlLower.includes(domain) || imageHost.includes(domain)
+          )
+        ) {
+          console.log(`[Google Images] 🚫 Excluded image host: ${imageHost}`);
           return false;
         }
 
