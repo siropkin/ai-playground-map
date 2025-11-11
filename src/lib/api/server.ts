@@ -87,6 +87,7 @@ export async function fetchPlaygroundByIdWithCache(id: string): Promise<Playgrou
       playground.accessibility = insight.accessibility || playground.accessibility;
       playground.tier = insight.tier || playground.tier;
       playground.tierReasoning = insight.tier_reasoning || playground.tierReasoning;
+      playground.imageSearchQueries = insight.image_search_queries || null;
       playground.enriched = true;
     }
 
