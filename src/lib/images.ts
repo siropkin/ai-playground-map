@@ -230,7 +230,21 @@ export async function fetchPlaygroundImages({
   // Try cache first
   const cachedImages = await fetchImagesFromCache({ cacheKey });
   if (cachedImages) {
-    return cachedImages;
+    // Filter out invalid/inaccessible image URLs (x-raw-image:// format from old cache)
+    const validCachedImages = cachedImages.filter(img =>
+      img.image_url.startsWith('http://') || img.image_url.startsWith('https://')
+    );
+
+    // If all cached images were invalid, treat as cache miss
+    if (validCachedImages.length === 0) {
+      console.log(`[Images] ⚠️ All ${cachedImages.length} cached images were invalid for "${playgroundName}"`);
+      // Don't return null - fall through to fetch fresh images
+    } else if (validCachedImages.length < cachedImages.length) {
+      console.log(`[Images] 🚫 Filtered ${cachedImages.length - validCachedImages.length} invalid cached images for "${playgroundName}"`);
+      return validCachedImages;
+    } else {
+      return cachedImages;
+    }
   }
 
   // Cache miss - fetch from Google Custom Search
