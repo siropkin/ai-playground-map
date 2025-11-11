@@ -396,10 +396,10 @@ export async function searchImages(
       url.searchParams.set('num', '10'); // Always fetch 10 per page
       url.searchParams.set('start', startIndex.toString());
       url.searchParams.set('safe', 'active'); // SafeSearch
-      url.searchParams.set('imgSize', 'large'); // Large images (was xxlarge - too restrictive)
+      url.searchParams.set('imgSize', 'medium'); // Medium images - better results than large/xxlarge
       url.searchParams.set('imgType', 'photo'); // Photos only
       url.searchParams.set('filter', '1'); // Duplicate filtering
-      url.searchParams.set('dateRestrict', 'y3'); // Last 3 years
+      url.searchParams.set('dateRestrict', 'y1'); // Last 1 year - finds project/architect sites
       url.searchParams.set('sort', 'date'); // Prefer recent images
 
       const response = await fetch(url.toString(), {
@@ -518,39 +518,23 @@ export function buildPlaygroundImageQuery(params: {
   region?: string;
   country?: string;
 }): string {
-  const { name, city, region } = params;
+  const { name, city } = params;
 
   const parts: string[] = [];
 
-  // Add playground name if available
+  // Add playground name with quotes for exact matching
+  // Testing showed this format works best for finding actual playground photos
   if (name) {
-    parts.push(`"${name}"`); // Use quotes for exact phrase matching
+    parts.push(`"${name}"`);
   }
 
-  // Add "playground" keyword if not in name
-  if (!name || !name.toLowerCase().includes('playground')) {
-    parts.push('playground');
-  }
-
-  // Add location for better specificity - REQUIRED to avoid wrong cities
-  // For playgrounds with generic names (e.g., "Martin Luther King Park"),
-  // the city name is critical to filter out results from other cities
-  if (city && region) {
-    // Include both quoted exact match AND individual terms for better coverage
-    parts.push(`"${city}, ${region}"`); // Exact location match
-    parts.push(city); // Individual city term (required)
-  } else if (city) {
+  // Add city in quotes
+  // Simple quoted city works better than complex location strings
+  if (city) {
     parts.push(`"${city}"`);
-    parts.push(city); // Ensure city appears in results
-  } else if (region) {
-    parts.push(region);
   }
 
-  // Build the query
-  const baseQuery = parts.join(' ');
-
-  // Add additional keywords to improve relevance (using OR so at least one must match)
-  // These help Google understand we want actual playground equipment photos
-  // Note: Using parentheses to group OR terms so they don't override the main query
-  return `${baseQuery} (equipment OR slide OR swing OR kids)`;
+  // Simple query works best - testing showed complex queries with equipment keywords
+  // and extra location terms don't improve results and can dilute the search
+  return parts.join(' ');
 }

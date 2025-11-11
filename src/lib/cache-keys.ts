@@ -23,7 +23,7 @@
 export const AI_INSIGHTS_CACHE_VERSION =
   process.env.AI_INSIGHTS_CACHE_VERSION || "v17-tier-fields-fixed";
 export const IMAGES_CACHE_VERSION =
-  process.env.IMAGES_CACHE_VERSION || "v9";
+  process.env.IMAGES_CACHE_VERSION || "v10";
 export const OSM_CACHE_VERSION =
   process.env.OSM_CACHE_VERSION || "v1";
 
