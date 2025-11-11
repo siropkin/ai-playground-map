@@ -128,14 +128,28 @@ export function PlaygroundCard({
   const handleDirections = (e: React.MouseEvent) => {
     e.stopPropagation();
     const { lat, lon } = playground;
+    const isMobile = /mobile/i.test(navigator.userAgent);
+    const isMac = /Mac/i.test(navigator.userAgent);
 
-    // Detect platform and use appropriate maps URL
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const directionsUrl = isIOS
-      ? `maps://maps.google.com/maps?daddr=${lat},${lon}&amp;ll=`
-      : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-
-    window.open(directionsUrl, "_blank");
+    if (isMobile) {
+      // Mobile: geo: URL triggers native map app picker
+      const geoUrl = `geo:${lat},${lon}?q=${lat},${lon}(${encodeURIComponent(name)})`;
+      window.location.href = geoUrl;
+    } else if (isMac) {
+      // macOS: Try native Apple Maps app with Google Maps fallback
+      const mapsUrl = `maps://maps.apple.com/?daddr=${lat},${lon}`;
+      window.location.href = mapsUrl;
+      setTimeout(() => {
+        window.open(
+          `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,
+          "_blank"
+        );
+      }, 500);
+    } else {
+      // Windows/Linux: Direct Google Maps
+      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+      window.open(directionsUrl, "_blank");
+    }
   };
 
   // COMPACT VARIANT - List items
