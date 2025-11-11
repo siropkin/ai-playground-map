@@ -129,6 +129,11 @@ export async function generatePlaygroundAiInsightsBatch({
   Array<{
     playgroundId: number;
     insights: AIInsights | null;
+    location?: {
+      city?: string;
+      region?: string;
+      country?: string;
+    };
   }>
 > {
   try {

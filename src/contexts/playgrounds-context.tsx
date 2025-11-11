@@ -319,9 +319,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               tier: result.insights?.tier || null,
               tierReasoning: result.insights?.tier_reasoning || null,
               // Store location data for later image fetching
-              city: (result as any).location?.city || p.city,
-              region: (result as any).location?.region || p.region,
-              country: (result as any).location?.country || p.country,
+              city: result.location?.city || p.city,
+              region: result.location?.region || p.region,
+              country: result.location?.country || p.country,
               enriched: true, // Always mark as enriched, even if insights is null
             };
           }),

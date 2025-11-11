@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { searchImages, buildPlaygroundImageQuery } from '../src/lib/google-image-search.ts';
+import { searchImages, buildPlaygroundImageQuery } from '../src/lib/google-image-search';
 
 // Load environment variables
 try {
