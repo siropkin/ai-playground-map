@@ -206,7 +206,8 @@ const DOMAIN_TIERS = {
  */
 function scoreImage(
   image: CustomSearchImageItem,
-  queryTerms?: string[]
+  queryTerms?: string[],
+  expectedCity?: string
 ): number {
   let score = 0;
   const url = image.image.contextLink.toLowerCase();
@@ -298,6 +299,35 @@ function scoreImage(
     score -= 25; // Heavy penalty for missing keywords
   }
 
+  // 7. Location Verification (penalty for wrong cities)
+  // This is critical for playgrounds with generic names (e.g., "Martin Luther King Park")
+  // Many cities have playgrounds with the same name, so we need to verify the location
+  if (expectedCity) {
+    const cityLower = expectedCity.toLowerCase();
+    const hasExpectedCity = textToCheck.includes(cityLower);
+
+    // List of common US cities to check against
+    const wrongCities = [
+      'springfield', 'biloxi', 'long beach', 'oakland', 'san francisco',
+      'los angeles', 'san jose', 'san diego', 'sacramento', 'fresno',
+      'seattle', 'portland', 'boston', 'new york', 'chicago', 'atlanta',
+      'miami', 'dallas', 'houston', 'denver', 'phoenix', 'philadelphia'
+    ].filter(city => city !== cityLower); // Exclude the expected city
+
+    const hasWrongCity = wrongCities.some(city => textToCheck.includes(city));
+
+    if (hasWrongCity && !hasExpectedCity) {
+      // Result mentions a different city and doesn't mention the expected city
+      score -= 40; // Heavy penalty for wrong location
+    } else if (!hasExpectedCity) {
+      // Result doesn't mention the expected city (neutral - might be generic)
+      score -= 10; // Small penalty for missing location confirmation
+    } else {
+      // Result mentions the expected city - bonus!
+      score += 5;
+    }
+  }
+
   return Math.min(Math.max(score, 0), 100); // Clamp to 0-100
 }
 
@@ -322,6 +352,7 @@ export async function searchImages(
     minScore?: number;
     minWidth?: number;
     minHeight?: number;
+    city?: string; // Expected city for location verification
   } = {}
 ): Promise<GoogleImageResult[]> {
   const {
@@ -330,6 +361,7 @@ export async function searchImages(
     minScore = 30, // Minimum quality score (0-100)
     minWidth = 400, // Minimum image width
     minHeight = 300, // Minimum image height
+    city, // Expected city for location verification
   } = options;
 
   const apiKey = process.env.GOOGLE_SEARCH_API_KEY || process.env.GEMINI_API_KEY;
@@ -404,7 +436,7 @@ export async function searchImages(
     // Phase 2: Score and filter all images
     const scoredImages = allItems
       .map(item => {
-        const score = scoreImage(item, queryTerms);
+        const score = scoreImage(item, queryTerms, city);
         return {
           item,
           score,
@@ -502,11 +534,16 @@ export function buildPlaygroundImageQuery(params: {
     parts.push('playground');
   }
 
-  // Add location (city and/or region) for better specificity
+  // Add location for better specificity - REQUIRED to avoid wrong cities
+  // For playgrounds with generic names (e.g., "Martin Luther King Park"),
+  // the city name is critical to filter out results from other cities
   if (city && region) {
-    parts.push(`"${city}, ${region}"`); // Use quotes for exact location
+    // Include both quoted exact match AND individual terms for better coverage
+    parts.push(`"${city}, ${region}"`); // Exact location match
+    parts.push(city); // Individual city term (required)
   } else if (city) {
     parts.push(`"${city}"`);
+    parts.push(city); // Ensure city appears in results
   } else if (region) {
     parts.push(region);
   }

@@ -266,6 +266,7 @@ export async function fetchPlaygroundImages({
     const rawImages = await searchImages(imageQuery, {
       maxResults: 10,
       signal,
+      city, // Pass city for location verification in scoring
     });
 
     if (rawImages.length === 0) {
