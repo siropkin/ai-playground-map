@@ -138,3 +138,11 @@ If you like the project and want it to keep running and improving, please consid
 <a href="https://buymeacoffee.com/ivan.seredkin" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
 
 Your support helps cover API costs and enables continued development of this free resource. Thank you!
+
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- **[CACHE.md](docs/CACHE.md)** - Caching strategy and implementation details
+- **[CODEBASE_ARCHITECTURE.md](docs/CODEBASE_ARCHITECTURE.md)** - Architecture overview and code organization
+- **[QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)** - Quick reference for common tasks and API usage

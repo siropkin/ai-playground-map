@@ -161,6 +161,7 @@ export async function POST(
               accessibility: cachedInsights.accessibility,
               tier: cachedInsights.tier,
               tierReasoning: cachedInsights.tier_reasoning,
+              imageSearchQueries: cachedInsights.image_search_queries,
               enriched: true, // Mark as enriched since we have cache data
             };
           }
@@ -173,8 +174,6 @@ export async function POST(
       })
     );
 
-    const enrichedCount = enrichedPlaygrounds.filter(p => p.enriched).length;
-    console.log(`[APISearch] ✅ Returning ${enrichedPlaygrounds.length} playgrounds (${enrichedCount} pre-enriched from cache)`);
     return NextResponse.json(enrichedPlaygrounds);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {

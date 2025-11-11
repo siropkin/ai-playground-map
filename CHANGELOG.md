@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0] - 2025-11-10
+
+### Added - SEO & Image Search Enhancements
+
+#### AI-Generated SEO Keywords
+- **Implemented dynamic SEO keywords using Gemini-generated image search queries**
+- Added `imageSearchQueries` to playground metadata for improved search rankings
+- Location-specific, naturally-phrased keywords (e.g., "Paddock Park Playground San Mateo")
+- Zero performance impact - uses existing cached data from `ai_insights_cache`
+- Automatic keyword generation for all playground pages with `?playground=` parameter
+
+#### Google API-Level Domain Exclusion
+- **Added API-level domain exclusion for social media platforms**
+- Excludes Facebook, Instagram, TikTok, YouTube at Google API level
+- More efficient than local filtering - no wasted API quota
+- Prevents inaccessible/authentication-required image URLs
+- Faster response times with better quality results
+
+### Improved - Image Search Architecture
+
+#### Simplified Image Search Logic
+- Removed complex 6-factor scoring system
+- Removed restrictive API parameters (dateRestrict, imgSize, sort)
+- Now using pure Google ranking for optimal results
+- Images match browser search quality
+- Trust Gemini queries as single source of truth
+
+### Fixed - Code Quality & Build
+
+#### Production Build Improvements
+- Removed all client-side console.log statements
+- Removed server-side console.log statements (kept error/warn only)
+- Fixed TypeScript build errors and warnings
+- Fixed Next.js viewport metadata warning
+- Clean production build with zero warnings
+
+#### PWA Icons
+- Fixed 404 errors for PWA manifest icons
+- Added dynamic icon generators (icon-192.tsx, icon-512.tsx)
+- Icons now generate on-demand using Next.js ImageResponse API
+
+### Changed - Code Organization
+
+#### Documentation Cleanup
+- Reorganized documentation into `docs/` folder
+- Moved CACHE.md, CODEBASE_ARCHITECTURE.md, QUICK_REFERENCE.md
+- Removed 10 unnecessary debug/test scripts
+- Removed completed migration files
+- Cleaned up supabase-schema.sql (241 → 154 lines)
+- Updated README with documentation links
+
 ## [5.1.0] - 2025-11-10
 
 ### Added - Open Graph / Social Media Features

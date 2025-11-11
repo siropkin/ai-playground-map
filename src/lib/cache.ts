@@ -19,10 +19,10 @@ export async function fetchAIInsightsFromCache({
   try {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at",
+        "name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, image_search_queries, created_at",
       )
       .eq("cache_key", cacheKey)
       .single();
@@ -59,9 +59,13 @@ export async function fetchAIInsightsFromCache({
       // Tier fields (added in v17) - now properly selected from database
       tier: data.tier ?? null,
       tier_reasoning: data.tier_reasoning ?? null,
+      // Image search queries (added in v18)
+      image_search_queries: data.image_search_queries ?? null,
     };
 
-    console.log(`[CacheAI] 📖 Retrieved "${result.name}" (${result.tier})`);
+    if (!result.image_search_queries) {
+      console.warn(`[CacheAI] ⚠️ Cache entry missing image_search_queries - old cache version?`);
+    }
 
     return result;
   } catch (error) {
@@ -96,6 +100,7 @@ export async function saveAIInsightsToCache({
           accessibility: insights.accessibility,
           tier: insights.tier,
           tier_reasoning: insights.tier_reasoning,
+          image_search_queries: insights.image_search_queries,
           created_at: new Date().toISOString(),
         },
         { onConflict: "cache_key" },
@@ -104,7 +109,6 @@ export async function saveAIInsightsToCache({
     if (error) {
       console.error("[CacheAI] ❌ Error saving AI insights to cache:", error);
     } else {
-      console.log(`[CacheAI] ✅ Saved "${insights.name}" (${insights.tier})`);
     }
   } catch (error) {
     console.error("[CacheAI] ❌ Error saving AI insights to cache:", error);
@@ -128,7 +132,6 @@ export async function clearAIInsightsCache({
     if (error) {
       console.error("[CacheAI] ❌ Error clearing AI insights cache:", error);
     } else {
-      console.log(`[CacheAI] 🗑️ Cleared cache for ${cacheKey}`);
     }
   } catch (error) {
     console.error("[CacheAI] ❌ Error clearing AI insights cache:", error);
@@ -160,7 +163,6 @@ export async function bulkClearAIInsightsCache({
       return { success: false, deletedCount: 0 };
     }
 
-    console.log(`[CacheAI] 🗑️ Bulk cleared ${count || 0} cache entries`);
     return { success: true, deletedCount: count || 0 };
   } catch (error) {
     console.error("[CacheAI] ❌ Error bulk clearing AI insights cache:", error);
@@ -190,7 +192,6 @@ export async function clearAIInsightsCacheByPattern({
       return { success: false, deletedCount: 0 };
     }
 
-    console.log(`[CacheAI] 🗑️ Cleared ${count || 0} cache entries matching pattern: ${pattern}`);
     return { success: true, deletedCount: count || 0 };
   } catch (error) {
     console.error("[CacheAI] ❌ Error clearing AI insights cache by pattern:", error);
@@ -220,7 +221,7 @@ export async function batchFetchAIInsightsFromCache({
     const { data, error } = await supabase
       .from(AI_INSIGHTS_CACHE_TABLE_NAME)
       .select(
-        "cache_key, name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, created_at",
+        "cache_key, name, description, features, parking, sources, images, accessibility, tier, tier_reasoning, image_search_queries, created_at",
       )
       .in("cache_key", cacheKeys);
 
@@ -257,6 +258,8 @@ export async function batchFetchAIInsightsFromCache({
         // Tier fields (added in v17) - now properly selected from database
         tier: row.tier ?? null,
         tier_reasoning: row.tier_reasoning ?? null,
+        // Image search queries (added in v18)
+        image_search_queries: row.image_search_queries ?? null,
       });
     }
 
@@ -272,10 +275,6 @@ export async function batchFetchAIInsightsFromCache({
           }
         });
     }
-
-    console.log(
-      `[CacheAI] 📦 Batch fetched ${results.size}/${cacheKeys.length} entries`,
-    );
 
     return results;
   } catch (error) {

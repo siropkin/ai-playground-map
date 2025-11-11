@@ -24,9 +24,20 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
               : playground.description)
           : SITE_DESCRIPTION;
 
+        // Use Gemini-generated image search queries as SEO keywords
+        // These are location-specific, descriptive queries that improve discoverability
+        const keywords = playground.imageSearchQueries || [
+          playgroundName,
+          `${playgroundName} ${playground.city || ""}`.trim(),
+          "playground",
+          "kids playground",
+          "family activities",
+        ];
+
         return {
           title: `${playgroundName} | ${SITE_NAME}`,
           description,
+          keywords, // SEO boost with AI-generated keywords from cache
           openGraph: {
             title: playgroundName,
             description,

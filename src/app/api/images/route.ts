@@ -12,13 +12,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { playgroundName, city, region, country, osmId } = body as {
+    const { playgroundName, city, region, country, osmId, imageSearchQueries } = body as {
       playgroundName: string;
       city?: string;
       region?: string;
       country?: string;
       osmId?: string;
+      imageSearchQueries?: string[] | null;
     };
+
 
     if (!playgroundName) {
       return NextResponse.json(
@@ -34,6 +36,7 @@ export async function POST(request: NextRequest) {
       country,
       osmId,
       signal,
+      imageSearchQueries,
     });
 
     return NextResponse.json({ images });

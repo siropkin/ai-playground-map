@@ -234,24 +234,20 @@ export const MapView = React.memo(function MapView() {
     const hasExistingBounds = !!mapBounds;
 
     if (hasExistingBounds) {
-      console.log("[MapView] 🔗 URL/session bounds exist, setting geolocation status to resolved");
       setGeolocationStatus('denied'); // Mark as resolved so data loads
       geolocationStatusRef.current = 'denied';
     }
 
-    console.log("[MapView] 📍 Starting geolocation check...");
     if ('geolocation' in navigator) {
       // Use watchPosition to continuously listen for location updates
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          console.log("[MapView] ✓ User location detected:", latitude, longitude);
 
           setUserLocation([longitude, latitude]);
 
           // Only fly to user location if we don't have existing bounds
           if (!hasExistingBounds && map.current) {
-            console.log("[MapView] 🚁 Flying to user location");
             const [lng, lat] = [longitude, latitude];
             const latOffset = 0.01;
             const lonOffset = 0.01;
@@ -273,15 +269,12 @@ export const MapView = React.memo(function MapView() {
             geolocationStatusRef.current = 'granted';
           } else {
             // Has existing bounds, just show the marker without flying
-            console.log("[MapView] 📍 Showing user location marker (not flying)");
           }
         },
-        (error) => {
-          console.log("[MapView] ℹ️ Geolocation denied or error:", error.message);
+        () => {
 
           // Only fly to DC if we don't have existing bounds
           if (!hasExistingBounds && map.current) {
-            console.log("[MapView] 🚁 Flying to default location (DC)");
 
             // Set status BEFORE flying so moveend event can update bounds
             setGeolocationStatus('denied');
@@ -312,7 +305,6 @@ export const MapView = React.memo(function MapView() {
         navigator.geolocation.clearWatch(watchId);
       };
     } else {
-      console.log("[MapView] ℹ️ Geolocation not supported");
       if (!hasExistingBounds) {
         setGeolocationStatus('denied');
         geolocationStatusRef.current = 'denied';
@@ -578,7 +570,6 @@ export const MapView = React.memo(function MapView() {
       return;
     }
 
-    console.log("[MapView] 🗺️ Initializing map");
 
     try {
       map.current = new mapboxgl.Map({
@@ -590,7 +581,6 @@ export const MapView = React.memo(function MapView() {
 
       if (mapBounds) {
         // URL params present - use them immediately
-        console.log("[MapView] ℹ️ Restoring from URL params:", mapBounds);
         map.current.fitBounds(
           [
             [mapBounds.west, mapBounds.south],
@@ -610,7 +600,6 @@ export const MapView = React.memo(function MapView() {
 
       // Only update URL when geolocation is resolved (not pending)
       map.current.on("moveend", () => {
-        console.log("[MapView] 📍 moveend - status:", geolocationStatusRef.current);
         if (geolocationStatusRef.current !== 'pending') {
           setMapBounds(getMapBounds(map.current));
         }
@@ -881,12 +870,10 @@ export const MapView = React.memo(function MapView() {
   // Update user location marker when map loads and location is available
   useEffect(() => {
     if (map.current && isMapLoaded && userLocation) {
-      console.log("[MapView] ✓ Displaying user location marker at:", userLocation);
       updateUserLocationMarker(map.current, userLocation[0], userLocation[1]);
 
       // Auto-center on user location only on initial load (once) and only if no URL params exist
       if (!hasAutocentered.current && !mapBounds) {
-        console.log("[MapView] ✓ Auto-centering on user location (first load, no URL params)");
         hasAutocentered.current = true;
         map.current.flyTo({
           center: userLocation,
@@ -894,7 +881,6 @@ export const MapView = React.memo(function MapView() {
           duration: 800,
         });
       } else if (mapBounds) {
-        console.log("[MapView] ℹ️ Skipping auto-center (URL params present)");
         hasAutocentered.current = true; // Mark as autocentered to prevent future attempts
       }
     }

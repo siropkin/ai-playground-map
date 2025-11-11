@@ -59,7 +59,6 @@ export function FiltersProvider({ children }: { children: ReactNode }) {
       initialBounds = getMapBoundsFromSession();
 
       if (initialBounds) {
-        console.log("[FiltersContext] Restoring bounds from session storage:", initialBounds);
         // Update URL to match session storage
         updateUrlWithMapBounds(initialBounds);
       }

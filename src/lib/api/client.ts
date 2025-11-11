@@ -172,6 +172,7 @@ export async function fetchPlaygroundImages({
   country,
   osmId,
   signal,
+  imageSearchQueries,
 }: {
   playgroundName: string;
   city?: string;
@@ -179,6 +180,7 @@ export async function fetchPlaygroundImages({
   country?: string;
   osmId?: string;
   signal?: AbortSignal;
+  imageSearchQueries?: string[] | null;
 }): Promise<PlaygroundImage[] | null> {
   try {
     const response = await fetch("/api/images", {
@@ -187,7 +189,7 @@ export async function fetchPlaygroundImages({
         "Content-Type": "application/json",
         "x-app-origin": "internal",
       },
-      body: JSON.stringify({ playgroundName, city, region, country, osmId }),
+      body: JSON.stringify({ playgroundName, city, region, country, osmId, imageSearchQueries }),
       signal,
     });
 

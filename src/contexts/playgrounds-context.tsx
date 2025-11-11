@@ -32,13 +32,11 @@ function validateAccessibility(accessibility: unknown): Playground["accessibilit
     if (accessibility.every(item => typeof item === "string")) {
       return accessibility;
     }
-    console.warn("[ContextPlaygrounds] ⚠️ Rejecting malformed accessibility array");
     return null;
   }
 
   // Old format: object (v5 and earlier) - reject
   if (accessibility && typeof accessibility === "object") {
-    console.warn("[ContextPlaygrounds] ⚠️ Rejecting old accessibility object format");
     return null;
   }
 
@@ -71,7 +69,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flyToCoords, setFlyToCoords] = useState<FlyToCoordinates | null>(null);
-  const [selectedPlayground, setSelectedPlayground] = useState<Playground | null>(null);
+  const [selectedPlaygroundId, setSelectedPlaygroundId] = useState<number | null>(null);
 
   // Abort controller for canceling enrichment requests
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -120,6 +118,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                   accessibility: validateAccessibility(existingEnriched.accessibility),
                   tier: existingEnriched.tier,
                   tierReasoning: existingEnriched.tierReasoning,
+                  imageSearchQueries: existingEnriched.imageSearchQueries,
                   enriched: true,
                 };
               }
@@ -145,7 +144,6 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           !(err instanceof DOMException && err.name === "AbortError") &&
           !signal?.aborted
         ) {
-          console.error("[ContextPlaygrounds] ❌ Error fetching playgrounds:", err);
           setError("Failed to load playgrounds. Please try again.");
         }
       } finally {
@@ -322,12 +320,13 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               city: result.location?.city || p.city,
               region: result.location?.region || p.region,
               country: result.location?.country || p.country,
+              // Store Gemini-generated image search queries
+              imageSearchQueries: result.insights?.image_search_queries || null,
               enriched: true, // Always mark as enriched, even if insights is null
             };
           }),
         );
-      } catch (error) {
-        console.error("[ContextPlaygrounds] ❌ Error enriching playgrounds batch:", error);
+      } catch {
         // Remove from queued set on error so they can be retried
         filteredIds.forEach(id => enrichmentQueuedRef.current.delete(id));
       }
@@ -373,6 +372,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           country: playground.country, // From AI enrichment geocoding
           osmId: osmIdFormatted,
           signal: abortControllerRef.current?.signal,
+          imageSearchQueries: playground.imageSearchQueries || null, // Use Gemini-generated queries
         });
 
         // Update only if we got images
@@ -387,10 +387,9 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
                 : p,
             ),
           );
-          console.log(`[ContextPlaygrounds] 🖼️ Loaded ${images.length} images for playground ${playgroundId}`);
         }
-      } catch (error) {
-        console.error(`[ContextPlaygrounds] ❌ Error loading images for playground ${playgroundId}:`, error);
+      } catch {
+        // Silently fail - images are optional
       }
     },
     [], // No dependencies - we get playground from setState callback
@@ -418,7 +417,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const selectPlayground = useCallback((playground: Playground) => {
-    setSelectedPlayground(playground);
+    setSelectedPlaygroundId(playground.osmId);
     // Update URL with query param
     const url = new URL(window.location.href);
     url.searchParams.set('playground', playground.osmId.toString());
@@ -426,7 +425,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearSelectedPlayground = useCallback(() => {
-    setSelectedPlayground(null);
+    setSelectedPlaygroundId(null);
     // Remove query param from URL
     const url = new URL(window.location.href);
     url.searchParams.delete('playground');
@@ -439,13 +438,15 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     const playgroundId = params.get('playground');
 
     if (playgroundId) {
-      // Find playground in current list
-      const playground = playgrounds.find(p => p.osmId.toString() === playgroundId);
-      if (playground) {
-        setSelectedPlayground(playground);
-      }
+      setSelectedPlaygroundId(parseInt(playgroundId, 10));
     }
-  }, [playgrounds]);
+  }, []);
+
+  // Derive selectedPlayground from playgrounds array to always get latest data
+  const selectedPlayground = useMemo(() => {
+    if (!selectedPlaygroundId) return null;
+    return playgrounds.find(p => p.osmId === selectedPlaygroundId) || null;
+  }, [selectedPlaygroundId, playgrounds]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
