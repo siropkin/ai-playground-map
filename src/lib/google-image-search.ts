@@ -356,9 +356,9 @@ export async function searchImages(
   const {
     maxResults = 10,
     signal,
-    minScore = 30, // Minimum quality score (0-100)
-    minWidth = 400, // Minimum image width
-    minHeight = 300, // Minimum image height
+    minScore = 20, // Minimum quality score (0-100) - reduced from 30
+    minWidth = 300, // Minimum image width - reduced from 400
+    minHeight = 200, // Minimum image height - reduced from 300
     city, // Expected city for location verification
   } = options;
 
@@ -396,7 +396,7 @@ export async function searchImages(
       url.searchParams.set('num', '10'); // Always fetch 10 per page
       url.searchParams.set('start', startIndex.toString());
       url.searchParams.set('safe', 'active'); // SafeSearch
-      url.searchParams.set('imgSize', 'xxlarge'); // Maximum quality
+      url.searchParams.set('imgSize', 'large'); // Large images (was xxlarge - too restrictive)
       url.searchParams.set('imgType', 'photo'); // Photos only
       url.searchParams.set('filter', '1'); // Duplicate filtering
       url.searchParams.set('dateRestrict', 'y3'); // Last 3 years
