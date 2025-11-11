@@ -1,9 +1,9 @@
 import { MapBounds } from "@/types/map";
 import { OSMQueryResults } from "@/types/osm";
 import { createClient } from "@/lib/supabase/server";
+import { OSM_CACHE_VERSION } from "@/lib/cache-keys";
 
 // Cache configuration
-const OSM_CACHE_VERSION = "v1"; // Increment to invalidate all cached OSM data
 const OSM_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const OSM_CACHE_TABLE_NAME = "osm_query_cache";
 const MAX_CACHE_ENTRIES = 10000; // LRU eviction threshold
