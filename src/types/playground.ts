@@ -8,6 +8,10 @@ export type Playground = {
   lat: number;
   lon: number;
   address: string | null;
+  // Location data from geocoding (used for image search)
+  city?: string;
+  region?: string; // state/province
+  country?: string; // ISO 3166-1 alpha-2 code (e.g., "US")
   features: string[] | null;
   parking: string | null;
   sources: string[] | null;

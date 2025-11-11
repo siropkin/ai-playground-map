@@ -299,33 +299,21 @@ function scoreImage(
     score -= 25; // Heavy penalty for missing keywords
   }
 
-  // 7. Location Verification (penalty for wrong cities)
-  // This is critical for playgrounds with generic names (e.g., "Martin Luther King Park")
-  // Many cities have playgrounds with the same name, so we need to verify the location
+  // 7. Location Verification (bonus for correct location)
+  // Give bonus points if the image mentions the expected city
+  // This helps prioritize local images without penalizing global sources
   if (expectedCity) {
     const cityLower = expectedCity.toLowerCase();
     const hasExpectedCity = textToCheck.includes(cityLower);
 
-    // List of common US cities to check against
-    const wrongCities = [
-      'springfield', 'biloxi', 'long beach', 'oakland', 'san francisco',
-      'los angeles', 'san jose', 'san diego', 'sacramento', 'fresno',
-      'seattle', 'portland', 'boston', 'new york', 'chicago', 'atlanta',
-      'miami', 'dallas', 'houston', 'denver', 'phoenix', 'philadelphia'
-    ].filter(city => city !== cityLower); // Exclude the expected city
-
-    const hasWrongCity = wrongCities.some(city => textToCheck.includes(city));
-
-    if (hasWrongCity && !hasExpectedCity) {
-      // Result mentions a different city and doesn't mention the expected city
-      score -= 40; // Heavy penalty for wrong location
-    } else if (!hasExpectedCity) {
-      // Result doesn't mention the expected city (neutral - might be generic)
-      score -= 10; // Small penalty for missing location confirmation
-    } else {
-      // Result mentions the expected city - bonus!
-      score += 5;
+    if (hasExpectedCity) {
+      // Bonus for mentioning the expected city
+      score += 10;
     }
+    // Note: We intentionally don't penalize images that don't mention the city
+    // because many legitimate playground images come from generic sources
+    // (equipment manufacturers, playground blogs, etc.) that don't include
+    // location information but are still high-quality and relevant
   }
 
   return Math.min(Math.max(score, 0), 100); // Clamp to 0-100

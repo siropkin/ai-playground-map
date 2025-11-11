@@ -108,8 +108,14 @@ export async function POST(
 
     console.log(`[APIInsightsBatch] ✅ Completed: ${missResults.filter(r => r.insights).length}/${missResults.length}`);
 
+    // Add location data to results
+    const missResultsWithLocation = missResults.map((result, index) => ({
+      ...result,
+      location: missRequests[index]?.location,
+    }));
+
     // Merge cache hits and API results
-    const missMap = new Map(missResults.map((r) => [r.playgroundId, r]));
+    const missMap = new Map(missResultsWithLocation.map((r) => [r.playgroundId, r]));
     const results = cacheResults.map((cacheResult) =>
       missMap.get(cacheResult.playgroundId) || cacheResult
     );

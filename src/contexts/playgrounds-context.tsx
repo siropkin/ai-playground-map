@@ -286,7 +286,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           signal: abortControllerRef.current?.signal,
         });
 
-        // Update playgrounds with insights
+        // Update playgrounds with insights and location data
         setPlaygrounds((prev) =>
           prev.map((p) => {
             const result = results.find((r) => r.playgroundId === p.osmId);
@@ -313,6 +313,10 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
               accessibility: validateAccessibility(result.insights?.accessibility) || p.accessibility,
               tier: result.insights?.tier || null,
               tierReasoning: result.insights?.tier_reasoning || null,
+              // Store location data for later image fetching
+              city: (result as any).location?.city || p.city,
+              region: (result as any).location?.region || p.region,
+              country: (result as any).location?.country || p.country,
               enriched: true, // Always mark as enriched, even if insights is null
             };
           }),
@@ -356,9 +360,12 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
           : undefined;
 
         // Fetch images from Google Custom Search (separate service)
+        // Use location data from AI enrichment for better search accuracy
         const images = await fetchPlaygroundImages({
           playgroundName: playground.name,
-          city: playground.address?.split(',')[1]?.trim(),
+          city: playground.city, // From AI enrichment geocoding
+          region: playground.region, // From AI enrichment geocoding
+          country: playground.country, // From AI enrichment geocoding
           osmId: osmIdFormatted,
           signal: abortControllerRef.current?.signal,
         });
