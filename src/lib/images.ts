@@ -18,6 +18,7 @@
 import { searchImages, buildPlaygroundImageQuery } from "@/lib/google-image-search";
 import { createClient } from "@/lib/supabase/server";
 import { buildImagesCacheKey } from "@/lib/cache-keys";
+import { isValidImageUrl } from "@/lib/utils";
 
 export interface PlaygroundImage {
   image_url: string;
@@ -232,7 +233,7 @@ export async function fetchPlaygroundImages({
   if (cachedImages) {
     // Filter out invalid/inaccessible image URLs (x-raw-image:// format from old cache)
     const validCachedImages = cachedImages.filter(img =>
-      img.image_url.startsWith('http://') || img.image_url.startsWith('https://')
+      isValidImageUrl(img.image_url)
     );
 
     // If all cached images were invalid, treat as cache miss

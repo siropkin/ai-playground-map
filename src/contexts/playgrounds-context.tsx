@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/client";
 // Tier calculation now done by Gemini AI - no longer needed locally
 import { useDebounce } from "@/lib/hooks";
+import { isValidImageUrl } from "@/lib/utils";
 
 type FlyToCoordinates = [number, number]; // [longitude, latitude]
 
@@ -167,11 +168,11 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapBounds]);
 
-  // TODO: Optimize - auto-enrichment causes unnecessary cache-hit requests on page refresh
-  // Better approach: Make /api/search check cache and return enrichment data if available
+  // ✅ OPTIMIZATION COMPLETE: /api/search now checks cache and returns enrichment data if available
+  // This eliminates unnecessary cache-hit requests on page refresh (see src/app/api/search/route.ts:128-174)
   //
-  // COMMENTED OUT: SINGLE SOURCE OF TRUTH - Automatically enrich any unenriched playgrounds
-  // This effect runs whenever playgrounds list changes (from fetch, map movement, etc.)
+  // COMMENTED OUT: Auto-enrichment effect disabled - now handled by /api/search
+  // Kept here for reference in case we need client-side enrichment fallback
   // useEffect(() => {
   //   // Filter for unenriched playgrounds that haven't been queued yet
   //   const unenrichedPlaygrounds = playgrounds.filter(
@@ -296,8 +297,7 @@ export function PlaygroundsProvider({ children }: { children: ReactNode }) {
 
             // Filter out invalid image URLs from old cache (x-raw-image:// format from Gemini pre-v5.0.0)
             const validImages = result.insights?.images?.filter(img =>
-              img.image_url &&
-              (img.image_url.startsWith('http://') || img.image_url.startsWith('https://'))
+              isValidImageUrl(img.image_url)
             ) || null;
 
             // Tier now comes directly from Gemini AI (no local calculation)

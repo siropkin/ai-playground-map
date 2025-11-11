@@ -40,6 +40,8 @@
  * @see https://developers.google.com/custom-search/v1/overview
  */
 
+import { isValidImageUrl } from "@/lib/utils";
+
 export interface GoogleImageResult {
   image_url: string;
   origin_url: string;
@@ -415,8 +417,8 @@ export async function searchImages(
         };
       })
       .filter(img => {
-        // Filter out invalid/inaccessible image URLs (x-raw-image:// format from Google)
-        if (!img.image_url.startsWith('http://') && !img.image_url.startsWith('https://')) {
+        // Filter out invalid/inaccessible image URLs
+        if (!isValidImageUrl(img.image_url)) {
           console.log(`[Google Images] 🚫 Invalid URL format: ${img.image_url.substring(0, 50)}...`);
           return false;
         }

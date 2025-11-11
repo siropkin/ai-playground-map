@@ -183,3 +183,18 @@ export function extractDomain(url: string): string {
     return url;
   }
 }
+
+/**
+ * Validate image URL - filters out invalid/inaccessible formats
+ * Google API sometimes returns x-raw-image:// URLs which are not accessible
+ * Old Gemini cache may contain x-raw-image:// URLs from pre-v5.0.0
+ */
+export function isValidImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+
+  // Explicitly reject x-raw-image:// format
+  if (url.startsWith('x-raw-image://')) return false;
+
+  // Only accept http:// or https:// URLs
+  return url.startsWith('http://') || url.startsWith('https://');
+}

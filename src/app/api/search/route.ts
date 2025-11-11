@@ -10,6 +10,7 @@ import {
 } from "@/lib/osm-cache";
 import { fetchAIInsightsFromCache } from "@/lib/cache";
 import { buildAIInsightsCacheKey } from "@/lib/cache-keys";
+import { isValidImageUrl } from "@/lib/utils";
 
 // Zoom-based limits for result count (industry best practice)
 const ZOOM_THRESHOLD_LOW = 12; // Threshold for zoomed-out view
@@ -145,8 +146,7 @@ export async function POST(
           if (cachedInsights) {
             // Filter out invalid image URLs from old cache (x-raw-image:// format from Gemini pre-v5.0.0)
             const validImages = cachedInsights.images?.filter(img =>
-              img.image_url &&
-              (img.image_url.startsWith('http://') || img.image_url.startsWith('https://'))
+              isValidImageUrl(img.image_url)
             ) || null;
 
             // Populate playground with cached AI insights
