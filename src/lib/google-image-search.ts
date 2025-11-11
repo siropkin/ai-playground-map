@@ -299,9 +299,8 @@ function scoreImage(
     score -= 25; // Heavy penalty for missing keywords
   }
 
-  // 7. Location Verification (bonus for correct location)
-  // Give bonus points if the image mentions the expected city
-  // This helps prioritize local images without penalizing global sources
+  // 7. Location Verification (bonus for correct location, penalty for wrong country)
+  // Strategy: Bonus for matching city, heavy penalty for obviously wrong country
   if (expectedCity) {
     const cityLower = expectedCity.toLowerCase();
     const hasExpectedCity = textToCheck.includes(cityLower);
@@ -310,10 +309,21 @@ function scoreImage(
       // Bonus for mentioning the expected city
       score += 10;
     }
-    // Note: We intentionally don't penalize images that don't mention the city
-    // because many legitimate playground images come from generic sources
-    // (equipment manufacturers, playground blogs, etc.) that don't include
-    // location information but are still high-quality and relevant
+
+    // Check for non-English characters (Chinese, Japanese, Korean, etc.)
+    // These indicate the content is from a different country
+    const hasCJK = /[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/.test(textToCheck);
+
+    // Check for .au domain (Australia)
+    const isAustraliaDomain = url.includes('.com.au') || url.includes('.org.au');
+
+    if (hasCJK) {
+      // Heavy penalty for Chinese/Japanese/Korean content when searching for English locations
+      score -= 30;
+    } else if (isAustraliaDomain && !hasExpectedCity) {
+      // Moderate penalty for Australian sites that don't mention the expected city
+      score -= 20;
+    }
   }
 
   return Math.min(Math.max(score, 0), 100); // Clamp to 0-100

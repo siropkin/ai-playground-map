@@ -6,7 +6,7 @@
  *
  * Key Formats:
  * - AI Insights: "v17-tier-fields-fixed:{osmId}" or "v17-tier-fields-fixed:{lat},{lon}"
- * - Images: "v7:{osmId}" or "v7:{name}-{city}-{region}"
+ * - Images: "v8:{osmId}" or "v8:{name}-{city}-{region}"
  * - OSM Query: "v1:osm:{north}:{south}:{east}:{west}:{zoom}"
  */
 
@@ -23,7 +23,7 @@
 export const AI_INSIGHTS_CACHE_VERSION =
   process.env.AI_INSIGHTS_CACHE_VERSION || "v17-tier-fields-fixed";
 export const IMAGES_CACHE_VERSION =
-  process.env.IMAGES_CACHE_VERSION || "v7";
+  process.env.IMAGES_CACHE_VERSION || "v8";
 export const OSM_CACHE_VERSION =
   process.env.OSM_CACHE_VERSION || "v1";
 
