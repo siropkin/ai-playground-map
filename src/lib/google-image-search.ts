@@ -161,7 +161,6 @@ const DOMAIN_TIERS = {
   ],
   // Tier 2: Social media, local news, community sites (score: 30)
   tier2: [
-    'instagram.com',
     'facebook.com',
     'patch.com',
     'yelp.com/biz/', // Yelp business pages (not CDN or search)
@@ -190,6 +189,8 @@ const DOMAIN_TIERS = {
     'yelp.com/search', // Yelp search results (not relevant)
     's3-media0.fl.yelpcdn', // Yelp CDN images
     'discoversantaclara.org', // Tourism site with mixed/irrelevant content
+    'instagram.com', // Instagram images not directly accessible (lookaside URLs)
+    'lookaside.instagram.com', // Instagram proxy URLs not accessible
   ],
 };
 
