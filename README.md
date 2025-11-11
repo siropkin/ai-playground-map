@@ -96,9 +96,18 @@ Follow these steps to set up the project locally:
      OSM_QUERY_TIMEOUT=25
      OSM_QUERY_LIMIT=100
 
-     # Cache Config
+     # Cache Versions (increment to invalidate caches)
+     AI_INSIGHTS_CACHE_VERSION=v1
+     IMAGES_CACHE_VERSION=v1
+     OSM_CACHE_VERSION=v1
+
+     # Cache TTLs
      AI_INSIGHTS_CACHE_TTL_MS=31536000000
+
+     # Cache Table Names
      AI_INSIGHTS_CACHE_TABLE_NAME=ai_insights_cache
+     PLAYGROUND_IMAGES_CACHE_TABLE_NAME=playground_images_cache
+     OSM_QUERY_CACHE_TABLE_NAME=osm_query_cache
      ```
 
 4. Run the app locally:
@@ -114,6 +123,7 @@ Feel free to reach out if you want to contribute or have ideas:
 ## 💰 Project Costs & Support
 
 To run this project, I use:
+
 - **Google Gemini API** for AI-powered playground research (paid tier: 2,000 RPM with gemini-2.0-flash)
 - **Google Custom Search API** for high-quality images (free tier: 100 queries/day, then $5 per 1000 queries)
 
