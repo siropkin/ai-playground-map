@@ -65,17 +65,23 @@ interface CustomSearchResponse {
 }
 
 /**
- * Domains to exclude (inaccessible or restricted image URLs)
+ * Domains to exclude at API level (inaccessible or restricted image URLs)
  * These domains host images that require authentication or are not directly accessible
+ *
+ * Note: We exclude these at the Google API level using siteSearch + siteSearchFilter
+ * This is more efficient than filtering locally as Google won't return them at all
  */
 const EXCLUDED_DOMAINS = [
   // Social media platforms with inaccessible/restricted image URLs
   'instagram.com', // Instagram images not directly accessible (lookaside URLs)
   'lookaside.instagram.com', // Instagram proxy URLs not accessible
+  'lookaside.fbsbx.com', // Facebook image proxy (lookaside) - not accessible
   'facebook.com', // Facebook images require authentication
   'fbcdn.net', // Facebook CDN images require authentication
   'tiktok.com', // TikTok images require app/authentication
   'tiktokcdn.com', // TikTok CDN images not accessible
+  'youtube.com', // YouTube thumbnails
+  'ytimg.com', // YouTube image CDN
   // Other inaccessible sources
   'waze.com',
   'ctfassets.net',
@@ -145,6 +151,26 @@ export async function searchImages(
       url.searchParams.set('start', startIndex.toString());
       url.searchParams.set('safe', 'off'); // Disable SafeSearch - playground photos aren't explicit
       url.searchParams.set('filter', '1'); // Duplicate filtering
+
+      // Exclude domains at API level (more efficient than local filtering)
+      // Use siteSearch with siteSearchFilter=e (exclude) to tell Google not to return these domains
+      // Max 10 domains can be excluded per query, so we pick the most problematic ones
+      const primaryExclusions = [
+        'facebook.com',
+        'fbcdn.net',
+        'lookaside.fbsbx.com',
+        'instagram.com',
+        'tiktok.com',
+        'youtube.com',
+        'ytimg.com',
+      ];
+
+      // Add siteSearch parameter with excluded domains
+      // Format: -site:domain1.com -site:domain2.com (space-separated with - prefix)
+      const siteExclusions = primaryExclusions.map(domain => `-site:${domain}`).join(' ');
+      url.searchParams.set('siteSearch', siteExclusions);
+      url.searchParams.set('siteSearchFilter', 'e'); // 'e' = exclude
+
       // Removed imgSize, imgType, dateRestrict, and sort to match browser behavior
       // Let Google's natural relevance algorithm work without restrictions
 
